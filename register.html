@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Anytime Fitness</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <div class="auth-card auth-wide">
+        <div class="auth-brand">
+            <h2>Anytime Fitness</h2>
+            <p>Member Registration</p>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="regName">Full Name</label>
+                <input type="text" id="regName" class="search-input" placeholder="Enter full name" required>
+            </div>
+            <div class="form-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail" class="search-input" placeholder="Enter email" required>
+            </div>
+            <div class="form-group">
+                <label for="regPhone">Phone</label>
+                <input type="tel" id="regPhone" class="search-input" placeholder="Enter phone number">
+            </div>
+            <div class="form-group">
+                <label for="regAddress">Address</label>
+                <input type="text" id="regAddress" class="search-input" placeholder="Enter home address" required>
+            </div>
+            <div class="form-group">
+                <label for="regTier">Membership Tier</label>
+                <select id="regTier" class="search-input">
+                    <option value="Standard Tier">Standard Tier ($40/mo)</option>
+                    <option value="Global Pass">Global Pass ($55/mo)</option>
+                    <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="regUsername">Desired Username</label>
+                <input type="text" id="regUsername" class="search-input" placeholder="Choose a username" required>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Password</label>
+                <input type="password" id="regPassword" class="search-input" placeholder="Create a password" required>
+            </div>
+            <div class="form-group">
+                <label for="regConfirm">Confirm Password</label>
+                <input type="password" id="regConfirm" class="search-input" placeholder="Re-enter password" required>
+            </div>
+            <p class="error-msg" id="regError"></p>
+            <button type="submit" class="btn-primary" style="width: 100%;">Register</button>
+        </form>
+
+        <p class="auth-switch">Already registered? <a href="login.html" class="auth-link">Sign in</a></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

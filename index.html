@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anytime Fitness - CRM Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h2>Anytime Fitness</h2>
+                <p>Branch CRM Portal</p>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="active">Dashboard</a>
+                <a href="members.html">Customer Directory</a>
+                <a href="pipeline.html">Sales Pipeline</a>
+                <a href="tickets.html">Support & Inquiries</a>
+                <a href="login.html" onclick="logoutCustomer()">Logout</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Dashboard Overview</h1>
+                <div class="user-profile">
+                    <span>Staff: Branch Manager</span>
+                </div>
+            </header>
+
+            <!-- Quick Stats Widgets -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <h3>Active Members</h3>
+                    <p class="stat-number">1,245</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Expiring Memberships</h3>
+                    <p class="stat-number warning" id="statExpiring">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Open Inquiries / Tickets</h3>
+                    <p class="stat-number danger" id="statOpenTickets">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Conversion Rate</h3>
+                    <p class="stat-number">18.5%</p>
+                </div>
+            </section>
+
+            <!-- Marketing Campaigns Section with Social Media Integration -->
+            <section class="content-section">
+                <h2>Active Social Media Marketing Campaigns</h2>
+                <div class="campaign-cards">
+                    <div class="campaign-card">
+                        <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80" alt="Gym Workout" class="campaign-img">
+                        <h4>Summer Shred Challenge (Instagram)</h4>
+                        <p>Reach: 3,450 | Clicks: 410</p>
+                        <a href="https://instagram.com/anytimefitness_sample" target="_blank" class="social-link">View IG Post</a>
+                        <span class="badge active">Running</span>
+                    </div>
+                    <div class="campaign-card">
+                        <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80" alt="Fitness Equipment" class="campaign-img">
+                        <h4>New Year Promo (Facebook Ad)</h4>
+                        <p>Reach: 8,200 | Clicks: 950</p>
+                        <a href="https://facebook.com/anytimefitness_sample" target="_blank" class="social-link">View FB Ad</a>
+                        <span class="badge open">Active Campaign</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Anytime Fitness</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <h2>Anytime Fitness</h2>
+            <p>Branch CRM Portal / Member Login</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button type="button" id="tabAdmin" class="auth-tab active">Staff / Admin</button>
+            <button type="button" id="tabCustomer" class="auth-tab">Customer</button>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" class="search-input" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="search-input" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
+            <p class="error-msg" id="loginError"></p>
+            <p class="info-note" id="adminHint">Staff demo credentials: <strong>admin</strong> / <strong>admin123</strong></p>
+            <p class="info-note" id="customerHint" style="display: none;">Customers must <a href="register.html" class="auth-link">register</a> first before logging in.</p>
+        </form>
+
+        <p class="auth-switch">New member? <a href="register.html" class="auth-link">Create an account</a></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

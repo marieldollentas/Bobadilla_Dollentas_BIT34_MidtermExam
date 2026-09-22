@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Pipeline - Anytime Fitness CRM</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h2>Anytime Fitness</h2>
+                <p>Branch CRM Portal</p>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="members.html">Customer Directory</a>
+                <a href="pipeline.html" class="active">Sales Pipeline</a>
+                <a href="tickets.html">Support & Inquiries</a>
+                <a href="login.html" onclick="logoutCustomer()">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Sales Pipeline / Deals Tracker</h1>
+            </header>
+
+            <!-- Pipeline Filters -->
+            <section class="filter-section">
+                <label>Filter by Staff: 
+                    <select id="filterStaff" class="search-input" style="display:inline-block; width:auto; margin-right:15px;">
+                        <option value="all">All Staff</option>
+                        <option value="Coach Mike">Coach Mike</option>
+                        <option value="Agent Sarah">Agent Sarah</option>
+                    </select>
+                </label>
+                <label>Filter by Tier: 
+                    <select id="filterTier" class="search-input" style="display:inline-block; width:auto;">
+                        <option value="all">All Tiers</option>
+                        <option value="Global">Global Pass</option>
+                        <option value="Standard">Standard Tier</option>
+                    </select>
+                </label>
+            </section>
+
+            <!-- Kanban Board with Closed Lost and Deal Value Counters -->
+            <section class="kanban-board">
+                <div class="kanban-column">
+                    <h3>Prospecting (2 leads - $80/mo)</h3>
+                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Standard">
+                        <strong>Alice Johnson</strong> <span class="badge danger">[Hot Lead]</span>
+                        <p class="card-meta">📞 555-1234 | Target: Standard Tier</p>
+                        <p class="card-meta">Assigned: Coach Mike | Next Follow-up: 2026-10-01</p>
+                    </div>
+                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Global">
+                        <strong>Mark Taylor</strong> <span class="badge warning">[Warm]</span>
+                        <p class="card-meta">📞 555-5678 | Target: Global Pass</p>
+                        <p class="card-meta">Assigned: Agent Sarah | Next Follow-up: 2026-10-03</p>
+                    </div>
+                </div>
+
+                <div class="kanban-column">
+                    <h3>Gym Tour (1 lead - $55/mo)</h3>
+                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Global">
+                        <strong>Sarah Connor</strong> <span class="badge danger">[Hot Lead]</span>
+                        <p class="card-meta">📞 555-9012 | Target: Global Pass</p>
+                        <p class="card-meta">Assigned: Coach Mike | Next Follow-up: Today</p>
+                    </div>
+                </div>
+
+                <div class="kanban-column">
+                    <h3>Proposal (1 lead - $40/mo)</h3>
+                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Standard">
+                        <strong>David Lee</strong> <span class="badge warning">[Warm]</span>
+                        <p class="card-meta">📞 555-3456 | Target: Standard Tier</p>
+                        <p class="card-meta">Assigned: Agent Sarah | Next Follow-up: 2026-09-28</p>
+                    </div>
+                </div>
+
+                <div class="kanban-column">
+                    <h3>Closed Won</h3>
+                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Global">
+                        <strong>Chris Evans</strong> <span class="badge active">Joined</span>
+                        <p class="card-meta">📞 555-7890 | Global Pass</p>
+                    </div>
+                </div>
+
+                <div class="kanban-column">
+                    <h3>Closed Lost</h3>
+                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Standard">
+                        <strong>Tom Hardy</strong> <span class="badge open">Archived / Re-target</span>
+                        <p class="card-meta">Reason: Too expensive. Campaign re-target scheduled.</p>
+                    </div>
+                </div>
+
+                <div class="kanban-column" id="supportColumn">
+                    <h3 id="supportCount">Support Tickets</h3>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

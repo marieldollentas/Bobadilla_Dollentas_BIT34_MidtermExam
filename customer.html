@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Membership - Anytime Fitness</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="customer-portal">
+        <header class="customer-header">
+            <div>
+                <h1>Welcome, <span id="welcomeName"></span>!</h1>
+                <p>Anytime Fitness Member Portal</p>
+            </div>
+            <a href="login.html" class="btn-primary" style="text-decoration: none;" onclick="logoutCustomer()">Logout</a>
+        </header>
+
+        <div class="portal-body">
+            <section class="content-section">
+                <h2>My Membership Details</h2>
+                <div class="profile-grid">
+                    <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
+                    <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
+                    <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
+                    <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
+                    <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
+                    <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
+                    <div class="profile-item"><label>Status</label><span class="badge active">Active</span></div>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <h2>Send an Inquiry</h2>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="inqPriority" class="search-input">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Your Email</label>
+                    <input type="text" id="inqEmail" class="search-input" placeholder="Email for support to contact you">
+                </div>
+                <div class="form-group">
+                    <label>Your Phone</label>
+                    <input type="text" id="inqPhone" class="search-input" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label>Your Address</label>
+                    <input type="text" id="inqAddress" class="search-input" placeholder="Home address">
+                </div>
+                <div class="form-group">
+                    <label for="inqMessage">Your Inquiry</label>
+                    <textarea id="inqMessage" class="inquiry-input" rows="4" placeholder="Type your question, feedback, or request here..."></textarea>
+                </div>
+                <button type="button" class="btn-primary" onclick="submitInquiry()">Submit Inquiry</button>
+                <p id="inqStatus" class="success-msg"></p>
+            </section>
+
+            <section class="content-section">
+                <h2>My Recent Inquiries</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Message</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myInquiriesBody"></tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

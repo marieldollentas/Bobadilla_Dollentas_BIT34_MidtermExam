@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Inquiries & Support - Anytime Fitness CRM</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h2>Anytime Fitness</h2>
+                <p>Branch CRM Portal</p>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="members.html">Customer Directory</a>
+                <a href="pipeline.html">Sales Pipeline</a>
+                <a href="tickets.html" class="active">Support & Inquiries</a>
+                <a href="login.html" onclick="logoutCustomer()">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Customer Inquiry & Support Tickets Module</h1>
+                <button id="openTicketModal" class="btn-primary">+ Add Walk-in Ticket</button>
+            </header>
+
+            <section class="content-section">
+                <h2>Staff Logged Tickets & Walk-ins</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date Logged</th>
+                            <th>Customer Name</th>
+                            <th>Contact Info</th>
+                            <th>Issue Description</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTicketsBody"></tbody>
+                </table>
+            </section>
+
+            <section class="content-section">
+                <h2>Customer Portal Inquiries</h2>
+                <p class="card-meta">Inquiries submitted by customers from the member portal, including their contact details.</p>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date Logged</th>
+                            <th>Customer Name</th>
+                            <th>Contact Info</th>
+                            <th>Issue Description</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerInquiriesBody"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Walk-in Ticket Modal -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeTicketModal">&times;</span>
+            <h2>Log Walk-in Ticket</h2>
+            <form id="ticketForm">
+                <div class="form-group">
+                    <label for="ticketName">Customer Name</label>
+                    <input type="text" id="ticketName" class="search-input" placeholder="Enter customer name" required>
+                </div>
+                <div class="form-group">
+                    <label for="ticketContact">Contact Info (email / phone)</label>
+                    <input type="text" id="ticketContact" class="search-input" placeholder="Email or phone number">
+                </div>
+                <div class="form-group">
+                    <label for="ticketPriority">Priority</label>
+                    <select id="ticketPriority" class="search-input">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ticketIssue">Issue Description</label>
+                    <textarea id="ticketIssue" class="inquiry-input" rows="3" placeholder="Describe the issue or request" required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Save Ticket</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resolve / Reply Dialog -->
+    <div id="resolveModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeResolveModal">&times;</span>
+            <h2>Resolve Ticket & Reply</h2>
+            <div class="form-group">
+                <label>From</label>
+                <p id="resolveFrom" class="dialog-preview"></p>
+            </div>
+            <div class="form-group">
+                <label>Issue</label>
+                <p id="resolveIssue" class="dialog-preview"></p>
+            </div>
+            <div class="form-group">
+                <label for="resolveReply">Your Reply to Customer</label>
+                <textarea id="resolveReply" class="inquiry-input" rows="3" placeholder="Type the resolution or reply to the customer..."></textarea>
+            </div>
+            <button id="confirmResolve" class="btn-primary">Resolve & Send Reply</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

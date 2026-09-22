@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Directory - Anytime Fitness CRM</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <h2>Anytime Fitness</h2>
+                <p>Branch CRM Portal</p>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="members.html" class="active">Customer Directory</a>
+                <a href="pipeline.html">Sales Pipeline</a>
+                <a href="tickets.html">Support & Inquiries</a>
+                <a href="login.html" onclick="logoutCustomer()">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Customer Directory & Membership Status</h1>
+                <button id="openCustomerModal" class="btn-primary">+ Add New Customer</button>
+            </header>
+
+            <section class="content-section">
+                <div class="tier-info-banner">
+                    <h3>Membership Tiers Info</h3>
+                    <p><strong>Standard:</strong> Access to home club only ($40/mo). | <strong>Global:</strong> Access to all clubs worldwide ($55/mo). | <strong>Student/Corporate:</strong> Discounted tier with valid ID ($35/mo).</p>
+                </div>
+
+                <div class="search-bar-container" style="margin-top: 15px;">
+                    <input type="text" id="searchCustomer" placeholder="Search members by name, tier, or status..." class="search-input">
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Contact Info</th>
+                            <th>Tier</th>
+                            <th>Date Joined</th>
+                            <th>Expiration Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        <tr>
+                            <td>John Doe</td>
+                            <td>john@example.com / 555-0192</td>
+                            <td>Global Pass</td>
+                            <td>2025-01-15</td>
+                            <td>2026-10-15</td>
+                            <td><span class="badge active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Jane Smith</td>
+                            <td>jane@example.com / 555-8491</td>
+                            <td>Standard Tier</td>
+                            <td>2025-04-10</td>
+                            <td>2026-03-30</td>
+                            <td><span class="badge warning">Expiring Soon</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add New Customer</h2>
+            <form id="customerForm">
+                <div class="form-group">
+                    <label for="newCustName">Full Name</label>
+                    <input type="text" id="newCustName" required placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label for="newCustEmail">Email / Phone</label>
+                    <input type="text" id="newCustEmail" required placeholder="Email or Phone">
+                </div>
+                <div class="form-group">
+                    <label for="newCustTier">Membership Tier</label>
+                    <select id="newCustTier" class="search-input">
+                        <option value="Standard Tier">Standard Tier ($40/mo)</option>
+                        <option value="Global Pass">Global Pass ($55/mo)</option>
+                        <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newCustExp">Expiration Date</label>
+                    <input type="date" id="newCustExp" required>
+                </div>
+                <button type="submit" class="btn-primary">Save Customer</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
