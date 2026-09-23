@@ -172,30 +172,88 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Pipeline Kanban Filter Logic
-    const filterStaff = document.getElementById("filterStaff");
-    const filterTier = document.getElementById("filterTier");
-    
-    if (filterStaff && filterTier) {
-        const applyFilters = () => {
-            const staffVal = filterStaff.value;
-            const tierVal = filterTier.value;
-            const cards = document.querySelectorAll(".kanban-card");
+    // Pipeline Kanban: Modal, Seed, Render, Search & Filters
+    const pipelineModal = document.getElementById("pipelineModal");
+    const openPipelineModalBtn = document.getElementById("openPipelineModal");
+    const closePipelineModalBtn = document.getElementById("closePipelineModal");
+    const cancelPipelineModalBtn = document.getElementById("cancelPipelineModal");
+    const pipelineForm = document.getElementById("pipelineForm");
+    const pipelineSearch = document.getElementById("pipelineSearch");
+    const pipelineStaffFilter = document.getElementById("filterStaff");
+    const pipelineTierFilter = document.getElementById("filterTier");
 
-            cards.forEach(card => {
-                const cardStaff = card.getAttribute("data-staff");
-                const cardTier = card.getAttribute("data-tier");
+    seedPipelineLeads();
+    if (document.getElementById("pipelineBoard")) renderPipelineBoard();
 
-                const matchesStaff = (staffVal === "all" || cardStaff === staffVal);
-                const matchesTier = (tierVal === "all" || cardTier === tierVal);
-
-                card.style.display = (matchesStaff && matchesTier) ? "block" : "none";
-            });
-        };
-
-        filterStaff.addEventListener("change", applyFilters);
-        filterTier.addEventListener("change", applyFilters);
+    if (openPipelineModalBtn) {
+        openPipelineModalBtn.addEventListener("click", () => {
+            pipelineForm.reset();
+            document.getElementById("leadId").value = "";
+            document.getElementById("leadStage").value = "new-lead";
+            document.getElementById("lostReasonGroup").style.display = "none";
+            document.getElementById("pipelineModalTitle").textContent = "Add Prospecting Client";
+            document.getElementById("pipelineForm").querySelector('button[type="submit"]').textContent = "Save Client";
+            pipelineModal.style.display = "flex";
+        });
     }
+    if (closePipelineModalBtn) closePipelineModalBtn.addEventListener("click", () => pipelineModal.style.display = "none");
+    if (cancelPipelineModalBtn) cancelPipelineModalBtn.addEventListener("click", () => pipelineModal.style.display = "none");
+    if (pipelineModal) {
+        window.addEventListener("click", (e) => {
+            if (e.target === pipelineModal) pipelineModal.style.display = "none";
+        });
+    }
+
+    const leadStageSelect = document.getElementById("leadStage");
+    if (leadStageSelect) {
+        const toggleLostReason = () => {
+            const group = document.getElementById("lostReasonGroup");
+            if (group) group.style.display = leadStageSelect.value === "lost" ? "block" : "none";
+        };
+        leadStageSelect.addEventListener("change", toggleLostReason);
+        toggleLostReason();
+    }
+
+    if (pipelineForm) {
+        pipelineForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const name = document.getElementById("leadName").value.trim();
+            if (!name) {
+                alert("Please enter the client's name.");
+                return;
+            }
+
+            const leads = getPipelineLeads();
+            const data = {
+                name,
+                phone: document.getElementById("leadPhone").value.trim(),
+                tier: document.getElementById("leadTier").value,
+                staff: document.getElementById("leadStaff").value,
+                heat: document.getElementById("leadHeat").value,
+                stage: document.getElementById("leadStage").value,
+                followUp: document.getElementById("leadFollowUp").value,
+                monthlyValue: document.getElementById("leadValue").value || 0,
+                reason: document.getElementById("leadLostReason").value.trim()
+            };
+
+            const id = document.getElementById("leadId").value;
+            if (id) {
+                const idx = leads.findIndex(l => String(l.id) === String(id));
+                if (idx > -1) leads[idx] = { ...leads[idx], ...data };
+            } else {
+                data.id = Date.now();
+                leads.push(data);
+            }
+
+            savePipelineLeads(leads);
+            pipelineModal.style.display = "none";
+            renderPipelineBoard();
+        });
+    }
+
+    if (pipelineSearch) pipelineSearch.addEventListener("input", renderPipelineBoard);
+    if (pipelineStaffFilter) pipelineStaffFilter.addEventListener("change", renderPipelineBoard);
+    if (pipelineTierFilter) pipelineTierFilter.addEventListener("change", renderPipelineBoard);
 
     // Login / Register page logic
     const loginForm = document.getElementById("loginForm");
@@ -565,7 +623,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Render tickets & inquiries tables
     if (document.getElementById("staffTicketsBody")) renderStaffTickets();
     if (document.getElementById("customerInquiriesBody")) renderCustomerInquiries();
-    if (document.getElementById("supportColumn")) renderSupportTickets();
 
     // Initialize live stats per page
     if (document.querySelector("#staffTicketsBody") || document.querySelector("#customerInquiriesBody")) countOpenTickets();
@@ -710,55 +767,6 @@ function renderCustomerInquiries() {
     });
 }
 
-function renderSupportTickets() {
-    const column = document.getElementById("supportColumn");
-    if (!column) return;
-
-    const staffTickets = JSON.parse(localStorage.getItem("crmStaffTickets") || "[]")
-        .filter(t => String(t.status || "").toLowerCase() !== "resolved");
-    const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]")
-        .filter(i => String(i.status || "").toLowerCase() !== "resolved")
-        .map(i => ({
-            id: i.id,
-            name: i.name,
-            issue: i.message,
-            priority: i.priority,
-            source: "Portal",
-            status: i.status
-        }));
-
-    const all = [
-        ...staffTickets.map(t => ({ id: t.id, name: t.name, issue: t.issue, priority: t.priority, source: "Staff", status: t.status })),
-        ...inquiries
-    ];
-
-    const title = document.getElementById("supportCount");
-    if (title) title.textContent = `Support Tickets (${all.length})`;
-
-    column.querySelectorAll(".kanban-card").forEach(c => c.remove());
-
-    if (all.length === 0) {
-        const p = document.createElement("p");
-        p.className = "card-meta";
-        p.textContent = "No open support tickets.";
-        column.appendChild(p);
-        return;
-    }
-
-    all.forEach(t => {
-        const div = document.createElement("div");
-        div.className = "kanban-card";
-        div.setAttribute("data-staff", "Support");
-        div.setAttribute("data-tier", "Support");
-        div.innerHTML = `
-            <strong>${t.name}</strong> <span class="badge ${priorityClass(t.priority)}">${t.priority}</span>
-            <p class="card-meta">Source: ${t.source} | ${t.status}</p>
-            <p class="card-meta">${t.issue}</p>
-        `;
-        column.appendChild(div);
-    });
-}
-
 // Open the details / comment-reply dialog for a given ticket or inquiry
 function openTicketDetails(id, source, buttonElement) {
     const modal = document.getElementById("ticketDetailsModal");
@@ -824,7 +832,6 @@ function saveTicketUpdate() {
 
     renderStaffTickets();
     renderCustomerInquiries();
-    renderSupportTickets();
     getOpenTicketsCount();
 }
 
@@ -851,7 +858,6 @@ function confirmDeleteTicket() {
 
     renderStaffTickets();
     renderCustomerInquiries();
-    renderSupportTickets();
     getOpenTicketsCount();
 }
 
@@ -877,4 +883,182 @@ function logoutCustomer() {
 function toggleTicketDetails(id) {
     const el = document.getElementById(`ticket-details-${id}`);
     if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+// ---- Sales Pipeline (Prospecting Clients) ----
+const PIPELINE_KEY = "crmPipelineLeads";
+
+const PIPELINE_STAGES = [
+    { id: "new-lead", title: "New Lead", goal: "Goal: Respond within 5 minutes." },
+    { id: "contacted", title: "Contacted", goal: "Goal: Book a gym tour." },
+    { id: "visit", title: "Visit Scheduled", goal: "Goal: Send an automated text reminder." },
+    { id: "trial", title: "Trial / Tour Completed", goal: "Goal: Present a tailored membership offer on the spot." },
+    { id: "won", title: "Membership (Won)", goal: "Goal: Trigger onboarding and welcome sequence." },
+    { id: "lost", title: "Closed / Lost", goal: "Goal: Move to a long-term re-engagement email list." }
+];
+
+// Matches "Membership Tiers Info" in the Customer Directory (members.html)
+const PIPELINE_TIERS = [
+    { value: "Standard Tier", label: "Standard Tier ($40/mo)", price: 40 },
+    { value: "Global Pass", label: "Global Pass ($55/mo)", price: 55 },
+    { value: "Student/Corporate", label: "Student/Corporate ($35/mo)", price: 35 }
+];
+
+function normalizePipelineTier(tier) {
+    if (tier === "Standard") return "Standard Tier";
+    if (tier === "Global") return "Global Pass";
+    if (PIPELINE_TIERS.some(t => t.value === tier)) return tier;
+    return "Standard Tier";
+}
+
+function pipelineTierPrice(tier) {
+    const t = PIPELINE_TIERS.find(t => t.value === normalizePipelineTier(tier));
+    return t ? t.price : 0;
+}
+
+function serviceTierLabel(tier) {
+    const t = PIPELINE_TIERS.find(t => t.value === normalizePipelineTier(tier));
+    return t ? t.label : tier;
+}
+
+function getPipelineLeads() {
+    return JSON.parse(localStorage.getItem(PIPELINE_KEY) || "[]").map(l => {
+        const tier = normalizePipelineTier(l.tier);
+        const hasValue = l.monthlyValue !== undefined && l.monthlyValue !== null && l.monthlyValue !== "";
+        return { ...l, tier, monthlyValue: hasValue ? Number(l.monthlyValue) : pipelineTierPrice(tier) };
+    });
+}
+
+function savePipelineLeads(list) {
+    localStorage.setItem(PIPELINE_KEY, JSON.stringify(list));
+}
+
+function seedPipelineLeads() {
+    if (localStorage.getItem(PIPELINE_KEY)) return;
+    const today = new Date().toISOString().split("T")[0];
+    savePipelineLeads([
+        { id: 1, name: "Alice Johnson", phone: "555-1234", tier: "Standard Tier", staff: "Coach Mike", heat: "Hot", stage: "new-lead", followUp: "2026-10-01", monthlyValue: 40, reason: "" },
+        { id: 2, name: "Mark Taylor", phone: "555-5678", tier: "Global Pass", staff: "Agent Sarah", heat: "Warm", stage: "new-lead", followUp: "2026-10-03", monthlyValue: 55, reason: "" },
+        { id: 3, name: "Sarah Connor", phone: "555-9012", tier: "Global Pass", staff: "Coach Mike", heat: "Hot", stage: "contacted", followUp: today, monthlyValue: 55, reason: "" },
+        { id: 4, name: "David Lee", phone: "555-3456", tier: "Standard Tier", staff: "Agent Sarah", heat: "Warm", stage: "visit", followUp: "2026-09-28", monthlyValue: 40, reason: "" },
+        { id: 5, name: "Chris Evans", phone: "555-7890", tier: "Global Pass", staff: "Coach Mike", heat: "Hot", stage: "won", followUp: "", monthlyValue: 55, reason: "" },
+        { id: 6, name: "Tom Hardy", phone: "555-1111", tier: "Standard Tier", staff: "Agent Sarah", heat: "Cold", stage: "lost", followUp: "", monthlyValue: 0, reason: "Too expensive. Campaign re-target scheduled." }
+    ]);
+}
+
+function pipelineFilters() {
+    return {
+        search: ((document.getElementById("pipelineSearch") || {}).value || "").trim().toLowerCase(),
+        staff: (document.getElementById("filterStaff") || {}).value || "all",
+        tier: (document.getElementById("filterTier") || {}).value || "all"
+    };
+}
+
+function leadHeatBadge(heat) {
+    const cls = heat === "Hot" ? "danger" : heat === "Warm" ? "warning" : "open";
+    const label = heat === "Cold" ? "Cold" : `${heat} Lead`;
+    return `<span class="badge ${cls}">[${label}]</span>`;
+}
+
+function buildLeadCard(lead) {
+    const div = document.createElement("div");
+    div.className = "kanban-card";
+    div.setAttribute("data-id", lead.id);
+    div.setAttribute("data-staff", lead.staff);
+    div.setAttribute("data-tier", lead.tier);
+
+    const followUp = lead.followUp ? `Next Follow-up: ${lead.followUp}` : "Next Follow-up: —";
+
+    let meta2 = `Assigned: ${lead.staff} | ${followUp}`;
+    if (lead.stage === "won") meta2 = `Assigned: ${lead.staff} | Membership active`;
+    if (lead.stage === "lost" && lead.reason) meta2 = `Reason: ${lead.reason}`;
+
+    const value = Number(lead.monthlyValue) || 0;
+    const tierPrice = pipelineTierPrice(lead.tier);
+    const tierText = tierPrice ? `${lead.tier} ($${tierPrice}/mo)` : lead.tier;
+    const valueSuffix = lead.stage === "won" && value > 0 ? ` | $${value}/mo` : "";
+
+    div.innerHTML = `
+        <strong>${lead.name}</strong> ${leadHeatBadge(lead.heat)}
+        <p class="card-meta">📞 ${lead.phone || "—"} | Target: ${tierText}${valueSuffix}</p>
+        <p class="card-meta">${meta2}</p>
+        <div class="kanban-card-actions">
+            <button class="btn-view" onclick="openEditPipelineLead(${lead.id})">Edit</button>
+            <button class="btn-delete" onclick="requestDeletePipelineLead(${lead.id})">Delete</button>
+        </div>
+    `;
+    return div;
+}
+
+function renderPipelineBoard() {
+    const board = document.getElementById("pipelineBoard");
+    if (!board) return;
+
+    const filters = pipelineFilters();
+    const leads = getPipelineLeads();
+
+    board.querySelectorAll(".kanban-column").forEach(col => {
+        const stage = col.getAttribute("data-stage");
+        const container = col.querySelector(".kanban-cards");
+        if (!container) return;
+
+        const stageLeads = leads.filter(l => l.stage === stage);
+        const totalValue = stageLeads.reduce((sum, l) => sum + (Number(l.monthlyValue) || 0), 0);
+        const meta = PIPELINE_STAGES.find(s => s.id === stage);
+
+        const titleEl = col.querySelector("h3");
+        if (titleEl && meta) {
+            titleEl.innerHTML = `${meta.title} <span class="stage-count">(${stageLeads.length} ${stageLeads.length === 1 ? "lead" : "leads"}${totalValue ? " - $" + totalValue + "/mo" : ""})</span>`;
+        }
+
+        const visible = stageLeads.filter(lead => {
+            const matchesStaff = filters.staff === "all" || lead.staff === filters.staff;
+            const matchesTier = filters.tier === "all" || lead.tier === filters.tier;
+            const tierLabel = serviceTierLabel(lead.tier);
+            const searchText = [lead.name, lead.phone, lead.tier, tierLabel, lead.staff, lead.reason].filter(Boolean).join(" ").toLowerCase();
+            const matchesSearch = !filters.search || searchText.includes(filters.search);
+            return matchesStaff && matchesTier && matchesSearch;
+        });
+
+        container.innerHTML = "";
+        if (visible.length === 0) {
+            const p = document.createElement("p");
+            p.className = "card-meta";
+            p.textContent = stageLeads.length === 0 ? "No leads in this stage." : "No matching leads.";
+            container.appendChild(p);
+            return;
+        }
+        visible.forEach(lead => container.appendChild(buildLeadCard(lead)));
+    });
+}
+
+function openEditPipelineLead(id) {
+    const lead = getPipelineLeads().find(l => String(l.id) === String(id));
+    const modal = document.getElementById("pipelineModal");
+    if (!lead || !modal) return;
+
+    document.getElementById("leadId").value = lead.id;
+    document.getElementById("leadName").value = lead.name;
+    document.getElementById("leadPhone").value = lead.phone || "";
+    document.getElementById("leadTier").value = lead.tier;
+    document.getElementById("leadStaff").value = lead.staff;
+    document.getElementById("leadHeat").value = lead.heat || "Warm";
+    document.getElementById("leadStage").value = lead.stage;
+    document.getElementById("leadFollowUp").value = lead.followUp || "";
+    document.getElementById("leadValue").value = lead.monthlyValue ? Number(lead.monthlyValue) : "";
+    document.getElementById("leadLostReason").value = lead.reason || "";
+
+    const group = document.getElementById("lostReasonGroup");
+    if (group) group.style.display = lead.stage === "lost" ? "block" : "none";
+
+    document.getElementById("pipelineModalTitle").textContent = "Edit Prospecting Client";
+    document.getElementById("pipelineForm").querySelector('button[type="submit"]').textContent = "Update Client";
+    modal.style.display = "flex";
+}
+
+function requestDeletePipelineLead(id) {
+    if (!confirm("Delete this lead from the pipeline? This cannot be undone.")) return;
+    const leads = getPipelineLeads().filter(l => String(l.id) !== String(id));
+    savePipelineLeads(leads);
+    renderPipelineBoard();
 }

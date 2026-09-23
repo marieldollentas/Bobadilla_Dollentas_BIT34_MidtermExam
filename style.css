@@ -166,6 +166,32 @@ body {
     margin-top: 5px;
 }
 
+/* Pipeline stage goal & counters */
+.stage-goal {
+    font-size: 0.72rem;
+    color: #7a7a7a;
+    font-style: italic;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.stage-count {
+    font-weight: 600;
+    color: #5c068c;
+    font-size: 0.8rem;
+}
+
+.kanban-cards {
+    min-height: 60px;
+}
+
+.kanban-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
 /* Campaigns & Images */
 .campaign-cards {
     display: flex;

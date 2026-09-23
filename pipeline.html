@@ -25,82 +25,139 @@
         <main class="main-content">
             <header class="top-header">
                 <h1>Sales Pipeline / Deals Tracker</h1>
+                <button id="openPipelineModal" class="btn-primary">+ Add Prospecting Client</button>
             </header>
 
-            <!-- Pipeline Filters -->
+            <!-- Pipeline Search & Filters -->
             <section class="filter-section">
-                <label>Filter by Staff: 
-                    <select id="filterStaff" class="search-input" style="display:inline-block; width:auto; margin-right:15px;">
+                <div class="ticket-filter-bar">
+                    <input type="text" id="pipelineSearch" class="search-input" placeholder="Search by name, phone, tier, or staff...">
+                    <select id="filterStaff" class="search-input">
                         <option value="all">All Staff</option>
                         <option value="Coach Mike">Coach Mike</option>
                         <option value="Agent Sarah">Agent Sarah</option>
                     </select>
-                </label>
-                <label>Filter by Tier: 
-                    <select id="filterTier" class="search-input" style="display:inline-block; width:auto;">
+                    <select id="filterTier" class="search-input">
                         <option value="all">All Tiers</option>
-                        <option value="Global">Global Pass</option>
-                        <option value="Standard">Standard Tier</option>
+                        <option value="Standard Tier">Standard Tier ($40/mo)</option>
+                        <option value="Global Pass">Global Pass ($55/mo)</option>
+                        <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
                     </select>
-                </label>
+                </div>
             </section>
 
-            <!-- Kanban Board with Closed Lost and Deal Value Counters -->
-            <section class="kanban-board">
-                <div class="kanban-column">
-                    <h3>Prospecting (2 leads - $80/mo)</h3>
-                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Standard">
-                        <strong>Alice Johnson</strong> <span class="badge danger">[Hot Lead]</span>
-                        <p class="card-meta">📞 555-1234 | Target: Standard Tier</p>
-                        <p class="card-meta">Assigned: Coach Mike | Next Follow-up: 2026-10-01</p>
-                    </div>
-                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Global">
-                        <strong>Mark Taylor</strong> <span class="badge warning">[Warm]</span>
-                        <p class="card-meta">📞 555-5678 | Target: Global Pass</p>
-                        <p class="card-meta">Assigned: Agent Sarah | Next Follow-up: 2026-10-03</p>
-                    </div>
+            <!-- Kanban Board with Pipeline Stages, Goals and Deal Value Counters -->
+            <section class="kanban-board" id="pipelineBoard">
+                <div class="kanban-column" data-stage="new-lead">
+                    <h3>New Lead</h3>
+                    <p class="stage-goal">Goal: Respond within 5 minutes.</p>
+                    <div class="kanban-cards"></div>
                 </div>
 
-                <div class="kanban-column">
-                    <h3>Gym Tour (1 lead - $55/mo)</h3>
-                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Global">
-                        <strong>Sarah Connor</strong> <span class="badge danger">[Hot Lead]</span>
-                        <p class="card-meta">📞 555-9012 | Target: Global Pass</p>
-                        <p class="card-meta">Assigned: Coach Mike | Next Follow-up: Today</p>
-                    </div>
+                <div class="kanban-column" data-stage="contacted">
+                    <h3>Contacted</h3>
+                    <p class="stage-goal">Goal: Book a gym tour.</p>
+                    <div class="kanban-cards"></div>
                 </div>
 
-                <div class="kanban-column">
-                    <h3>Proposal (1 lead - $40/mo)</h3>
-                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Standard">
-                        <strong>David Lee</strong> <span class="badge warning">[Warm]</span>
-                        <p class="card-meta">📞 555-3456 | Target: Standard Tier</p>
-                        <p class="card-meta">Assigned: Agent Sarah | Next Follow-up: 2026-09-28</p>
-                    </div>
+                <div class="kanban-column" data-stage="visit">
+                    <h3>Visit Scheduled</h3>
+                    <p class="stage-goal">Goal: Send an automated text reminder.</p>
+                    <div class="kanban-cards"></div>
                 </div>
 
-                <div class="kanban-column">
-                    <h3>Closed Won</h3>
-                    <div class="kanban-card" data-staff="Coach Mike" data-tier="Global">
-                        <strong>Chris Evans</strong> <span class="badge active">Joined</span>
-                        <p class="card-meta">📞 555-7890 | Global Pass</p>
-                    </div>
+                <div class="kanban-column" data-stage="trial">
+                    <h3>Trial / Tour Completed</h3>
+                    <p class="stage-goal">Goal: Present a tailored membership offer on the spot.</p>
+                    <div class="kanban-cards"></div>
                 </div>
 
-                <div class="kanban-column">
-                    <h3>Closed Lost</h3>
-                    <div class="kanban-card" data-staff="Agent Sarah" data-tier="Standard">
-                        <strong>Tom Hardy</strong> <span class="badge open">Archived / Re-target</span>
-                        <p class="card-meta">Reason: Too expensive. Campaign re-target scheduled.</p>
-                    </div>
+                <div class="kanban-column" data-stage="won">
+                    <h3>Membership (Won)</h3>
+                    <p class="stage-goal">Goal: Trigger onboarding and welcome sequence.</p>
+                    <div class="kanban-cards"></div>
                 </div>
 
-                <div class="kanban-column" id="supportColumn">
-                    <h3 id="supportCount">Support Tickets</h3>
+                <div class="kanban-column" data-stage="lost">
+                    <h3>Closed / Lost</h3>
+                    <p class="stage-goal">Goal: Move to a long-term re-engagement email list.</p>
+                    <div class="kanban-cards"></div>
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- Add / Edit Prospecting Client Modal -->
+    <div id="pipelineModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closePipelineModal">&times;</span>
+            <h2 id="pipelineModalTitle">Add Prospecting Client</h2>
+            <form id="pipelineForm">
+                <input type="hidden" id="leadId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="leadName">Full Name</label>
+                        <input type="text" id="leadName" class="search-input" placeholder="Enter client name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="leadPhone">Phone</label>
+                        <input type="text" id="leadPhone" class="search-input" placeholder="e.g. 555-1234">
+                    </div>
+                    <div class="form-group">
+                        <label for="leadTier">Target Tier</label>
+                        <select id="leadTier" class="search-input">
+                            <option value="Standard Tier">Standard Tier ($40/mo)</option>
+                            <option value="Global Pass">Global Pass ($55/mo)</option>
+                            <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="leadStaff">Assigned Staff</label>
+                        <select id="leadStaff" class="search-input">
+                            <option value="Coach Mike">Coach Mike</option>
+                            <option value="Agent Sarah">Agent Sarah</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="leadHeat">Lead Heat</label>
+                        <select id="leadHeat" class="search-input">
+                            <option value="Hot">Hot Lead</option>
+                            <option value="Warm">Warm</option>
+                            <option value="Cold">Cold</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="leadStage">Stage</label>
+                        <select id="leadStage" class="search-input">
+                            <option value="new-lead">New Lead</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="visit">Visit Scheduled</option>
+                            <option value="trial">Trial / Tour Completed</option>
+                            <option value="won">Membership (Won)</option>
+                            <option value="lost">Closed / Lost</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="leadFollowUp">Next Follow-up</label>
+                        <input type="date" id="leadFollowUp" class="search-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="leadValue">Monthly Value ($/mo)</label>
+                        <input type="number" id="leadValue" class="search-input" min="0" step="1" placeholder="e.g. 40">
+                    </div>
+                </div>
+                <div class="form-group" id="lostReasonGroup" style="display:none;">
+                    <label for="leadLostReason">Lost Reason / Notes</label>
+                    <textarea id="leadLostReason" class="inquiry-input" rows="2" placeholder="Why was this lead lost (for re-engagement tracking)?"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelPipelineModal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
