@@ -61,18 +61,21 @@
             </section>
 
             <section class="content-section">
-                <h2>My Recent Inquiries</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Message</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="myInquiriesBody"></tbody>
-                </table>
+                <h2>My Support Tickets</h2>
+                <p class="card-meta">Click <strong>View Details</strong> to see the full conversation, including admin comments and replies.</p>
+                <div class="ticket-filter-bar" style="margin-top:12px;">
+                    <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
+                    <select id="portalStatusFilter" class="search-input">
+                        <option value="all">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="portalHideResolved"> Hide Resolved Tickets
+                    </label>
+                </div>
+                <div id="myInquiriesList" class="ticket-list"></div>
             </section>
         </div>
     </div>

@@ -42,16 +42,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function countOpenTickets() {
-        const tables = [document.querySelectorAll("#staffTicketsBody tr"), document.querySelectorAll("#customerInquiriesBody tr")];
-        let count = 0;
-
-        tables.forEach(rows => {
-            rows.forEach(row => {
-                const statusEl = row.querySelector(".badge");
-                const status = statusEl ? statusEl.textContent.trim().toLowerCase() : "";
-                if (status === "open" || status === "in progress") count++;
-            });
-        });
+        const all = [
+            ...JSON.parse(localStorage.getItem("crmStaffTickets") || "[]"),
+            ...JSON.parse(localStorage.getItem("crmInquiries") || "[]")
+        ];
+        const count = all.filter(t => {
+            const s = String(t.status || "").toLowerCase();
+            return s === "open" || s === "in progress";
+        }).length;
 
         localStorage.setItem(TICKETS_KEY, count);
         return count;
@@ -69,7 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 issue: "Requested a 1-month membership freeze starting next week due to business travel.",
                 priority: "Medium",
                 status: "Open",
-                reply: ""
+                reply: "",
+                comments: []
             },
             {
                 id: 2,
@@ -79,10 +78,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 issue: "Lost key fob during evening workout; needs replacement and locker access reset.",
                 priority: "High",
                 status: "In Progress",
-                reply: ""
+                reply: "",
+                comments: []
             }
         ]));
     }
+
+    // Migrate any pre-existing tickets/inquiries so they support comment threads
+    ["crmStaffTickets", "crmInquiries"].forEach(key => {
+        let list = JSON.parse(localStorage.getItem(key) || "[]");
+        list = list.map(entry => {
+            if (!Array.isArray(entry.comments)) {
+                entry.comments = entry.reply ? [{ author: "Support Staff", role: "staff", text: entry.reply, date: entry.date }] : [];
+            }
+            return entry;
+        });
+        localStorage.setItem(key, JSON.stringify(list));
+    });
 
     // Modal Elements for Customer Directory
     const modal = document.getElementById("customerModal");
@@ -276,6 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Customer portal page logic
+    let renderMyInquiries = null;
     const portalPage = document.getElementById("welcomeName");
     if (portalPage) {
         const currentUser = sessionStorage.getItem("crmCurrentUser");
@@ -307,29 +320,51 @@ document.addEventListener("DOMContentLoaded", () => {
         if (inquirePhone) inquirePhone.value = customer.phone || "";
         if (inquireAddress) inquireAddress.value = customer.address || "";
 
-        const renderMyInquiries = () => {
-            const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]")
-                .filter(i => i.username === currentUser)
-                .sort((a, b) => b.id - a.id);
-            const tbody = document.getElementById("myInquiriesBody");
-            tbody.innerHTML = "";
+        renderMyInquiries = () => {
+            const container = document.getElementById("myInquiriesList");
+            if (!container) return;
 
+            const search = ((document.getElementById("portalTicketSearch") || {}).value || "").trim().toLowerCase();
+            const statusFilter = (document.getElementById("portalStatusFilter") || {}).value || "all";
+            const hideResolved = !!((document.getElementById("portalHideResolved") || {}).checked);
+
+            let inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]")
+                .filter(i => i.username === currentUser)
+                .filter(i => {
+                    if (hideResolved && String(i.status || "").toLowerCase() === "resolved") return false;
+                    if (statusFilter !== "all" && String(i.status || "").toLowerCase() !== statusFilter.toLowerCase()) return false;
+                    if (search) {
+                        const hay = [i.message, i.priority, i.status, i.email, i.phone].filter(Boolean).join(" ").toLowerCase();
+                        if (!hay.includes(search)) return false;
+                    }
+                    return true;
+                })
+                .sort((a, b) => b.id - a.id);
+
+            container.innerHTML = "";
             if (inquiries.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4">No inquiries yet.</td></tr>';
+                container.innerHTML = '<p class="card-meta">No matching tickets.</p>';
                 return;
             }
 
             inquiries.forEach(inq => {
-                const priorityClass = inq.priority === "High" ? "danger" : inq.priority === "Low" ? "active" : "warning";
-                const statusClass = inq.status === "Resolved" ? "active" : "open";
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${inq.date}</td>
-                    <td>${inq.message}${inq.reply ? `<span class="ticket-reply">Staff reply: ${inq.reply}</span>` : ""}</td>
-                    <td><span class="badge ${priorityClass}">${inq.priority}</span></td>
-                    <td><span class="badge ${statusClass}">${inq.status}</span></td>
+                const card = document.createElement("div");
+                card.className = "ticket-card";
+                card.innerHTML = `
+                    <div class="ticket-card-header">
+                        <div>
+                            <span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span>
+                            <span class="badge ${statusClass(inq.status)}">${inq.status}</span>
+                        </div>
+                        <span class="ticket-date">${inq.date}</span>
+                    </div>
+                    <p class="ticket-message">${inq.message}</p>
+                    <button class="btn-view" onclick="toggleTicketDetails(${inq.id})">View / Hide Details</button>
+                    <div class="ticket-details" id="ticket-details-${inq.id}" style="display:none;">
+                        <div class="ticket-thread">${commentsHTML(inq)}</div>
+                    </div>
                 `;
-                tbody.appendChild(tr);
+                container.appendChild(card);
             });
         };
 
@@ -349,19 +384,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
-            inquiries.push({
+            const now = new Date();
+            const dateStr = now.toISOString().split("T")[0];
+            const newInquiry = {
                 id: Date.now(),
                 username: currentUser,
                 name: customer.name,
                 email,
                 phone,
                 address,
-                date: new Date().toISOString().split("T")[0],
+                date: dateStr,
                 message,
                 priority,
                 status: "Open",
-                reply: ""
-            });
+                reply: "",
+                comments: [{
+                    author: customer.name,
+                    role: "customer",
+                    text: message,
+                    date: dateStr
+                }]
+            };
+            inquiries.push(newInquiry);
             localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
 
             document.getElementById("inqMessage").value = "";
@@ -398,6 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const name = document.getElementById("ticketName").value.trim();
             const contact = document.getElementById("ticketContact").value.trim();
             const priority = document.getElementById("ticketPriority").value;
+            const status = document.getElementById("ticketStatus").value;
             const issue = document.getElementById("ticketIssue").value.trim();
 
             if (!name || !issue) {
@@ -413,8 +458,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 contact,
                 issue,
                 priority,
-                status: "Open",
-                reply: ""
+                status,
+                reply: "",
+                comments: [{
+                    author: name,
+                    role: "customer",
+                    text: issue,
+                    date: new Date().toISOString().split("T")[0]
+                }]
             });
             localStorage.setItem("crmStaffTickets", JSON.stringify(tickets));
 
@@ -425,25 +476,91 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Tickets page: Resolve / Reply dialog
-    const resolveModal = document.getElementById("resolveModal");
-    const closeResolveModal = document.getElementById("closeResolveModal");
-    const confirmResolveBtn = document.getElementById("confirmResolve");
+    // Tickets page: Ticket Details / Comment-Reply modal
+    const detailsModal = document.getElementById("ticketDetailsModal");
+    const closeDetailsModal = document.getElementById("closeDetailsModal");
+    const confirmDetailsUpdateBtn = document.getElementById("confirmDetailsUpdate");
+    const deleteFromDetailsBtn = document.getElementById("deleteFromDetails");
 
-    if (closeResolveModal) {
-        closeResolveModal.addEventListener("click", () => {
-            resolveModal.style.display = "none";
+    if (closeDetailsModal && detailsModal) {
+        closeDetailsModal.addEventListener("click", () => {
+            detailsModal.style.display = "none";
         });
         window.addEventListener("click", (e) => {
-            if (e.target === resolveModal) {
-                resolveModal.style.display = "none";
+            if (e.target === detailsModal) {
+                detailsModal.style.display = "none";
             }
         });
     }
 
-    if (confirmResolveBtn) {
-        confirmResolveBtn.addEventListener("click", confirmResolve);
+    if (confirmDetailsUpdateBtn) {
+        confirmDetailsUpdateBtn.addEventListener("click", saveTicketUpdate);
     }
+
+    if (deleteFromDetailsBtn) {
+        deleteFromDetailsBtn.addEventListener("click", () => {
+            if (!pendingTicket) return;
+            requestDeleteTicket(pendingTicket.id, pendingTicket.source);
+            detailsModal.style.display = "none";
+        });
+    }
+
+    // Tickets page: Delete confirmation dialog
+    const deleteModal = document.getElementById("deleteConfirmModal");
+    const closeDeleteModal = document.getElementById("closeDeleteModal");
+    const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+    const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+
+    if (closeDeleteModal && deleteModal) {
+        closeDeleteModal.addEventListener("click", () => {
+            deleteModal.style.display = "none";
+        });
+        window.addEventListener("click", (e) => {
+            if (e.target === deleteModal) {
+                deleteModal.style.display = "none";
+            }
+        });
+    }
+
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener("click", () => {
+            deleteModal.style.display = "none";
+        });
+    }
+
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener("click", confirmDeleteTicket);
+    }
+
+    // Tickets page: Search & Filter listeners
+    const ticketFilterIds = ["ticketSearch", "filterPriority", "filterStatus", "filterSource", "hideResolved"];
+    ticketFilterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("input", () => {
+                renderStaffTickets();
+                renderCustomerInquiries();
+            });
+            el.addEventListener("change", () => {
+                renderStaffTickets();
+                renderCustomerInquiries();
+            });
+        }
+    });
+
+    // User Portal: search & filter listeners
+    const portalFilterIds = ["portalTicketSearch", "portalStatusFilter", "portalHideResolved"];
+    portalFilterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("input", () => {
+                if (typeof renderMyInquiries === "function") renderMyInquiries();
+            });
+            el.addEventListener("change", () => {
+                if (typeof renderMyInquiries === "function") renderMyInquiries();
+            });
+        }
+    });
 
     // Render tickets & inquiries tables
     if (document.getElementById("staffTicketsBody")) renderStaffTickets();
@@ -459,31 +576,101 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-let pendingResolve = null;
+let pendingTicket = null;
+let pendingDelete = null;
+
+function statusClass(status) {
+    const s = String(status || "").toLowerCase();
+    if (s === "resolved") return "active";
+    if (s === "in progress") return "warning";
+    return "open";
+}
+
+function priorityClass(priority) {
+    if (priority === "High") return "danger";
+    if (priority === "Low") return "active";
+    return "warning";
+}
+
+function tableFilters() {
+    const search = (document.getElementById("ticketSearch") || {}).value || "";
+    const priority = (document.getElementById("filterPriority") || {}).value || "all";
+    const status = (document.getElementById("filterStatus") || {}).value || "all";
+    const source = (document.getElementById("filterSource") || {}).value || "all";
+    const hideResolved = !!(document.getElementById("hideResolved") || {}).checked;
+    return { search: search.trim().toLowerCase(), priority, status, source, hideResolved };
+}
+
+function matchesFilters(item, filters, source, extraText) {
+    if (filters.source !== "all" && filters.source !== source) return false;
+    if (filters.status !== "all" && String(item.status || "").toLowerCase() !== filters.status.toLowerCase()) return false;
+    if (filters.priority !== "all" && item.priority !== filters.priority) return false;
+    if (filters.hideResolved && String(item.status || "").toLowerCase() === "resolved") return false;
+    if (filters.search) {
+        const hay = [item.name, item.contact, item.issue, item.message, item.priority, item.status, extraText]
+            .filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(filters.search)) return false;
+    }
+    return true;
+}
+
+function commentsHTML(item) {
+    const comments = Array.isArray(item.comments) ? item.comments : [];
+    if (comments.length === 0) {
+        return '<p class="card-meta">No comments yet.</p>';
+    }
+    return comments.map(c => `
+        <div class="thread-comment ${c.role === "staff" ? "staff" : "customer"}">
+            <span class="thread-author">${c.author || (c.role === "staff" ? "Support Staff" : "Customer")}</span>
+            <span class="thread-date">${c.date || ""}</span>
+            <p>${c.text}</p>
+        </div>
+    `).join("");
+}
+
+function commentsSummary(item) {
+    const comments = Array.isArray(item.comments) ? item.comments : [];
+    if (comments.length === 0) return "";
+    const last = comments[comments.length - 1];
+    return `<span class="ticket-reply">Last ${last.role === "staff" ? "comment from staff" : "comment"}: ${last.text}</span>`;
+}
+
+function getTicketStorage(source) {
+    return JSON.parse(localStorage.getItem(source === "staff" ? "crmStaffTickets" : "crmInquiries") || "[]");
+}
+
+function saveTicketStorage(source, list) {
+    localStorage.setItem(source === "staff" ? "crmStaffTickets" : "crmInquiries", JSON.stringify(list));
+}
 
 function renderStaffTickets() {
     const tbody = document.getElementById("staffTicketsBody");
     if (!tbody) return;
 
-    const tickets = JSON.parse(localStorage.getItem("crmStaffTickets") || "[]");
+    const filters = tableFilters();
+    const tickets = getTicketStorage("staff")
+        .filter(t => matchesFilters(t, filters, "Staff", t.contact))
+        .sort((a, b) => String(a.id) - String(b.id));
     tbody.innerHTML = "";
     if (tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No staff tickets logged yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">No staff tickets match.</td></tr>';
         return;
     }
 
     tickets.forEach(t => {
-        const priorityClass = t.priority === "High" ? "danger" : t.priority === "Low" ? "active" : "warning";
-        const statusClass = t.status === "Resolved" ? "active" : "open";
+        const resolved = String(t.status || "").toLowerCase() === "resolved";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${t.date}</td>
             <td>${t.name}</td>
             <td>${t.contact || "—"}</td>
-            <td>${t.issue}${t.reply ? `<span class="ticket-reply">Reply sent: ${t.reply}</span>` : ""}</td>
-            <td><span class="badge ${priorityClass}">${t.priority}</span></td>
-            <td><span class="badge ${statusClass}" id="staff-status-${t.id}">${t.status}</span></td>
-            <td>${t.status === "Resolved" ? '<span class="badge active">Done</span>' : `<button class="btn-resolve" onclick="resolveTicket(${t.id}, 'staff', this)">Resolve</button>`}</td>
+            <td>${t.issue}${commentsSummary(t)}</td>
+            <td><span class="badge ${priorityClass(t.priority)}">${t.priority}</span></td>
+            <td><span class="badge status-badge ${statusClass(t.status)}">${t.status}</span></td>
+            <td>
+                <button class="btn-view" onclick="openTicketDetails(${t.id}, 'staff', this)">View / Comment</button>
+                ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${t.id}, 'staff')">Delete</button>` : ""}
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -493,26 +680,31 @@ function renderCustomerInquiries() {
     const tbody = document.getElementById("customerInquiriesBody");
     if (!tbody) return;
 
-    const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
+    const filters = tableFilters();
+    const inquiries = getTicketStorage("customer")
+        .filter(i => matchesFilters(i, filters, "Portal", [i.email, i.phone, i.address].filter(Boolean).join(" ")))
+        .sort((a, b) => String(a.id) - String(b.id));
     tbody.innerHTML = "";
     if (inquiries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No customer portal inquiries yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">No customer portal inquiries match.</td></tr>';
         return;
     }
 
     inquiries.forEach(inq => {
-        const priorityClass = inq.priority === "High" ? "danger" : inq.priority === "Low" ? "active" : "warning";
-        const statusClass = inq.status === "Resolved" ? "active" : "open";
+        const resolved = String(inq.status || "").toLowerCase() === "resolved";
         const contact = [inq.email, inq.phone, inq.address].filter(Boolean).join(" | ") || "—";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${inq.date}</td>
             <td>${inq.name}</td>
             <td>${contact}</td>
-            <td>${inq.message}${inq.reply ? `<span class="ticket-reply">Reply sent: ${inq.reply}</span>` : ""}</td>
-            <td><span class="badge ${priorityClass}">${inq.priority}</span></td>
-            <td><span class="badge ${statusClass}" id="customer-status-${inq.id}">${inq.status}</span></td>
-            <td>${inq.status === "Resolved" ? '<span class="badge active">Done</span>' : `<button class="btn-resolve" onclick="resolveTicket(${inq.id}, 'customer', this)">Resolve</button>`}</td>
+            <td>${inq.message}${commentsSummary(inq)}</td>
+            <td><span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span></td>
+            <td><span class="badge status-badge ${statusClass(inq.status)}">${inq.status}</span></td>
+            <td>
+                <button class="btn-view" onclick="openTicketDetails(${inq.id}, 'customer', this)">View / Reply</button>
+                ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${inq.id}, 'customer')">Delete</button>` : ""}
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -523,19 +715,20 @@ function renderSupportTickets() {
     if (!column) return;
 
     const staffTickets = JSON.parse(localStorage.getItem("crmStaffTickets") || "[]")
-        .filter(t => t.status !== "Resolved");
+        .filter(t => String(t.status || "").toLowerCase() !== "resolved");
     const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]")
-        .filter(i => i.status !== "Resolved")
+        .filter(i => String(i.status || "").toLowerCase() !== "resolved")
         .map(i => ({
             id: i.id,
             name: i.name,
             issue: i.message,
             priority: i.priority,
-            source: "Portal"
+            source: "Portal",
+            status: i.status
         }));
 
     const all = [
-        ...staffTickets.map(t => ({ id: t.id, name: t.name, issue: t.issue, priority: t.priority, source: "Staff" })),
+        ...staffTickets.map(t => ({ id: t.id, name: t.name, issue: t.issue, priority: t.priority, source: "Staff", status: t.status })),
         ...inquiries
     ];
 
@@ -553,72 +746,124 @@ function renderSupportTickets() {
     }
 
     all.forEach(t => {
-        const priorityClass = t.priority === "High" ? "danger" : t.priority === "Low" ? "active" : "warning";
         const div = document.createElement("div");
         div.className = "kanban-card";
         div.setAttribute("data-staff", "Support");
         div.setAttribute("data-tier", "Support");
         div.innerHTML = `
-            <strong>${t.name}</strong> <span class="badge ${priorityClass}">${t.priority}</span>
-            <p class="card-meta">Source: ${t.source}</p>
+            <strong>${t.name}</strong> <span class="badge ${priorityClass(t.priority)}">${t.priority}</span>
+            <p class="card-meta">Source: ${t.source} | ${t.status}</p>
             <p class="card-meta">${t.issue}</p>
         `;
         column.appendChild(div);
     });
 }
 
-// Open the resolve/reply dialog for a given ticket/inquiry
-function resolveTicket(id, source, buttonElement) {
-    const modal = document.getElementById("resolveModal");
+// Open the details / comment-reply dialog for a given ticket or inquiry
+function openTicketDetails(id, source, buttonElement) {
+    const modal = document.getElementById("ticketDetailsModal");
     if (!modal) return;
 
-    let item = null;
-    if (source === "staff") {
-        item = JSON.parse(localStorage.getItem("crmStaffTickets") || "[]").find(x => String(x.id) === String(id));
-    } else {
-        item = JSON.parse(localStorage.getItem("crmInquiries") || "[]").find(x => String(x.id) === String(id));
-    }
+    const item = getTicketStorage(source).find(x => String(x.id) === String(id));
     if (!item) return;
 
-    pendingResolve = { source, id };
-    document.getElementById("resolveFrom").textContent = `${item.name} (${item.source === "Portal" ? "Customer Portal" : "Staff Logged"})`;
-    document.getElementById("resolveIssue").textContent = item.issue || item.message;
-    document.getElementById("resolveReply").value = "";
+    pendingTicket = { source, id };
+    const isStaff = source === "staff";
+
+    document.getElementById("detailsTitle").textContent = isStaff ? "Walk-in Ticket Details" : "Customer Inquiry Details";
+    document.getElementById("detailsName").textContent = item.name;
+    document.getElementById("detailsContact").textContent = item.contact || [item.email, item.phone, item.address].filter(Boolean).join(" | ") || "—";
+    document.getElementById("detailsDate").textContent = item.date;
+    document.getElementById("detailsPriority").textContent = item.priority;
+    document.getElementById("detailsStatus").value = item.status || "Open";
+    document.getElementById("detailsIssue").textContent = item.issue || item.message;
+    document.getElementById("detailsThread").innerHTML = commentsHTML(item);
+
+    const label = document.getElementById("detailsActionLabel");
+    const comment = document.getElementById("detailsComment");
+    if (isStaff) {
+        label.textContent = "Add Comment";
+        comment.placeholder = "Write a comment about this walk-in ticket...";
+    } else {
+        label.textContent = "Reply to Customer";
+        comment.placeholder = "Type the reply to the customer...";
+    }
+    document.getElementById("detailsComment").value = "";
+    document.getElementById("deleteFromDetails").style.display = String(item.status || "").toLowerCase() === "resolved" ? "inline-block" : "none";
     modal.style.display = "flex";
 }
 
-function confirmResolve() {
-    if (!pendingResolve) return;
-    const { source, id } = pendingResolve;
-    const reply = document.getElementById("resolveReply").value.trim();
-    const key = source === "staff" ? "crmStaffTickets" : "crmInquiries";
-    const list = JSON.parse(localStorage.getItem(key) || "[]");
-    const item = list.find(x => String(x.id) === String(id));
+function saveTicketUpdate() {
+    if (!pendingTicket) return;
+    const { source, id } = pendingTicket;
 
-    if (item) {
-        item.status = "Resolved";
-        item.reply = reply;
-        localStorage.setItem(key, JSON.stringify(list));
+    const list = getTicketStorage(source);
+    const item = list.find(x => String(x.id) === String(id));
+    if (!item) return;
+
+    const newStatus = document.getElementById("detailsStatus").value;
+    const comment = document.getElementById("detailsComment").value.trim();
+
+    if (comment) {
+        if (!Array.isArray(item.comments)) item.comments = [];
+        item.comments.push({
+            author: source === "staff" ? "Branch Staff" : "Support Staff",
+            role: "staff",
+            text: comment,
+            date: new Date().toLocaleString()
+        });
     }
 
-    pendingResolve = null;
-    document.getElementById("resolveModal").style.display = "none";
+    item.status = newStatus;
+    item.reply = comment; // keep legacy field in sync
 
-    if (source === "staff") renderStaffTickets(); else renderCustomerInquiries();
+    saveTicketStorage(source, list);
+
+    pendingTicket = null;
+    document.getElementById("ticketDetailsModal").style.display = "none";
+
+    renderStaffTickets();
+    renderCustomerInquiries();
+    renderSupportTickets();
+    getOpenTicketsCount();
+}
+
+// Open the delete confirmation dialog
+function requestDeleteTicket(id, source) {
+    const modal = document.getElementById("deleteConfirmModal");
+    if (!modal) return;
+
+    pendingDelete = { source, id };
+    document.getElementById("deleteConfirmMessage").textContent =
+        "Are you sure you want to permanently delete this ticket? This action cannot be undone.";
+    modal.style.display = "flex";
+}
+
+function confirmDeleteTicket() {
+    if (!pendingDelete) return;
+    const { source, id } = pendingDelete;
+
+    const list = getTicketStorage(source).filter(x => String(x.id) !== String(id));
+    saveTicketStorage(source, list);
+
+    pendingDelete = null;
+    document.getElementById("deleteConfirmModal").style.display = "none";
+
+    renderStaffTickets();
+    renderCustomerInquiries();
     renderSupportTickets();
     getOpenTicketsCount();
 }
 
 function getOpenTicketsCount() {
-    const tables = [document.querySelectorAll("#staffTicketsBody tr"), document.querySelectorAll("#customerInquiriesBody tr")];
-    let count = 0;
-    tables.forEach(rows => {
-        rows.forEach(row => {
-            const statusEl = row.querySelector(".badge");
-            const status = statusEl ? statusEl.textContent.trim().toLowerCase() : "";
-            if (status === "open" || status === "in progress") count++;
-        });
-    });
+    const all = [
+        ...JSON.parse(localStorage.getItem("crmStaffTickets") || "[]"),
+        ...JSON.parse(localStorage.getItem("crmInquiries") || "[]")
+    ];
+    const count = all.filter(t => {
+        const s = String(t.status || "").toLowerCase();
+        return s === "open" || s === "in progress";
+    }).length;
     localStorage.setItem("crmOpenTicketsCount", count);
     return count;
 }
@@ -627,4 +872,9 @@ function logoutCustomer() {
     sessionStorage.removeItem("crmCurrentUser");
     sessionStorage.removeItem("crmRole");
     location.href = "login.html";
+}
+
+function toggleTicketDetails(id) {
+    const el = document.getElementById(`ticket-details-${id}`);
+    if (el) el.style.display = el.style.display === "none" ? "block" : "none";
 }
