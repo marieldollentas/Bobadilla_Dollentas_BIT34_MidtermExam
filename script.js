@@ -396,6 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             inquiries.forEach(inq => {
+                const resolved = String(inq.status || "").toLowerCase() === "resolved";
                 const card = document.createElement("div");
                 card.className = "ticket-card";
                 card.innerHTML = `
@@ -408,6 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <p class="ticket-message">${inq.message}</p>
                     <button class="btn-view" onclick="toggleTicketDetails(${inq.id})">View / Hide Details</button>
+                    ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${inq.id}, 'customer')">Delete</button>` : ""}
                     <div class="ticket-details" id="ticket-details-${inq.id}" style="display:none;">
                         <div class="ticket-thread">${commentsHTML(inq)}</div>
                     </div>
@@ -866,6 +868,7 @@ function confirmDeleteTicket() {
 
     renderStaffTickets();
     renderCustomerInquiries();
+    if (typeof renderMyInquiries === "function") renderMyInquiries();
     getOpenTicketsCount();
 }
 
