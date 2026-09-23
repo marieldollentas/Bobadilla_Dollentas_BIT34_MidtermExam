@@ -1,3 +1,41 @@
+// One-time cleanup: older versions seeded demo customers/tickets into localStorage.
+// Remove those exact seeded records (matched by name + contact) without touching real data.
+(function purgeSeededDemoData() {
+    try {
+        if (localStorage.getItem("crmPurgedDemoSeed1")) return;
+
+        const demo = [
+            ["Alice Johnson", "555-1234"],
+            ["Mark Taylor", "555-5678"],
+            ["Sarah Connor", "555-9012"],
+            ["David Lee", "555-3456"],
+            ["Chris Evans", "555-7890"],
+            ["Tom Hardy", "555-1111"],
+            ["John Doe", "john@example.com"],
+            ["Jane Smith", "jane@example.com"]
+        ];
+
+        const isDemo = (item) => demo.some(([name, marker]) => {
+            if (String(item.name || "") !== name) return false;
+            const contact = [item.contact, item.email, item.phone].filter(Boolean).join(" | ");
+            return contact.includes(marker);
+        });
+
+        ["crmDirectory", "crmPipelineLeads", "crmStaffTickets", "crmInquiries"].forEach(key => {
+            try {
+                const list = JSON.parse(localStorage.getItem(key) || "[]");
+                if (!Array.isArray(list)) return;
+                const kept = list.filter(item => !isDemo(item));
+                if (kept.length !== list.length) {
+                    localStorage.setItem(key, JSON.stringify(kept));
+                }
+            } catch (e) { /* skip malformed storage */ }
+        });
+
+        localStorage.setItem("crmPurgedDemoSeed1", "1");
+    } catch (e) { /* non-critical */ }
+})();
+
 document.addEventListener("DOMContentLoaded", () => {
     // Dashboard stat helpers (shared via localStorage across pages)
     const EXPIRE_KEY = "crmExpiringCount";
@@ -43,35 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return count;
     }
 
-    // Seed default staff tickets on first run
-    if (!localStorage.getItem("crmStaffTickets")) {
-        const today = new Date().toISOString().split("T")[0];
-        localStorage.setItem("crmStaffTickets", JSON.stringify([
-            {
-                id: 1,
-                date: today,
-                name: "John Doe",
-                contact: "john@example.com / 555-0192",
-                issue: "Requested a 1-month membership freeze starting next week due to business travel.",
-                priority: "Medium",
-                status: "Open",
-                reply: "",
-                comments: []
-            },
-            {
-                id: 2,
-                date: today,
-                name: "Jane Smith",
-                contact: "jane@example.com / 555-8491",
-                issue: "Lost key fob during evening workout; needs replacement and locker access reset.",
-                priority: "High",
-                status: "In Progress",
-                reply: "",
-                comments: []
-            }
-        ]));
-    }
-
     // Migrate any pre-existing tickets/inquiries so they support comment threads
     ["crmStaffTickets", "crmInquiries"].forEach(key => {
         let list = JSON.parse(localStorage.getItem(key) || "[]");
@@ -91,8 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const customerForm = document.getElementById("customerForm");
     const customerTableBody = document.getElementById("customerTableBody");
 
-    // Customer Directory: seed demo members, then render (includes registered accounts)
-    seedDirectory();
+    // Customer Directory: render stored members + registered accounts
     renderCustomerDirectory();
 
     if (openModalBtn && modal) {
@@ -164,7 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const pipelineStaffFilter = document.getElementById("filterStaff");
     const pipelineTierFilter = document.getElementById("filterTier");
 
-    seedPipelineLeads();
     if (document.getElementById("pipelineBoard")) renderPipelineBoard();
 
     if (openPipelineModalBtn) {
@@ -266,6 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (isAdmin) {
                 if (username === "admin" && password === "admin123") {
                     sessionStorage.setItem("crmRole", "admin");
+                    sessionStorage.setItem("crmCurrentUser", username);
                     location.href = "index.html";
                 } else {
                     errorEl.textContent = "Invalid admin credentials.";
@@ -603,6 +611,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Dashboard header: show the logged-in user (no hardcoded identity)
+    const userProfileEl = document.getElementById("userProfile");
+    if (userProfileEl) {
+        const role = sessionStorage.getItem("crmRole");
+        const user = sessionStorage.getItem("crmCurrentUser");
+        userProfileEl.textContent = role === "admin"
+            ? `Staff: ${user || "Admin"}`
+            : (role === "customer" ? `Member: ${user || ""}` : "Guest");
+    }
+
     // Render tickets & inquiries tables
     if (document.getElementById("staffTicketsBody")) renderStaffTickets();
     if (document.getElementById("customerInquiriesBody")) renderCustomerInquiries();
@@ -923,19 +941,6 @@ function savePipelineLeads(list) {
     localStorage.setItem(PIPELINE_KEY, JSON.stringify(list));
 }
 
-function seedPipelineLeads() {
-    if (localStorage.getItem(PIPELINE_KEY)) return;
-    const today = new Date().toISOString().split("T")[0];
-    savePipelineLeads([
-        { id: 1, name: "Alice Johnson", phone: "555-1234", tier: "Standard Tier", staff: "Coach Mike", heat: "Hot", stage: "new-lead", followUp: "2026-10-01", monthlyValue: 40, reason: "" },
-        { id: 2, name: "Mark Taylor", phone: "555-5678", tier: "Global Pass", staff: "Agent Sarah", heat: "Warm", stage: "new-lead", followUp: "2026-10-03", monthlyValue: 55, reason: "" },
-        { id: 3, name: "Sarah Connor", phone: "555-9012", tier: "Global Pass", staff: "Coach Mike", heat: "Hot", stage: "contacted", followUp: today, monthlyValue: 55, reason: "" },
-        { id: 4, name: "David Lee", phone: "555-3456", tier: "Standard Tier", staff: "Agent Sarah", heat: "Warm", stage: "visit", followUp: "2026-09-28", monthlyValue: 40, reason: "" },
-        { id: 5, name: "Chris Evans", phone: "555-7890", tier: "Global Pass", staff: "Coach Mike", heat: "Hot", stage: "won", followUp: "", monthlyValue: 55, reason: "" },
-        { id: 6, name: "Tom Hardy", phone: "555-1111", tier: "Standard Tier", staff: "Agent Sarah", heat: "Cold", stage: "lost", followUp: "", monthlyValue: 0, reason: "Too expensive. Campaign re-target scheduled." }
-    ]);
-}
-
 function pipelineFilters() {
     return {
         search: ((document.getElementById("pipelineSearch") || {}).value || "").trim().toLowerCase(),
@@ -1056,14 +1061,6 @@ function requestDeletePipelineLead(id) {
 // ---- Customer Directory ----
 // Single source of truth: staff-managed directory entries + registered accounts (crmCustomers)
 const DIRECTORY_KEY = "crmDirectory";
-
-function seedDirectory() {
-    if (localStorage.getItem(DIRECTORY_KEY)) return;
-    localStorage.setItem(DIRECTORY_KEY, JSON.stringify([
-        { id: 1, name: "John Doe", contact: "john@example.com / 555-0192", tier: "Global Pass", joined: "2025-01-15", exp: "2027-06-15" },
-        { id: 2, name: "Jane Smith", contact: "jane@example.com / 555-8491", tier: "Standard Tier", joined: "2025-04-10", exp: "2026-10-20" }
-    ]));
-}
 
 function getDirectoryCustomers() {
     const staff = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
