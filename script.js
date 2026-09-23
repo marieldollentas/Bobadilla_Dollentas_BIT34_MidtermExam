@@ -2,41 +2,29 @@ document.addEventListener("DOMContentLoaded", () => {
     // Dashboard stat helpers (shared via localStorage across pages)
     const EXPIRE_KEY = "crmExpiringCount";
     const TICKETS_KEY = "crmOpenTicketsCount";
-    const DAY_MS = 24 * 60 * 60 * 1000;
+    const ACTIVE_KEY = "crmActiveMembersCount";
 
     function syncDashboard() {
         const expiringEl = document.getElementById("statExpiring");
         const ticketsEl = document.getElementById("statOpenTickets");
+        const activeEl = document.getElementById("statActive");
         if (expiringEl) expiringEl.textContent = localStorage.getItem(EXPIRE_KEY) || "0";
         if (ticketsEl) ticketsEl.textContent = localStorage.getItem(TICKETS_KEY) || "0";
+        if (activeEl) activeEl.textContent = localStorage.getItem(ACTIVE_KEY) || "0";
+    }
+
+    function countActiveMembers() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const count = getDirectoryCustomers().filter(c => customerStatus(c.exp, today) === "Active").length;
+        localStorage.setItem(ACTIVE_KEY, count);
+        return count;
     }
 
     function countExpiringMembers() {
-        const rows = document.querySelectorAll("#customerTableBody tr");
-        let count = 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        rows.forEach(row => {
-            const cells = row.querySelectorAll("td");
-            const statusEl = row.querySelector(".badge");
-            const expCell = cells[4];
-            const status = statusEl ? statusEl.textContent.trim().toLowerCase() : "";
-
-            if (status === "expiring soon") {
-                count++;
-                return;
-            }
-
-            if (expCell) {
-                const expDate = new Date(expCell.textContent.trim());
-                if (!isNaN(expDate)) {
-                    const diff = (expDate - today) / DAY_MS;
-                    if (diff >= 0 && diff <= 30) count++;
-                }
-            }
-        });
-
+        const count = getDirectoryCustomers().filter(c => customerStatus(c.exp, today) === "Expiring Soon").length;
         localStorage.setItem(EXPIRE_KEY, count);
         return count;
     }
@@ -103,6 +91,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const customerForm = document.getElementById("customerForm");
     const customerTableBody = document.getElementById("customerTableBody");
 
+    // Customer Directory: seed demo members, then render (includes registered accounts)
+    seedDirectory();
+    renderCustomerDirectory();
+
     if (openModalBtn && modal) {
         openModalBtn.addEventListener("click", () => {
             modal.style.display = "flex";
@@ -119,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Customer Form Submission & Dynamic Insertion
+    // Customer Form Submission & Persist to Directory Storage
     if (customerForm) {
         customerForm.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -135,23 +127,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const newRow = document.createElement("tr");
-            const expDateObj = new Date(expDate);
-            const diffDays = ((expDateObj - new Date(today)) / (24 * 60 * 60 * 1000));
-            const statusBadge = diffDays <= 30
-                ? '<span class="badge warning">Expiring Soon</span>'
-                : '<span class="badge active">Active</span>';
+            const directory = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
+            directory.push({ id: Date.now(), name, contact, tier, joined: today, exp: expDate });
+            localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directory));
 
-            newRow.innerHTML = `
-                <td>${name}</td>
-                <td>${contact}</td>
-                <td>${tier}</td>
-                <td>${today}</td>
-                <td>${expDate}</td>
-                <td>${statusBadge}</td>
-            `;
-            customerTableBody.appendChild(newRow);
+            renderCustomerDirectory();
             countExpiringMembers();
+            countActiveMembers();
 
             customerForm.reset();
             modal.style.display = "none";
@@ -465,6 +447,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
             inquiries.push(newInquiry);
             localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
+            getOpenTicketsCount();
 
             document.getElementById("inqMessage").value = "";
             statusEl.textContent = "Inquiry submitted! Our support team will follow up.";
@@ -626,8 +609,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize live stats per page
     if (document.querySelector("#staffTicketsBody") || document.querySelector("#customerInquiriesBody")) countOpenTickets();
-    if (document.querySelector("#customerTableBody")) countExpiringMembers();
-    if (document.querySelector("#statExpiring") || document.querySelector("#statOpenTickets")) {
+    if (document.querySelector("#customerTableBody")) {
+        countExpiringMembers();
+        countActiveMembers();
+    }
+    if (document.querySelector("#statExpiring") || document.querySelector("#statOpenTickets") || document.querySelector("#statActive")) {
+        // Recompute from the shared data so the dashboard always matches the modules
+        countOpenTickets();
+        countExpiringMembers();
+        countActiveMembers();
         syncDashboard();
         window.addEventListener("storage", syncDashboard);
     }
@@ -1061,4 +1051,71 @@ function requestDeletePipelineLead(id) {
     const leads = getPipelineLeads().filter(l => String(l.id) !== String(id));
     savePipelineLeads(leads);
     renderPipelineBoard();
+}
+
+// ---- Customer Directory ----
+// Single source of truth: staff-managed directory entries + registered accounts (crmCustomers)
+const DIRECTORY_KEY = "crmDirectory";
+
+function seedDirectory() {
+    if (localStorage.getItem(DIRECTORY_KEY)) return;
+    localStorage.setItem(DIRECTORY_KEY, JSON.stringify([
+        { id: 1, name: "John Doe", contact: "john@example.com / 555-0192", tier: "Global Pass", joined: "2025-01-15", exp: "2027-06-15" },
+        { id: 2, name: "Jane Smith", contact: "jane@example.com / 555-8491", tier: "Standard Tier", joined: "2025-04-10", exp: "2026-10-20" }
+    ]));
+}
+
+function getDirectoryCustomers() {
+    const staff = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
+    const registered = JSON.parse(localStorage.getItem("crmCustomers") || "[]")
+        .map(c => ({
+            id: "reg-" + c.username,
+            name: c.name,
+            contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
+            tier: c.tier,
+            joined: c.joined || "—",
+            exp: "",
+            status: "Active"
+        }));
+    return [...staff, ...registered];
+}
+
+function customerStatus(expDate, today) {
+    if (!expDate) return "Active";
+    const d = new Date(expDate);
+    if (isNaN(d.getTime())) return "Active";
+    const diffDays = (d - today) / (24 * 60 * 60 * 1000);
+    if (diffDays < 0) return "Expired";
+    if (diffDays <= 30) return "Expiring Soon";
+    return "Active";
+}
+
+function renderCustomerDirectory() {
+    const tbody = document.getElementById("customerTableBody");
+    if (!tbody) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const rows = getDirectoryCustomers();
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No customers found.</td></tr>';
+        return;
+    }
+
+    rows.forEach(c => {
+        const status = customerStatus(c.exp, today);
+        const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${c.name}</td>
+            <td>${c.contact || "—"}</td>
+            <td>${c.tier}</td>
+            <td>${c.joined || "—"}</td>
+            <td>${c.exp || "—"}</td>
+            <td><span class="badge ${cls}">${status}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
