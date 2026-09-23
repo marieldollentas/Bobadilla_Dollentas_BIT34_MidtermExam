@@ -464,7 +464,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span>
                             <span class="badge ${statusClass(inq.status)}">${inq.status}</span>
                         </div>
-                        <span class="ticket-date">${inq.date}</span>
+                        <span class="ticket-date">${formatDateLogged(inq.date)}</span>
                     </div>
                     <p class="ticket-message">${inq.message}</p>
                     <button class="btn-view" onclick="toggleTicketDetails(${inq.id})">View / Hide Details</button>
@@ -499,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
             const now = new Date();
-            const dateStr = now.toISOString().split("T")[0];
+            const dateTimeStr = now.toISOString();
             const newInquiry = {
                 id: Date.now(),
                 username: currentUser,
@@ -507,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 email,
                 phone,
                 address,
-                date: dateStr,
+                date: dateTimeStr,
                 message,
                 priority,
                 status: "Open",
@@ -516,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     author: customer.name,
                     role: "customer",
                     text: message,
-                    date: dateStr
+                    date: dateTimeStr
                 }]
             };
             inquiries.push(newInquiry);
@@ -591,9 +591,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const tickets = JSON.parse(localStorage.getItem("crmStaffTickets") || "[]");
+            const now = new Date().toISOString();
             tickets.push({
                 id: Date.now(),
-                date: new Date().toISOString().split("T")[0],
+                date: now,
                 name,
                 contact,
                 issue,
@@ -604,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     author: name,
                     role: "customer",
                     text: issue,
-                    date: new Date().toISOString().split("T")[0]
+                    date: now
                 }]
             });
             localStorage.setItem("crmStaffTickets", JSON.stringify(tickets));
@@ -748,6 +749,19 @@ function priorityClass(priority) {
     return "warning";
 }
 
+// Organize a stored date into a readable date + time label.
+// Handles full ISO datetimes and legacy date-only (yyyy-mm-dd) values.
+function formatDateLogged(value) {
+    if (!value) return "—";
+    const raw = String(value).trim();
+    const hasTime = raw.includes("T") || /\d{1,2}:\d{2}/.test(raw);
+    const d = new Date(hasTime ? raw : raw + "T00:00:00");
+    if (isNaN(d.getTime())) return raw;
+    return d.toLocaleString("en-US", hasTime
+        ? { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
+        : { year: "numeric", month: "short", day: "numeric" });
+}
+
 function tableFilters() {
     const search = (document.getElementById("ticketSearch") || {}).value || "";
     const priority = (document.getElementById("filterPriority") || {}).value || "all";
@@ -778,7 +792,7 @@ function commentsHTML(item) {
     return comments.map(c => `
         <div class="thread-comment ${c.role === "staff" ? "staff" : "customer"}">
             <span class="thread-author">${c.author || (c.role === "staff" ? "Support Staff" : "Customer")}</span>
-            <span class="thread-date">${c.date || ""}</span>
+            <span class="thread-date">${c.date ? formatDateLogged(c.date) : ""}</span>
             <p>${c.text}</p>
         </div>
     `).join("");
@@ -817,7 +831,7 @@ function renderStaffTickets() {
         const resolved = String(t.status || "").toLowerCase() === "resolved";
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${t.date}</td>
+            <td>${formatDateLogged(t.date)}</td>
             <td>${t.name}</td>
             <td>${t.contact || "—"}</td>
             <td>${t.issue}${commentsSummary(t)}</td>
@@ -851,7 +865,7 @@ function renderCustomerInquiries() {
         const contact = [inq.email, inq.phone, inq.address].filter(Boolean).join(" | ") || "—";
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${inq.date}</td>
+            <td>${formatDateLogged(inq.date)}</td>
             <td>${inq.name}</td>
             <td>${contact}</td>
             <td>${inq.message}${commentsSummary(inq)}</td>
@@ -880,7 +894,7 @@ function openTicketDetails(id, source, buttonElement) {
     document.getElementById("detailsTitle").textContent = isStaff ? "Walk-in Ticket Details" : "Customer Inquiry Details";
     document.getElementById("detailsName").textContent = item.name;
     document.getElementById("detailsContact").textContent = item.contact || [item.email, item.phone, item.address].filter(Boolean).join(" | ") || "—";
-    document.getElementById("detailsDate").textContent = item.date;
+    document.getElementById("detailsDate").textContent = formatDateLogged(item.date);
     document.getElementById("detailsPriority").textContent = item.priority;
     document.getElementById("detailsStatus").value = item.status || "Open";
     document.getElementById("detailsIssue").textContent = item.issue || item.message;
