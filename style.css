@@ -608,3 +608,20 @@ textarea.inquiry-input {
 .ticket-details {
     margin-top: 12px;
 }
+
+.portal-reply-box {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e4e4e4;
+}
+
+.portal-reply-box label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.portal-reply-box .btn-primary {
+    margin-top: 8px;
+}

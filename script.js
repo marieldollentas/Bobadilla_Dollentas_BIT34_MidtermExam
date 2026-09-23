@@ -471,6 +471,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${inq.id}, 'customer')">Delete</button>` : ""}
                     <div class="ticket-details" id="ticket-details-${inq.id}" style="display:none;">
                         <div class="ticket-thread">${commentsHTML(inq)}</div>
+                        <div class="portal-reply-box">
+                            <label for="reply-${inq.id}">Add Your Reply</label>
+                            <textarea id="reply-${inq.id}" class="inquiry-input" rows="3" placeholder="Type your reply to support..."></textarea>
+                            <button class="btn-primary" onclick="replyToInquiry(${inq.id})">Send Reply</button>
+                        </div>
                     </div>
                 `;
                 container.appendChild(card);
@@ -521,6 +526,31 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("inqMessage").value = "";
             statusEl.textContent = "Inquiry submitted! Our support team will follow up.";
             renderMyInquiries();
+        };
+
+        window.replyToInquiry = (id) => {
+            const textarea = document.getElementById(`reply-${id}`);
+            if (!textarea) return;
+            const reply = textarea.value.trim();
+            if (!reply) {
+                alert("Please type your reply first.");
+                return;
+            }
+            const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
+            const inq = inquiries.find(i => String(i.id) === String(id));
+            if (!inq) return;
+            if (!Array.isArray(inq.comments)) inq.comments = [];
+            inq.comments.push({
+                author: customer.name,
+                role: "customer",
+                text: reply,
+                date: new Date().toLocaleString()
+            });
+            localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
+            getOpenTicketsCount();
+            renderMyInquiries();
+            const el = document.getElementById(`ticket-details-${id}`);
+            if (el) el.style.display = "block";
         };
     }
 
@@ -776,7 +806,7 @@ function renderStaffTickets() {
     const filters = tableFilters();
     const tickets = getTicketStorage("staff")
         .filter(t => matchesFilters(t, filters, "Staff", t.contact))
-        .sort((a, b) => String(a.id) - String(b.id));
+        .sort((a, b) => String(b.id) - String(a.id));
     tbody.innerHTML = "";
     if (tickets.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7">No staff tickets match.</td></tr>';
@@ -809,7 +839,7 @@ function renderCustomerInquiries() {
     const filters = tableFilters();
     const inquiries = getTicketStorage("customer")
         .filter(i => matchesFilters(i, filters, "Portal", [i.email, i.phone, i.address].filter(Boolean).join(" ")))
-        .sort((a, b) => String(a.id) - String(b.id));
+        .sort((a, b) => String(b.id) - String(a.id));
     tbody.innerHTML = "";
     if (inquiries.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7">No customer portal inquiries match.</td></tr>';
