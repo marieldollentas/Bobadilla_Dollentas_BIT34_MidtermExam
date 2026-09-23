@@ -854,10 +854,21 @@ function openTicketDetails(id, source, buttonElement) {
     document.getElementById("detailsPriority").textContent = item.priority;
     document.getElementById("detailsStatus").value = item.status || "Open";
     document.getElementById("detailsIssue").textContent = item.issue || item.message;
-    document.getElementById("detailsThread").innerHTML = commentsHTML(item);
+
+    const thread = document.getElementById("detailsThread");
+    const threadLabel = document.getElementById("detailsThreadLabel");
+    thread.innerHTML = commentsHTML(item);
+    if (isStaff) {
+        thread.classList.add("comments-list");
+        if (threadLabel) threadLabel.textContent = "Comments";
+    } else {
+        thread.classList.remove("comments-list");
+        if (threadLabel) threadLabel.textContent = "Conversation History";
+    }
 
     const label = document.getElementById("detailsActionLabel");
     const comment = document.getElementById("detailsComment");
+    const staffNameEl = document.getElementById("detailsStaffName");
     if (isStaff) {
         label.textContent = "Add Comment";
         comment.placeholder = "Write a comment about this walk-in ticket...";
@@ -865,6 +876,7 @@ function openTicketDetails(id, source, buttonElement) {
         label.textContent = "Reply to Customer";
         comment.placeholder = "Type the reply to the customer...";
     }
+    if (staffNameEl) staffNameEl.value = localStorage.getItem("crmStaffName") || "";
     document.getElementById("detailsComment").value = "";
     document.getElementById("deleteFromDetails").style.display = String(item.status || "").toLowerCase() === "resolved" ? "inline-block" : "none";
     modal.style.display = "flex";
@@ -879,12 +891,18 @@ function saveTicketUpdate() {
     if (!item) return;
 
     const newStatus = document.getElementById("detailsStatus").value;
+    const staffName = (document.getElementById("detailsStaffName") || {}).value || "";
     const comment = document.getElementById("detailsComment").value.trim();
 
     if (comment) {
+        if (!staffName.trim()) {
+            alert("Please enter your name before commenting / replying.");
+            return;
+        }
+        localStorage.setItem("crmStaffName", staffName.trim());
         if (!Array.isArray(item.comments)) item.comments = [];
         item.comments.push({
-            author: source === "staff" ? "Branch Staff" : "Support Staff",
+            author: staffName.trim(),
             role: "staff",
             text: comment,
             date: new Date().toLocaleString()

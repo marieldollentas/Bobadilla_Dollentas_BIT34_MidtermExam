@@ -545,6 +545,32 @@ textarea.inquiry-input {
     margin-top: 4px;
 }
 
+/* Walk-in ticket comments: plain comment list, not a chat thread */
+.ticket-thread.comments-list {
+    background: #fff;
+    border: 1px solid #ebebeb;
+    border-radius: 8px;
+    padding: 4px 16px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.ticket-thread.comments-list .thread-comment,
+.ticket-thread.comments-list .thread-comment.staff,
+.ticket-thread.comments-list .thread-comment.customer {
+    background: none;
+    border: none;
+    border-left: none;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+    padding: 12px 0;
+    margin-bottom: 0;
+}
+
+.ticket-thread.comments-list .thread-comment:last-child {
+    border-bottom: none;
+}
+
 /* User Portal ticket cards */
 .ticket-list {
     display: flex;
