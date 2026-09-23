@@ -93,60 +93,45 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem(key, JSON.stringify(list));
     });
 
-    // Modal Elements for Customer Directory
-    const modal = document.getElementById("customerModal");
-    const openModalBtn = document.getElementById("openCustomerModal");
-    const closeBtn = document.querySelector(".close-btn");
-    const customerForm = document.getElementById("customerForm");
     const customerTableBody = document.getElementById("customerTableBody");
 
     // Customer Directory: render stored members + registered accounts
     renderCustomerDirectory();
 
-    if (openModalBtn && modal) {
-        openModalBtn.addEventListener("click", () => {
-            modal.style.display = "flex";
-        });
+    // Remove Member: validates the record exists and asks for confirmation
+    // before deleting a directory entry or a registered login account.
+    window.removeDirectoryCustomer = (id) => {
+        if (id === undefined || id === null || id === "") {
+            alert("No member selected to remove.");
+            return;
+        }
 
-        closeBtn.addEventListener("click", () => {
-            modal.style.display = "none";
-        });
+        const isRegistered = typeof id === "string" && id.indexOf("reg-") === 0;
+        const recordLabel = isRegistered ? "member and their login account" : "member record";
 
-        window.addEventListener("click", (e) => {
-            if (e.target === modal) {
-                modal.style.display = "none";
-            }
-        });
-    }
+        if (!confirm(`Remove this ${recordLabel}? This action cannot be undone.`)) return;
 
-    // Customer Form Submission & Persist to Directory Storage
-    if (customerForm) {
-        customerForm.addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById("newCustName").value.trim();
-            const contact = document.getElementById("newCustEmail").value.trim();
-            const tier = document.getElementById("newCustTier").value;
-            const expDate = document.getElementById("newCustExp").value;
-            const today = new Date().toISOString().split('T')[0];
-
-            if (!name || !contact || !expDate) {
-                alert("Please fill out all required fields.");
+        if (isRegistered) {
+            const username = id.slice(4);
+            const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
+            if (!customers.some(c => c.username === username)) {
+                alert("Member not found. It may have already been removed.");
                 return;
             }
-
+            localStorage.setItem("crmCustomers", JSON.stringify(customers.filter(c => c.username !== username)));
+        } else {
             const directory = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
-            directory.push({ id: Date.now(), name, contact, tier, joined: today, exp: expDate });
-            localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directory));
+            if (!directory.some(d => String(d.id) === String(id))) {
+                alert("Member not found. It may have already been removed.");
+                return;
+            }
+            localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directory.filter(d => String(d.id) !== String(id))));
+        }
 
-            renderCustomerDirectory();
-            countExpiringMembers();
-            countActiveMembers();
-
-            customerForm.reset();
-            modal.style.display = "none";
-        });
-    }
+        renderCustomerDirectory();
+        countExpiringMembers();
+        countActiveMembers();
+    };
 
     // Real-Time Table Search Filter
     const searchInput = document.getElementById("searchCustomer");
@@ -294,14 +279,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (registerForm) {
+        const regTierEl = document.getElementById("regTier");
+        const regFobEl = document.getElementById("regKeyFob");
+        const regExpEl = document.getElementById("regExp");
+
+        // Key Fob confirmation dialog
+        const fobModal = document.getElementById("fobModal");
+        const fobDisplay = document.getElementById("regFobAssigned");
+        const fobCopyBtn = document.getElementById("fobCopyBtn");
+        const fobGoLoginBtn = document.getElementById("fobGoLoginBtn");
+        const fobCloseBtn = document.getElementById("fobCloseBtn");
+
+        if (fobModal) {
+            const hideFobModal = () => { fobModal.style.display = "none"; };
+            if (fobCloseBtn) fobCloseBtn.addEventListener("click", hideFobModal);
+            if (fobGoLoginBtn) fobGoLoginBtn.addEventListener("click", () => location.href = "login.html");
+            if (fobCopyBtn) {
+                fobCopyBtn.addEventListener("click", () => {
+                    if (!fobDisplay || !fobDisplay.textContent) return;
+                    const doCopy = () => navigator.clipboard.writeText(fobDisplay.textContent);
+                    const copied = () => {
+                        fobCopyBtn.textContent = "Copied!";
+                        setTimeout(() => (fobCopyBtn.textContent = "Copy"), 2000);
+                    };
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        doCopy().then(copied).catch(() => alert("Could not copy. Please note your Key Fob Number manually."));
+                    } else {
+                        alert("Clipboard not available. Please note your Key Fob Number manually.");
+                    }
+                });
+            }
+            window.addEventListener("click", (e) => {
+                if (e.target === fobModal) hideFobModal();
+            });
+        }
+
+        // Expiration Date is automatically derived from the selected tier
+        const setRegExpiration = () => {
+            const months = tierDurationMonths(regTierEl ? regTierEl.value : "");
+            if (regExpEl) regExpEl.value = computeExpirationDate(months, new Date());
+        };
+
+        if (regFobEl) regFobEl.value = generateKeyFob();
+        setRegExpiration();
+        if (regTierEl) regTierEl.addEventListener("change", setRegExpiration);
+
         registerForm.addEventListener("submit", (e) => {
             e.preventDefault();
             const name = document.getElementById("regName").value.trim();
             const email = document.getElementById("regEmail").value.trim();
             const phone = document.getElementById("regPhone").value.trim();
             const address = document.getElementById("regAddress").value.trim();
-            const tier = document.getElementById("regTier").value;
-            const username = document.getElementById("regUsername").value.trim();
+            const tier = regTierEl ? regTierEl.value : "";
+            const keyFob = regFobEl ? regFobEl.value.trim() : "";
             const password = document.getElementById("regPassword").value;
             const confirm = document.getElementById("regConfirm").value;
             const errorEl = document.getElementById("regError");
@@ -311,27 +341,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            if (!keyFob) {
+                errorEl.textContent = "A Key Fob Number could not be generated. Please reload and try again.";
+                return;
+            }
+
             const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
-            if (customers.some(c => c.username === username)) {
-                errorEl.textContent = "Username already taken.";
+            if (customers.some(c => c.username === keyFob)) {
+                errorEl.textContent = "Key Fob Number already assigned. Please reload and try again.";
                 return;
             }
 
             customers.push({
-                username,
+                username: keyFob,
+                keyFob,
                 password,
                 name,
                 email,
                 phone,
                 address,
                 tier,
-                joined: new Date().toISOString().split("T")[0]
+                joined: new Date().toISOString().split("T")[0],
+                exp: computeExpirationDate(tierDurationMonths(tier), new Date())
             });
 
             localStorage.setItem("crmCustomers", JSON.stringify(customers));
-            errorEl.style.color = "#27ae60";
-            errorEl.textContent = "Registration successful! Redirecting to login...";
-            setTimeout(() => location.href = "login.html", 1500);
+            errorEl.textContent = "";
+
+            if (fobModal && fobDisplay) {
+                fobDisplay.textContent = keyFob;
+                fobModal.style.display = "flex";
+            } else {
+                errorEl.style.color = "#27ae60";
+                errorEl.textContent = `Registration successful! Your Key Fob Number (username): ${keyFob}`;
+                setTimeout(() => location.href = "login.html", 4000);
+            }
         });
     }
 
@@ -359,6 +403,21 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("pAddress").textContent = customer.address || "—";
         document.getElementById("pTier").textContent = customer.tier;
         document.getElementById("pJoined").textContent = customer.joined;
+        if (document.getElementById("pFob")) document.getElementById("pFob").textContent = customer.keyFob || customer.username || "—";
+
+        const months = tierDurationMonths(customer.tier);
+        const custExp = customer.exp || (months && customer.joined ? computeExpirationDate(months, new Date(customer.joined + "T00:00:00")) : "");
+        if (document.getElementById("pExp")) document.getElementById("pExp").textContent = custExp || "—";
+
+        const pStatusEl = document.getElementById("pStatus");
+        if (pStatusEl) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const status = customerStatus(custExp, today);
+            const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
+            pStatusEl.textContent = status;
+            pStatusEl.className = "badge " + cls;
+        }
 
         // Prefill inquiry box with customer details
         const inquireEmail = document.getElementById("inqEmail");
@@ -908,18 +967,43 @@ const PIPELINE_STAGES = [
     { id: "lost", title: "Closed / Lost", goal: "Goal: Move to a long-term re-engagement email list." }
 ];
 
-// Matches "Membership Tiers Info" in the Customer Directory (members.html)
+// Anytime Fitness membership tiers (term-based) — matches "Membership Tiers Info"
+// in the Customer Directory (members.html). Each tier has a fixed membership term.
 const PIPELINE_TIERS = [
-    { value: "Standard Tier", label: "Standard Tier ($40/mo)", price: 40 },
-    { value: "Global Pass", label: "Global Pass ($55/mo)", price: 55 },
-    { value: "Student/Corporate", label: "Student/Corporate ($35/mo)", price: 35 }
+    { value: "6-Month Membership", label: "6-Month Membership ($45/mo)", price: 45, months: 6 },
+    { value: "12-Month Membership", label: "12-Month Membership ($40/mo)", price: 40, months: 12 },
+    { value: "18-Month Membership", label: "18-Month Membership ($35/mo)", price: 35, months: 18 }
 ];
 
+function tierDurationMonths(tier) {
+    const t = PIPELINE_TIERS.find(t => t.value === tier);
+    return t ? t.months : 0;
+}
+
+// Expiration date = base date + membership term, as yyyy-mm-dd
+function computeExpirationDate(months, base) {
+    const d = new Date(base);
+    d.setMonth(d.getMonth() + months);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+// Random, unique 8-digit Key Fob Number used as the customer's username
+function generateKeyFob() {
+    const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
+    let fob;
+    do {
+        fob = String(Math.floor(10000000 + Math.random() * 90000000));
+    } while (customers.some(c => c.username === fob || c.keyFob === fob));
+    return fob;
+}
+
 function normalizePipelineTier(tier) {
-    if (tier === "Standard") return "Standard Tier";
-    if (tier === "Global") return "Global Pass";
     if (PIPELINE_TIERS.some(t => t.value === tier)) return tier;
-    return "Standard Tier";
+    // Legacy/unknown tiers fall back to the base 6-month membership
+    return "6-Month Membership";
 }
 
 function pipelineTierPrice(tier) {
@@ -1068,15 +1152,20 @@ const DIRECTORY_KEY = "crmDirectory";
 function getDirectoryCustomers() {
     const staff = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
     const registered = JSON.parse(localStorage.getItem("crmCustomers") || "[]")
-        .map(c => ({
-            id: "reg-" + c.username,
-            name: c.name,
-            contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
-            tier: c.tier,
-            joined: c.joined || "—",
-            exp: "",
-            status: "Active"
-        }));
+        .map(c => {
+            const months = tierDurationMonths(c.tier);
+            const exp = c.exp || (months && c.joined ? computeExpirationDate(months, new Date(c.joined + "T00:00:00")) : "");
+            return {
+                id: "reg-" + c.username,
+                name: c.name,
+                contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
+                keyFob: c.keyFob || c.username,
+                tier: c.tier,
+                joined: c.joined || "—",
+                exp,
+                status: "Active"
+            };
+        });
     return [...staff, ...registered];
 }
 
@@ -1100,7 +1189,7 @@ function renderCustomerDirectory() {
     const rows = getDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No customers found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No customers found.</td></tr>';
         return;
     }
 
@@ -1111,10 +1200,12 @@ function renderCustomerDirectory() {
         tr.innerHTML = `
             <td>${c.name}</td>
             <td>${c.contact || "—"}</td>
+            <td>${c.keyFob || "—"}</td>
             <td>${c.tier}</td>
             <td>${c.joined || "—"}</td>
             <td>${c.exp || "—"}</td>
             <td><span class="badge ${cls}">${status}</span></td>
+            <td><button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button></td>
         `;
         tbody.appendChild(tr);
     });

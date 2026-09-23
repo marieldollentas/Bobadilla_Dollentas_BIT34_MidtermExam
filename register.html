@@ -33,14 +33,19 @@
             <div class="form-group">
                 <label for="regTier">Membership Tier</label>
                 <select id="regTier" class="search-input">
-                    <option value="Standard Tier">Standard Tier ($40/mo)</option>
-                    <option value="Global Pass">Global Pass ($55/mo)</option>
-                    <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
+                    <option value="6-Month Membership">6-Month Membership ($45/mo)</option>
+                    <option value="12-Month Membership">12-Month Membership ($40/mo)</option>
+                    <option value="18-Month Membership">18-Month Membership ($35/mo)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="regUsername">Desired Username</label>
-                <input type="text" id="regUsername" class="search-input" placeholder="Choose a username" required>
+                <label for="regExp">Expiration Date</label>
+                <input type="text" id="regExp" class="search-input" readonly>
+            </div>
+            <div class="form-group">
+                <label for="regKeyFob">Key Fob Number (Your Username)</label>
+                <input type="text" id="regKeyFob" class="search-input" readonly>
+                <p class="card-meta" style="margin-top: 4px;">Your Key Fob Number is automatically assigned and will be used to sign in.</p>
             </div>
             <div class="form-group">
                 <label for="regPassword">Password</label>
@@ -55,6 +60,21 @@
         </form>
 
         <p class="auth-switch">Already registered? <a href="login.html" class="auth-link">Sign in</a></p>
+    </div>
+
+    <!-- Key Fob Confirmation Dialog -->
+    <div id="fobModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="fobCloseBtn">&times;</span>
+            <h2>Registration Successful</h2>
+            <p class="card-meta">Your Key Fob Number below is <strong>your username</strong> for signing in. Please save it or copy it now.</p>
+            <div class="fob-display" id="regFobAssigned"></div>
+            <p class="card-meta">Use this number along with your password on the sign-in page.</p>
+            <div class="modal-actions">
+                <button id="fobCopyBtn" class="btn-secondary">Copy</button>
+                <button id="fobGoLoginBtn" class="btn-primary">Go to Sign In</button>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

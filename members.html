@@ -25,17 +25,16 @@
         <main class="main-content">
             <header class="top-header">
                 <h1>Customer Directory & Membership Status</h1>
-                <button id="openCustomerModal" class="btn-primary">+ Add New Customer</button>
             </header>
 
             <section class="content-section">
                 <div class="tier-info-banner">
                     <h3>Membership Tiers Info</h3>
-                    <p><strong>Standard:</strong> Access to home club only ($40/mo). | <strong>Global:</strong> Access to all clubs worldwide ($55/mo). | <strong>Student/Corporate:</strong> Discounted tier with valid ID ($35/mo).</p>
+                    <p><strong>6-Month Membership:</strong> 6-month commitment ($45/mo). | <strong>12-Month Membership:</strong> 12-month commitment ($40/mo). | <strong>18-Month Membership:</strong> 18-month commitment ($35/mo).</p>
                 </div>
 
                 <div class="search-bar-container" style="margin-top: 15px;">
-                    <input type="text" id="searchCustomer" placeholder="Search members by name, tier, or status..." class="search-input">
+                    <input type="text" id="searchCustomer" placeholder="Search members by name, tier, key fob, or status..." class="search-input">
                 </div>
 
                 <table class="data-table">
@@ -43,47 +42,18 @@
                         <tr>
                             <th>Full Name</th>
                             <th>Contact Info</th>
+                            <th>Key Fob Number</th>
                             <th>Tier</th>
                             <th>Date Joined</th>
                             <th>Expiration Date</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody"></tbody>
                 </table>
             </section>
         </main>
-    </div>
-
-    <!-- Modal Form -->
-    <div id="customerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Add New Customer</h2>
-            <form id="customerForm">
-                <div class="form-group">
-                    <label for="newCustName">Full Name</label>
-                    <input type="text" id="newCustName" required placeholder="Enter full name">
-                </div>
-                <div class="form-group">
-                    <label for="newCustEmail">Email / Phone</label>
-                    <input type="text" id="newCustEmail" required placeholder="Email or Phone">
-                </div>
-                <div class="form-group">
-                    <label for="newCustTier">Membership Tier</label>
-                    <select id="newCustTier" class="search-input">
-                        <option value="Standard Tier">Standard Tier ($40/mo)</option>
-                        <option value="Global Pass">Global Pass ($55/mo)</option>
-                        <option value="Student/Corporate">Student/Corporate ($35/mo)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="newCustExp">Expiration Date</label>
-                    <input type="date" id="newCustExp" required>
-                </div>
-                <button type="submit" class="btn-primary">Save Customer</button>
-            </form>
-        </div>
     </div>
 
     <script src="script.js"></script>

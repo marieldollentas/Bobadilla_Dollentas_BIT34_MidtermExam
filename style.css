@@ -465,6 +465,20 @@ textarea.inquiry-input {
 }
 .btn-secondary:hover { background-color: #c9c9c9; }
 
+.fob-display {
+    margin: 18px 0;
+    padding: 16px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #27ae60;
+    background: #eef9f0;
+    border: 2px dashed #27ae60;
+    border-radius: 6px;
+    user-select: all;
+}
+
 /* Modal variants & actions */
 .modal-content.modal-wide { width: 680px; max-width: 95%; }
 .modal-content.modal-small { width: 420px; }
