@@ -229,6 +229,84 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pipelineStaffFilter) pipelineStaffFilter.addEventListener("change", renderPipelineBoard);
     if (pipelineTierFilter) pipelineTierFilter.addEventListener("change", renderPipelineBoard);
 
+    // Marketing Campaigns (Dashboard): Modal & Add/Edit handler
+    const campaignModal = document.getElementById("campaignModal");
+    const openCampaignModalBtn = document.getElementById("openCampaignModal");
+    const closeCampaignModalBtn = document.getElementById("closeCampaignModal");
+    const cancelCampaignModalBtn = document.getElementById("cancelCampaignModal");
+    const campaignForm = document.getElementById("campaignForm");
+    const campaignPlatformSelect = document.getElementById("campaignPlatform");
+
+    if (document.getElementById("campaignCards")) renderCampaigns();
+
+    if (openCampaignModalBtn) {
+        openCampaignModalBtn.addEventListener("click", () => {
+            campaignForm.reset();
+            document.getElementById("campaignId").value = "";
+            document.getElementById("campaignStatus").value = "Scheduled";
+            document.getElementById("otherPlatformGroup").style.display = "none";
+            document.getElementById("campaignModalTitle").textContent = "Add Marketing Campaign";
+            campaignForm.querySelector('button[type="submit"]').textContent = "Save Campaign";
+            campaignModal.style.display = "flex";
+            document.getElementById("campaignTitle").focus();
+        });
+    }
+    if (closeCampaignModalBtn) closeCampaignModalBtn.addEventListener("click", () => campaignModal.style.display = "none");
+    if (cancelCampaignModalBtn) cancelCampaignModalBtn.addEventListener("click", () => campaignModal.style.display = "none");
+    if (campaignModal) {
+        window.addEventListener("click", (e) => {
+            if (e.target === campaignModal) campaignModal.style.display = "none";
+        });
+    }
+
+    if (campaignPlatformSelect) {
+        const toggleCustomPlatform = () => {
+            const group = document.getElementById("otherPlatformGroup");
+            if (group) group.style.display = campaignPlatformSelect.value === "Other" ? "block" : "none";
+        };
+        campaignPlatformSelect.addEventListener("change", toggleCustomPlatform);
+        toggleCustomPlatform();
+    }
+
+    if (campaignForm) {
+        campaignForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const title = document.getElementById("campaignTitle").value.trim();
+            if (!title) {
+                alert("Please enter the campaign title.");
+                return;
+            }
+
+            const platform = document.getElementById("campaignPlatform").value;
+            const customPlatform = document.getElementById("campaignPlatformOther").value.trim();
+
+            const campaigns = getCampaigns();
+            const data = {
+                title,
+                platform: platform === "Other" && customPlatform ? customPlatform : platform,
+                status: document.getElementById("campaignStatus").value,
+                reach: Number(document.getElementById("campaignReach").value) || 0,
+                clicks: Number(document.getElementById("campaignClicks").value) || 0,
+                postUrl: document.getElementById("campaignPostUrl").value.trim(),
+                linkLabel: document.getElementById("campaignLinkLabel").value.trim(),
+                imageUrl: document.getElementById("campaignImageUrl").value.trim()
+            };
+
+            const id = document.getElementById("campaignId").value;
+            if (id) {
+                const idx = campaigns.findIndex(c => String(c.id) === String(id));
+                if (idx > -1) campaigns[idx] = { ...campaigns[idx], ...data };
+            } else {
+                data.id = Date.now();
+                campaigns.push(data);
+            }
+
+            saveCampaigns(campaigns);
+            campaignModal.style.display = "none";
+            renderCampaigns();
+        });
+    }
+
     // Login / Register page logic
     const loginForm = document.getElementById("loginForm");
     const registerForm = document.getElementById("registerForm");
@@ -749,6 +827,26 @@ function priorityClass(priority) {
     return "warning";
 }
 
+// Campaign fields are staff-editable free text and are rendered into HTML, so
+// escape them before interpolation to keep stored values inert.
+function escapeHtml(value) {
+    const chars = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+    return String(value || "").replace(/[&<>"']/g, ch => chars[ch]);
+}
+
+// Campaign image/post links come from free-text inputs. Only http(s) is kept so a
+// "javascript:" value can never become a live href/src when a card is rendered.
+function safeUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+        const parsed = new URL(raw);
+        return parsed.protocol === "http:" || parsed.protocol === "https:" ? raw : "";
+    } catch (e) {
+        return "";
+    }
+}
+
 // Organize a stored date into a readable date + time label.
 // Handles full ISO datetimes and legacy date-only (yyyy-mm-dd) values.
 function formatDateLogged(value) {
@@ -1205,6 +1303,115 @@ function requestDeletePipelineLead(id) {
     const leads = getPipelineLeads().filter(l => String(l.id) !== String(id));
     savePipelineLeads(leads);
     renderPipelineBoard();
+}
+
+// ---- Marketing Campaigns (Social Media) ----
+const CAMPAIGN_KEY = "crmCampaigns";
+
+const CAMPAIGN_PLATFORMS = ["Instagram", "Facebook", "Twitter", "TikTok", "Other"];
+
+// Badge colour per campaign status, reusing the shared .badge palette
+const CAMPAIGN_STATUSES = [
+    { value: "Scheduled", badge: "warning" },
+    { value: "Running", badge: "active" },
+    { value: "Completed", badge: "open" }
+];
+
+// Fallback artwork so a campaign saved without an image URL still renders a card
+const CAMPAIGN_PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80";
+
+function getCampaigns() {
+    return JSON.parse(localStorage.getItem(CAMPAIGN_KEY) || "[]");
+}
+
+function saveCampaigns(list) {
+    localStorage.setItem(CAMPAIGN_KEY, JSON.stringify(list));
+}
+
+function campaignStatusBadge(status) {
+    const meta = CAMPAIGN_STATUSES.find(s => s.value === status) || CAMPAIGN_STATUSES[0];
+    return `<span class="badge ${meta.badge}">${escapeHtml(meta.value)}</span>`;
+}
+
+// Platforms outside the known dropdown list are edited through the "Other" option
+function campaignPlatformOption(platform) {
+    return CAMPAIGN_PLATFORMS.includes(platform) ? platform : "Other";
+}
+
+function buildCampaignCard(campaign) {
+    const div = document.createElement("div");
+    div.className = "campaign-card";
+    div.setAttribute("data-id", campaign.id);
+
+    const reach = (Number(campaign.reach) || 0).toLocaleString("en-US");
+    const clicks = (Number(campaign.clicks) || 0).toLocaleString("en-US");
+    const postUrl = safeUrl(campaign.postUrl);
+    const imageUrl = safeUrl(campaign.imageUrl);
+    const label = escapeHtml(campaign.linkLabel || "View Post");
+    const link = postUrl
+        ? `<a href="${escapeHtml(postUrl)}" target="_blank" rel="noopener" class="social-link">${label}</a>`
+        : "";
+
+    div.innerHTML = `
+        <img src="${escapeHtml(imageUrl || CAMPAIGN_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(campaign.title)}" class="campaign-img">
+        <h4>${escapeHtml(campaign.title)} (${escapeHtml(campaign.platform)})</h4>
+        <p>Reach: ${reach} | Clicks: ${clicks}</p>
+        ${link}
+        ${campaignStatusBadge(campaign.status)}
+        <div class="kanban-card-actions">
+            <button class="btn-view" onclick="openEditCampaign(${Number(campaign.id)})">Edit</button>
+            <button class="btn-delete" onclick="requestDeleteCampaign(${Number(campaign.id)})">Delete</button>
+        </div>
+    `;
+    return div;
+}
+
+function renderCampaigns() {
+    const container = document.getElementById("campaignCards");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const campaigns = getCampaigns();
+    if (campaigns.length === 0) {
+        const p = document.createElement("p");
+        p.className = "card-meta";
+        p.textContent = "No campaigns yet. Use \"+ Add Campaign\" to create one.";
+        container.appendChild(p);
+        return;
+    }
+    campaigns.forEach(c => container.appendChild(buildCampaignCard(c)));
+}
+
+function openEditCampaign(id) {
+    const campaign = getCampaigns().find(c => String(c.id) === String(id));
+    const modal = document.getElementById("campaignModal");
+    if (!campaign || !modal) return;
+
+    const platform = campaignPlatformOption(campaign.platform);
+
+    document.getElementById("campaignId").value = campaign.id;
+    document.getElementById("campaignTitle").value = campaign.title || "";
+    document.getElementById("campaignPlatform").value = platform;
+    document.getElementById("campaignPlatformOther").value = platform === "Other" ? (campaign.platform || "") : "";
+    document.getElementById("campaignStatus").value = campaign.status || "Scheduled";
+    document.getElementById("campaignReach").value = Number(campaign.reach) || 0;
+    document.getElementById("campaignClicks").value = Number(campaign.clicks) || 0;
+    document.getElementById("campaignPostUrl").value = campaign.postUrl || "";
+    document.getElementById("campaignLinkLabel").value = campaign.linkLabel || "";
+    document.getElementById("campaignImageUrl").value = campaign.imageUrl || "";
+
+    const group = document.getElementById("otherPlatformGroup");
+    if (group) group.style.display = platform === "Other" ? "block" : "none";
+
+    document.getElementById("campaignModalTitle").textContent = "Edit Marketing Campaign";
+    document.getElementById("campaignForm").querySelector('button[type="submit"]').textContent = "Update Campaign";
+    modal.style.display = "flex";
+}
+
+function requestDeleteCampaign(id) {
+    if (!confirm("Delete this marketing campaign? This cannot be undone.")) return;
+    saveCampaigns(getCampaigns().filter(c => String(c.id) !== String(id)));
+    renderCampaigns();
 }
 
 // ---- Customer Directory ----

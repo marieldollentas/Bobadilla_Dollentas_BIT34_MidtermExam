@@ -96,6 +96,16 @@ body {
     margin-bottom: 20px;
 }
 
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.section-header h2 { margin: 0; }
+
 .tier-info-banner {
     background: #f9f5ff;
     border-left: 4px solid #5c068c;

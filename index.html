@@ -54,25 +54,76 @@
 
             <!-- Marketing Campaigns Section with Social Media Integration -->
             <section class="content-section">
-                <h2>Active Social Media Marketing Campaigns</h2>
-                <div class="campaign-cards">
-                    <div class="campaign-card">
-                        <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80" alt="Gym Workout" class="campaign-img">
-                        <h4>Summer Shred Challenge (Instagram)</h4>
-                        <p>Reach: 3,450 | Clicks: 410</p>
-                        <a href="https://instagram.com/anytimefitness_sample" target="_blank" class="social-link">View IG Post</a>
-                        <span class="badge active">Running</span>
-                    </div>
-                    <div class="campaign-card">
-                        <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80" alt="Fitness Equipment" class="campaign-img">
-                        <h4>New Year Promo (Facebook Ad)</h4>
-                        <p>Reach: 8,200 | Clicks: 950</p>
-                        <a href="https://facebook.com/anytimefitness_sample" target="_blank" class="social-link">View FB Ad</a>
-                        <span class="badge open">Active Campaign</span>
-                    </div>
+                <div class="section-header">
+                    <h2>Active Social Media Marketing Campaigns</h2>
+                    <button id="openCampaignModal" class="btn-primary">+ Add Campaign</button>
                 </div>
+                <div id="campaignCards" class="campaign-cards"></div>
             </section>
         </main>
+    </div>
+
+    <!-- Add / Edit Marketing Campaign Modal -->
+    <div id="campaignModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeCampaignModal">&times;</span>
+            <h2 id="campaignModalTitle">Add Marketing Campaign</h2>
+            <form id="campaignForm">
+                <input type="hidden" id="campaignId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="campaignTitle">Campaign Title</label>
+                        <input type="text" id="campaignTitle" class="search-input" placeholder="e.g. Summer Shred Challenge" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignPlatform">Platform</label>
+                        <select id="campaignPlatform" class="search-input">
+                            <option value="Instagram">Instagram</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Twitter">Twitter</option>
+                            <option value="TikTok">TikTok</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="otherPlatformGroup" style="display:none;">
+                        <label for="campaignPlatformOther">Custom Platform</label>
+                        <input type="text" id="campaignPlatformOther" class="search-input" placeholder="e.g. YouTube">
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignStatus">Status</label>
+                        <select id="campaignStatus" class="search-input">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Running">Running</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignReach">Reach</label>
+                        <input type="number" id="campaignReach" class="search-input" min="0" step="1" placeholder="e.g. 3450">
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignClicks">Clicks</label>
+                        <input type="number" id="campaignClicks" class="search-input" min="0" step="1" placeholder="e.g. 410">
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignPostUrl">Post / Ad URL</label>
+                        <input type="url" id="campaignPostUrl" class="search-input" placeholder="https://instagram.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignLinkLabel">Link Label</label>
+                        <input type="text" id="campaignLinkLabel" class="search-input" placeholder="e.g. View IG Post">
+                    </div>
+                    <div class="form-group">
+                        <label for="campaignImageUrl">Image URL</label>
+                        <input type="url" id="campaignImageUrl" class="search-input" placeholder="https://images.unsplash.com/...">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Campaign</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="script.js"></script>
