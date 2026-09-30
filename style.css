@@ -106,6 +106,48 @@ body {
 
 .section-header h2 { margin: 0; }
 
+/* Dashboard Analytics Charts (inline SVG) */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.chart-card {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.chart-card h3 {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.chart {
+    min-height: 40px;
+}
+
+.chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.chart .chart-value {
+    font-size: 12px;
+    font-weight: 600;
+    fill: #5c068c;
+}
+
+.chart .chart-label {
+    font-size: 9.5px;
+    fill: #666;
+}
+
 .tier-info-banner {
     background: #f9f5ff;
     border-left: 4px solid #5c068c;

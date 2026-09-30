@@ -809,6 +809,12 @@ document.addEventListener("DOMContentLoaded", () => {
         syncDashboard();
         window.addEventListener("storage", syncDashboard);
     }
+
+    if (document.getElementById("chartMembersStatus")) {
+        renderDashboardCharts();
+        // Another tab writing to localStorage (e.g. removing a member) refreshes the charts
+        window.addEventListener("storage", renderDashboardCharts);
+    }
 });
 
 let pendingTicket = null;
@@ -1477,5 +1483,252 @@ function renderCustomerDirectory() {
             <td><button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button></td>
         `;
         tbody.appendChild(tr);
+    });
+}
+
+// ---- Dashboard Charts ----
+// Charts are drawn as inline SVG so the portal keeps zero dependencies and
+// still works when opened straight from the filesystem.
+const SVG_NS = "http://www.w3.org/2000/svg";
+const CHART_COLORS = { brand: "#5c068c", active: "#27ae60", warning: "#f39c12", danger: "#e74c3c" };
+
+function svgNode(name, attrs) {
+    const node = document.createElementNS(SVG_NS, name);
+    Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, String(value)));
+    return node;
+}
+
+function shortenLabel(value, max) {
+    const text = String(value || "");
+    return text.length > max ? text.slice(0, Math.max(1, max - 1)) + "…" : text;
+}
+
+// Category names are long ("18-Month Membership", "Trial / Tour Completed"), so
+// break them onto two lines under the bar rather than truncating them to noise.
+function wrapLabel(value, maxChars) {
+    const words = String(value || "").split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [""];
+
+    const lines = [];
+    let current = "";
+    words.forEach(word => {
+        if (current && (current + " " + word).length > maxChars) {
+            lines.push(current);
+            current = word;
+        } else {
+            current = current ? current + " " + word : word;
+        }
+    });
+    if (current) lines.push(current);
+
+    if (lines.length > 2) {
+        lines[1] = shortenLabel(lines.slice(1).join(" "), maxChars);
+        lines.length = 2;
+    }
+    return lines.map(line => shortenLabel(line, maxChars));
+}
+
+// Vertical bar chart. Each item is { label, value, color? }.
+function renderBarChart(containerId, items, options) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const opts = Object.assign({
+        title: "Bar chart",
+        barColor: CHART_COLORS.brand,
+        emptyText: "No data to chart yet."
+    }, options || {});
+
+    container.innerHTML = "";
+    const data = (items || []).filter(Boolean);
+    const total = data.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    if (data.length === 0 || total === 0) {
+        const p = document.createElement("p");
+        p.className = "card-meta";
+        p.textContent = opts.emptyText;
+        container.appendChild(p);
+        return;
+    }
+
+    // viewBox is sized close to the rendered card so the SVG text stays legible
+    const width = 340;
+    const height = 220;
+    const padTop = 22;
+    const padBottom = 38;
+    const plotHeight = height - padTop - padBottom;
+    const slot = width / data.length;
+    const barWidth = Math.max(6, Math.min(46, slot * 0.55));
+    const maxChars = Math.max(6, Math.floor(slot / 4.7));
+    const max = Math.max(...data.map(item => Number(item.value) || 0));
+
+    const svg = svgNode("svg", {
+        viewBox: `0 0 ${width} ${height}`,
+        role: "img",
+        "aria-label": opts.title,
+        preserveAspectRatio: "xMidYMid meet"
+    });
+
+    const titleNode = svgNode("title");
+    titleNode.textContent = opts.title;
+    svg.appendChild(titleNode);
+
+    svg.appendChild(svgNode("line", {
+        x1: 0, y1: padTop + plotHeight, x2: width, y2: padTop + plotHeight,
+        stroke: "#e0e0e0", "stroke-width": 1
+    }));
+
+    data.forEach((item, index) => {
+        const value = Number(item.value) || 0;
+        const barHeight = value === 0 ? 0 : Math.max(3, (value / max) * plotHeight);
+        const x = slot * index + (slot - barWidth) / 2;
+        const y = padTop + plotHeight - barHeight;
+
+        const bar = svgNode("rect", {
+            x, y, width: barWidth, height: barHeight, rx: 3,
+            fill: item.color || opts.barColor
+        });
+        const barTitle = svgNode("title");
+        barTitle.textContent = `${item.label}: ${value.toLocaleString("en-US")}`;
+        bar.appendChild(barTitle);
+        svg.appendChild(bar);
+
+        const valueText = svgNode("text", {
+            x: x + barWidth / 2, y: Math.max(12, y - 6),
+            "text-anchor": "middle", class: "chart-value"
+        });
+        valueText.textContent = value.toLocaleString("en-US");
+        svg.appendChild(valueText);
+
+        wrapLabel(item.label, maxChars).forEach((line, lineIndex) => {
+            const labelText = svgNode("text", {
+                x: x + barWidth / 2, y: padTop + plotHeight + 15 + lineIndex * 11,
+                "text-anchor": "middle", class: "chart-label"
+            });
+            labelText.textContent = line;
+            svg.appendChild(labelText);
+        });
+    });
+
+    container.appendChild(svg);
+}
+
+// Members split by membership status and by tier, from the Customer Directory.
+function memberChartData() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rows = getDirectoryCustomers();
+
+    const statusCounts = { "Active": 0, "Expiring Soon": 0, "Expired": 0 };
+    const tierCounts = {};
+    rows.forEach(c => {
+        const status = customerStatus(c.exp, today);
+        if (statusCounts[status] === undefined) statusCounts[status] = 0;
+        statusCounts[status]++;
+
+        const tier = c.tier || "Unassigned";
+        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+    });
+
+    const byStatus = ["Active", "Expiring Soon", "Expired"].map((label, index) => ({
+        label,
+        value: statusCounts[label] || 0,
+        color: [CHART_COLORS.active, CHART_COLORS.warning, CHART_COLORS.danger][index]
+    }));
+
+    const byTier = PIPELINE_TIERS.map(tier => ({ label: tier.value, value: tierCounts[tier.value] || 0 }));
+    const knownTiers = PIPELINE_TIERS.map(tier => tier.value);
+    const otherTotal = Object.keys(tierCounts)
+        .filter(tier => !knownTiers.includes(tier))
+        .reduce((sum, tier) => sum + tierCounts[tier], 0);
+    if (otherTotal > 0) byTier.push({ label: "Other", value: otherTotal });
+
+    return { byStatus, byTier };
+}
+
+// Month buckets ending with the current month, used by the ticket histogram.
+function recentMonthBuckets(count) {
+    const buckets = [];
+    const now = new Date();
+    for (let back = count - 1; back >= 0; back--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+        buckets.push({
+            key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+            label: d.toLocaleString("en-US", { month: "short" })
+        });
+    }
+    return buckets;
+}
+
+// Both staff tickets and customer portal inquiries, matching the open-ticket stat.
+function allTickets() {
+    return [
+        ...JSON.parse(localStorage.getItem("crmStaffTickets") || "[]"),
+        ...JSON.parse(localStorage.getItem("crmInquiries") || "[]")
+    ];
+}
+
+function ticketChartData(monthsBack) {
+    const tickets = allTickets();
+    const buckets = recentMonthBuckets(monthsBack || 6);
+    buckets.forEach(bucket => { bucket.value = 0; });
+
+    tickets.forEach(ticket => {
+        const key = String(ticket.date || "").slice(0, 7);
+        const bucket = buckets.find(b => b.key === key);
+        if (bucket) bucket.value++;
+    });
+
+    const byPriority = ["High", "Medium", "Low"].map(priority => {
+        const cls = priorityClass(priority);
+        const color = cls === "danger" ? CHART_COLORS.danger : cls === "active" ? CHART_COLORS.active : CHART_COLORS.warning;
+        return {
+            label: priority,
+            value: tickets.filter(t => String(t.priority || "").toLowerCase() === priority.toLowerCase()).length,
+            color
+        };
+    });
+
+    return { byMonth: buckets, byPriority };
+}
+
+function pipelineChartData() {
+    const leads = getPipelineLeads();
+    return PIPELINE_STAGES.map(stage => ({
+        label: stage.title,
+        value: leads.filter(l => l.stage === stage.id).length,
+        color: stage.id === "won" ? CHART_COLORS.active
+            : stage.id === "lost" ? CHART_COLORS.danger
+                : CHART_COLORS.brand
+    }));
+}
+
+function renderDashboardCharts() {
+    if (!document.getElementById("chartMembersStatus")) return;
+
+    const members = memberChartData();
+    renderBarChart("chartMembersStatus", members.byStatus, {
+        title: "Members by membership status",
+        emptyText: "No members in the directory yet."
+    });
+    renderBarChart("chartMembersTier", members.byTier, {
+        title: "Members by membership tier",
+        emptyText: "No members in the directory yet.",
+        barColor: "#8e44ad"
+    });
+
+    const tickets = ticketChartData(6);
+    renderBarChart("chartTicketVolume", tickets.byMonth, {
+        title: "Tickets logged per month over the last 6 months",
+        emptyText: "No tickets logged in the last 6 months.",
+        barColor: "#3498db"
+    });
+    renderBarChart("chartTicketPriority", tickets.byPriority, {
+        title: "Tickets by priority",
+        emptyText: "No tickets recorded yet."
+    });
+
+    renderBarChart("chartPipelineStages", pipelineChartData(), {
+        title: "Pipeline leads by stage",
+        emptyText: "No pipeline leads yet."
     });
 }
