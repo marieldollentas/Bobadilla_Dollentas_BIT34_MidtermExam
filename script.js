@@ -215,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             const id = document.getElementById("leadId").value;
+            const previous = id ? leads.find(l => String(l.id) === String(id)) : null;
             if (id) {
                 const idx = leads.findIndex(l => String(l.id) === String(id));
                 if (idx > -1) leads[idx] = { ...leads[idx], ...data };
@@ -224,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             savePipelineLeads(leads);
+            logLeadActivity(previous, data, !previous);
             pipelineModal.style.display = "none";
             renderPipelineBoard();
         });
@@ -448,6 +450,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             localStorage.setItem("crmCustomers", JSON.stringify(customers));
+            logActivity({
+                type: "member",
+                title: `${name} registered as a new member`,
+                meta: `${tier || "Membership"} • Key Fob ${keyFob}`,
+                href: activityHref("members.html", name)
+            });
             errorEl.textContent = "";
 
             if (fobModal && fobDisplay) {
@@ -603,6 +611,12 @@ document.addEventListener("DOMContentLoaded", () => {
             };
             inquiries.push(newInquiry);
             localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
+            logActivity({
+                type: "ticket",
+                title: `${customer.name} submitted a new inquiry`,
+                meta: `${priority} priority • ${activityTopic(message) || "Portal inquiry"}`,
+                href: activityHref("tickets.html", customer.name)
+            });
             getOpenTicketsCount();
 
             document.getElementById("inqMessage").value = "";
@@ -691,6 +705,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 }]
             });
             localStorage.setItem("crmStaffTickets", JSON.stringify(tickets));
+
+            const newTicket = tickets[tickets.length - 1];
+            logActivity({
+                type: "ticket",
+                title: `${newTicket.name} submitted a walk-in request`,
+                meta: `${newTicket.priority} priority • Ticket ${activityTicketRef(newTicket.id)}`,
+                href: activityHref("tickets.html", newTicket.name)
+            });
 
             ticketForm.reset();
             ticketModal.style.display = "none";
@@ -1061,10 +1083,26 @@ function saveTicketUpdate() {
         });
     }
 
+    const previousStatus = item.status;
     item.status = newStatus;
     item.reply = comment; // keep legacy field in sync
 
     saveTicketStorage(source, list);
+
+    const staffLabel = staffName.trim() || "Support Staff";
+    logActivity(previousStatus !== newStatus && newStatus === "Resolved"
+        ? {
+            type: "resolved",
+            title: `${staffLabel} resolved ${item.name}'s ticket`,
+            meta: `Ticket ${activityTicketRef(item.id)} • ${item.priority} priority`,
+            href: activityHref("tickets.html", item.name)
+        }
+        : {
+            type: "ticket",
+            title: `${item.name}'s ticket moved to ${newStatus}`,
+            meta: `Ticket ${activityTicketRef(item.id)} • Updated by ${staffLabel}`,
+            href: activityHref("tickets.html", item.name)
+        });
 
     pendingTicket = null;
     document.getElementById("ticketDetailsModal").style.display = "none";
@@ -1271,6 +1309,7 @@ function updateLeadStaff(id, staff) {
     if (idx === -1) return;
     leads[idx] = { ...leads[idx], staff: normalizePipelineStaff(staff) };
     savePipelineLeads(leads);
+    logLeadStaffAssigned(leads[idx], leads[idx].staff);
     renderPipelineBoard();
 }
 
@@ -1956,4 +1995,315 @@ document.addEventListener("DOMContentLoaded", () => {
         renderDirectoryStats();
         renderTicketStats();
     });
+});
+
+// =============================================================
+// Recent Activity (additive only)
+// A lightweight activity feed kept under one localStorage key, so the
+// dashboard can show what happened most recently without introducing a new
+// module or reshaping any existing record.
+//
+// The feed is a merge of two sources:
+//   1. entries appended by logActivity() from the existing action handlers
+//      (member registration, ticket creation / update / resolution, lead
+//      creation, stage change, staff assignment and follow-up scheduling);
+//   2. "membership expiring" rows derived on the fly from the Customer
+//      Directory, which is already the source of truth for renewals.
+// Nothing here removes or renames an existing key, function or element, and
+// every new function is guarded so the feed can never block a CRM action.
+// =============================================================
+const ACTIVITY_KEY = "crmActivities";
+const ACTIVITY_LOG_LIMIT = 80;        // newest entries kept in storage
+const ACTIVITY_PREVIEW_COUNT = 6;     // rows shown before "View All"
+const ACTIVITY_FULL_COUNT = 30;       // rows shown after "View All"
+const ACTIVITY_EXPIRING_LIMIT = 3;    // nearest renewals surfaced in the feed
+
+// Icons match the stroke style of the existing nav / stat icons, and the tone
+// reuses the shared status palette so each activity type reads at a glance.
+const ACTIVITY_TYPES = {
+    member: {
+        tone: "brand",
+        icon: '<svg viewBox="0 0 24 24"><path d="M15.5 19v-1.5a3.5 3.5 0 0 0-3.5-3.5H6.5A3.5 3.5 0 0 0 3 17.5V19"/><circle cx="9.2" cy="7.5" r="3.2"/><path d="M21 19v-1.5a3.5 3.5 0 0 0-2.6-3.38"/><path d="M16 4.3a3.2 3.2 0 0 1 0 6.2"/></svg>'
+    },
+    ticket: {
+        tone: "blue",
+        icon: '<svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.6-3.8 6.5-8.5 6.5a9.7 9.7 0 0 1-2.6-.35L4.5 20.5l1.2-3.4A6.3 6.3 0 0 1 3.5 12.5C3.5 8.9 7.3 6 12 6s8.5 2.9 8.5 6.5Z"/><path d="M9 12.5h.01M12 12.5h.01M15 12.5h.01"/></svg>'
+    },
+    membership: {
+        tone: "green",
+        icon: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.2 6"/><path d="M20 6v5h-5"/></svg>'
+    },
+    followup: {
+        tone: "brand",
+        icon: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 13.5h.01"/></svg>'
+    },
+    won: {
+        tone: "green",
+        icon: '<svg viewBox="0 0 24 24"><path d="m12 3.6 2.2 4.9 5.3.7-3.9 3.6 1 5.2-4.6-2.6-4.6 2.6 1-5.2L4.5 9.2l5.3-.7L12 3.6Z"/></svg>'
+    },
+    expiring: {
+        tone: "amber",
+        icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+    },
+    resolved: {
+        tone: "green",
+        icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16.2 9.5"/></svg>'
+    },
+    assignment: {
+        tone: "blue",
+        icon: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>'
+    },
+    lead: {
+        tone: "blue",
+        icon: '<svg viewBox="0 0 24 24"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5"/><path d="M15.5 6.5H21V12"/></svg>'
+    }
+};
+
+// Deep link into a module that already supports a search box, so an activity
+// click lands on the matching record instead of on a brand new page.
+function activityHref(page, term) {
+    const text = String(term || "").trim();
+    return text ? `${page}?q=${encodeURIComponent(text)}` : page;
+}
+
+// Short, human ticket reference derived from the stored ticket id
+function activityTicketRef(id) {
+    const raw = String(id === undefined || id === null ? "" : id);
+    // Trim the trailing run of zeros a millisecond timestamp ends with so the
+    // reference stays readable, e.g. 1788123456789 -> #6789
+    const trimmed = raw.replace(/0+$/, "");
+    return `#${(trimmed || raw).slice(-4)}`;
+}
+
+// Turns a free-text inquiry into a compact subject line: the first sentence,
+// capped so the meta row stays on one line.
+function activityTopic(text) {
+    const firstSentence = String(text || "").trim().split(/[.!?\n]/)[0].trim();
+    return shortenLabel(firstSentence, 36);
+}
+
+function activityStageTitle(stageId) {
+    const stage = PIPELINE_STAGES.find(s => s.id === stageId);
+    return stage ? stage.title : "Pipeline";
+}
+
+// "5 minutes ago" / "1 hour ago", falling back to the shared date format
+function relativeTime(value) {
+    const stamp = new Date(value);
+    if (isNaN(stamp.getTime())) return "";
+
+    const minutes = Math.round((Date.now() - stamp.getTime()) / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+    const days = Math.round(hours / 24);
+    if (days < 8) return `${days} day${days === 1 ? "" : "s"} ago`;
+    return formatDateLogged(value);
+}
+
+function getActivities() {
+    try {
+        const list = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || "[]");
+        return Array.isArray(list) ? list.filter(entry => entry && entry.title) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Appends one activity. Every field is a display string composed by the caller,
+// which keeps the renderer trivial. A storage failure must never interrupt the
+// CRM action that triggered it, so the whole body is defensive.
+function logActivity(entry) {
+    try {
+        const list = getActivities();
+        list.unshift({
+            id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            at: new Date().toISOString(),
+            type: "ticket",
+            title: "",
+            meta: "",
+            timeLabel: "",
+            href: "",
+            ...(entry || {})
+        });
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(list.slice(0, ACTIVITY_LOG_LIMIT)));
+    } catch (e) { /* the activity feed must never block a CRM action */ }
+}
+
+// Lead lifecycle: a new lead, a stage move, the follow-up it carries and the
+// staff who owns it. `previous` is the stored lead before the edit, or null
+// when the lead is new.
+function logLeadActivity(previous, lead, isNew) {
+    const staff = normalizePipelineStaff(lead.staff);
+    const stageTitle = activityStageTitle(lead.stage);
+    const tier = serviceTierLabel(lead.tier);
+    const href = activityHref("pipeline.html", lead.name);
+
+    const won = lead.stage === "won";
+    if (isNew || (previous && previous.stage !== lead.stage)) {
+        logActivity({
+            type: won ? "won" : "lead",
+            title: won
+                ? `${staff} converted ${lead.name} into a member`
+                : isNew
+                    ? `${lead.name} was added to the pipeline`
+                    : `${lead.name} moved to ${stageTitle}`,
+            meta: previous && previous.stage
+                ? `${activityStageTitle(previous.stage)} → ${stageTitle}`
+                : `${tier} • ${stageTitle}`,
+            href
+        });
+    }
+
+    if (lead.followUp && (!previous || previous.followUp !== lead.followUp)) {
+        logActivity({
+            type: "followup",
+            title: `${staff} scheduled a follow-up with ${lead.name}`,
+            meta: `${stageTitle} • ${formatDateLogged(lead.followUp)}`,
+            href
+        });
+    }
+
+    if (isNew || (previous && normalizePipelineStaff(previous.staff) !== staff)) {
+        logActivity({
+            type: "assignment",
+            title: `${staff} was assigned to ${isNew ? "a new lead" : "a lead"}`,
+            meta: `${lead.name} • ${stageTitle}`,
+            href
+        });
+    }
+}
+
+function logLeadStaffAssigned(lead, staff) {
+    logActivity({
+        type: "assignment",
+        title: `${staff} was assigned to a lead`,
+        meta: `${lead.name} • ${activityStageTitle(lead.stage)}`,
+        href: activityHref("pipeline.html", lead.name)
+    });
+}
+
+// Renewals are not a separate event, so the nearest expiring memberships are
+// derived from the Customer Directory instead of being logged. Row ids stay
+// stable across renders, so a renewal never produces a duplicate row.
+function membershipExpiryActivities() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return getDirectoryCustomers()
+        .map(member => {
+            const expiry = new Date(member.exp);
+            return {
+                member,
+                days: isNaN(expiry.getTime()) ? null : Math.round((expiry - today) / 86400000)
+            };
+        })
+        .filter(row => row.days !== null && row.days >= 0 && row.days <= 30)
+        .sort((a, b) => a.days - b.days)
+        .slice(0, ACTIVITY_EXPIRING_LIMIT)
+        .map(({ member, days }) => ({
+            id: `expiring-${member.id}-${member.exp}`,
+            type: "expiring",
+            title: `${member.name}'s membership expires in ${days} day${days === 1 ? "" : "s"}`,
+            meta: `${member.tier || "Membership"} • Expiring Soon`,
+            timeLabel: "Today",
+            at: today.toISOString(),
+            href: activityHref("members.html", member.name)
+        }));
+}
+
+// Logged actions plus the derived renewal nudges, newest first
+function recentActivityFeed() {
+    const seen = new Set();
+
+    return [...membershipExpiryActivities(), ...getActivities()]
+        .filter(entry => {
+            const key = entry.id || `${entry.type}-${entry.at}-${entry.title}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        })
+        .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+}
+
+let activityExpanded = false;
+
+function activityRowHtml(activity) {
+    const type = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.ticket;
+    const time = activity.timeLabel || relativeTime(activity.at);
+    const body = `
+        <span class="activity-icon ${type.tone}" aria-hidden="true">${type.icon}</span>
+        <span class="activity-body">
+            <span class="activity-title">${escapeHtml(activity.title)}</span>
+            ${activity.meta ? `<span class="activity-meta">${escapeHtml(activity.meta)}</span>` : ""}
+            <span class="activity-time">${escapeHtml(time)}</span>
+        </span>
+    `;
+
+    return activity.href
+        ? `<a class="activity-item" href="${escapeHtml(activity.href)}">${body}</a>`
+        : `<div class="activity-item">${body}</div>`;
+}
+
+function renderRecentActivity() {
+    const list = document.getElementById("recentActivityList");
+    if (!list) return;
+
+    const feed = recentActivityFeed();
+    const visible = feed.slice(0, activityExpanded ? ACTIVITY_FULL_COUNT : ACTIVITY_PREVIEW_COUNT);
+
+    list.innerHTML = "";
+    if (visible.length === 0) {
+        list.innerHTML = '<p class="card-meta">No activity recorded yet.</p>';
+    } else {
+        visible.forEach(activity => {
+            const row = document.createElement("div");
+            row.innerHTML = activityRowHtml(activity);
+            list.appendChild(row.firstElementChild);
+        });
+    }
+
+    const viewAllBtn = document.getElementById("activityViewAll");
+    if (viewAllBtn) {
+        viewAllBtn.hidden = feed.length <= ACTIVITY_PREVIEW_COUNT;
+        viewAllBtn.textContent = activityExpanded ? "Show Less ↑" : "View All →";
+        viewAllBtn.setAttribute("aria-expanded", String(activityExpanded));
+    }
+}
+
+// Activity links carry ?q= so the module page opens with its own search box
+// pre-filled. The page's existing input listener does the filtering.
+function applyActivityDeepLink() {
+    const term = (new URLSearchParams(window.location.search).get("q") || "").trim();
+    if (!term) return;
+
+    const field = ["searchCustomer", "ticketSearch", "pipelineSearch"]
+        .map(id => document.getElementById(id))
+        .find(el => el);
+    if (!field) return;
+
+    field.value = term;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    applyActivityDeepLink();
+
+    if (document.getElementById("recentActivityList")) {
+        renderRecentActivity();
+
+        const viewAllBtn = document.getElementById("activityViewAll");
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener("click", () => {
+                activityExpanded = !activityExpanded;
+                renderRecentActivity();
+            });
+        }
+
+        // Another tab logging an action refreshes this feed
+        window.addEventListener("storage", renderRecentActivity);
+    }
 });

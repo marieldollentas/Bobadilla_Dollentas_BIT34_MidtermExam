@@ -204,6 +204,19 @@
                             </div>
                         </div>
                     </article>
+
+                    <!-- Recent Activity: additive feed built from the existing
+                         CRM records and from the actions logged by script.js -->
+                    <article class="card activity-card span-4">
+                        <div class="card-head">
+                            <div>
+                                <h3>Recent Activity</h3>
+                                <p class="card-sub">Latest actions across the CRM</p>
+                            </div>
+                            <button type="button" id="activityViewAll" class="activity-view-all" aria-expanded="false" hidden>View All →</button>
+                        </div>
+                        <div id="recentActivityList" class="activity-list"></div>
+                    </article>
                 </section>
             </main>
         </div>
