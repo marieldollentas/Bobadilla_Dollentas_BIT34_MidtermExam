@@ -157,6 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const pipelineStaffFilter = document.getElementById("filterStaff");
     const pipelineTierFilter = document.getElementById("filterTier");
 
+    // Staff dropdowns are built from PIPELINE_STAFF so both stay in sync
+    renderStaffOptions(pipelineStaffFilter, true);
+    renderStaffOptions(document.getElementById("leadStaff"), false);
+
     if (document.getElementById("pipelineBoard")) renderPipelineBoard();
 
     if (openPipelineModalBtn) {
@@ -1133,6 +1137,34 @@ const PIPELINE_STAGES = [
     { id: "lost", title: "Closed / Lost", goal: "Goal: Move to a long-term re-engagement email list." }
 ];
 
+// Single source of truth for pipeline staff. Both the filter bar and the
+// Add/Edit Prospecting Client form are populated from this list so the
+// available staff can never drift apart between the two.
+const PIPELINE_STAFF = ["Coach Joeff", "Agent Mariel"];
+
+// Legacy names kept so leads saved before the staff rename still resolve to a
+// valid option instead of appearing as an unassigned staff member.
+const PIPELINE_STAFF_ALIASES = {
+    "Coach Mike": "Coach Joeff",
+    "Agent Sarah": "Agent Mariel"
+};
+
+function normalizePipelineStaff(staff) {
+    if (!staff) return PIPELINE_STAFF[0];
+    return PIPELINE_STAFF_ALIASES[staff] || staff;
+}
+
+// Fills a staff <select> with the shared list. "all" adds the All Staff option.
+function renderStaffOptions(select, includeAll) {
+    if (!select) return;
+    const options = [];
+    if (includeAll) options.push({ value: "all", label: "All Staff" });
+    PIPELINE_STAFF.forEach(name => options.push({ value: name, label: name }));
+    select.innerHTML = options.map(o =>
+        `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`
+    ).join("");
+}
+
 // Anytime Fitness membership tiers (term-based) — matches "Membership Tiers Info"
 // in the Customer Directory (members.html). Each tier has a fixed membership term.
 const PIPELINE_TIERS = [
@@ -1186,7 +1218,12 @@ function getPipelineLeads() {
     return JSON.parse(localStorage.getItem(PIPELINE_KEY) || "[]").map(l => {
         const tier = normalizePipelineTier(l.tier);
         const hasValue = l.monthlyValue !== undefined && l.monthlyValue !== null && l.monthlyValue !== "";
-        return { ...l, tier, monthlyValue: hasValue ? Number(l.monthlyValue) : pipelineTierPrice(tier) };
+        return {
+            ...l,
+            tier,
+            staff: normalizePipelineStaff(l.staff),
+            monthlyValue: hasValue ? Number(l.monthlyValue) : pipelineTierPrice(tier)
+        };
     });
 }
 
@@ -1208,6 +1245,35 @@ function leadHeatBadge(heat) {
     return `<span class="badge ${cls}">[${label}]</span>`;
 }
 
+// Inline staff selector shown on a lead card. Saving goes through the same
+// pipeline storage the Add/Edit form uses, so the card, the filter bar and the
+// Edit form all show the same assigned staff.
+function staffSelectHtml(lead) {
+    const options = PIPELINE_STAFF.map(name =>
+        `<option value="${escapeHtml(name)}"${name === lead.staff ? " selected" : ""}>${escapeHtml(name)}</option>`
+    ).join("");
+    return `
+        <label class="staff-inline">
+            <span class="staff-inline-label">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>
+                Assigned Staff
+            </span>
+            <select class="staff-inline-select" onchange="updateLeadStaff(${lead.id}, this.value)" aria-label="Assigned staff for ${escapeHtml(lead.name)}">${options}</select>
+        </label>
+    `;
+}
+
+// Reassigns a lead's staff without touching any other field, then re-renders so
+// the card text, the staff filter and the Edit form stay consistent.
+function updateLeadStaff(id, staff) {
+    const leads = getPipelineLeads();
+    const idx = leads.findIndex(l => String(l.id) === String(id));
+    if (idx === -1) return;
+    leads[idx] = { ...leads[idx], staff: normalizePipelineStaff(staff) };
+    savePipelineLeads(leads);
+    renderPipelineBoard();
+}
+
 function buildLeadCard(lead) {
     const div = document.createElement("div");
     div.className = "kanban-card";
@@ -1217,9 +1283,9 @@ function buildLeadCard(lead) {
 
     const followUp = lead.followUp ? `Next Follow-up: ${lead.followUp}` : "Next Follow-up: —";
 
-    let meta2 = `Assigned: ${lead.staff} | ${followUp}`;
-    if (lead.stage === "won") meta2 = `Assigned: ${lead.staff} | Membership active`;
-    if (lead.stage === "lost" && lead.reason) meta2 = `Reason: ${lead.reason}`;
+    let meta2 = `Assigned: ${escapeHtml(lead.staff)} | ${followUp}`;
+    if (lead.stage === "won") meta2 = `Assigned: ${escapeHtml(lead.staff)} | Membership active`;
+    if (lead.stage === "lost" && lead.reason) meta2 = `Reason: ${escapeHtml(lead.reason)}`;
 
     const value = Number(lead.monthlyValue) || 0;
     const tierPrice = pipelineTierPrice(lead.tier);
@@ -1227,9 +1293,10 @@ function buildLeadCard(lead) {
     const valueSuffix = lead.stage === "won" && value > 0 ? ` | $${value}/mo` : "";
 
     div.innerHTML = `
-        <strong>${lead.name}</strong> ${leadHeatBadge(lead.heat)}
-        <p class="card-meta">📞 ${lead.phone || "—"} | Target: ${tierText}${valueSuffix}</p>
+        <strong>${escapeHtml(lead.name)}</strong> ${leadHeatBadge(lead.heat)}
+        <p class="card-meta">📞 ${escapeHtml(lead.phone || "—")} | Target: ${escapeHtml(tierText)}${valueSuffix}</p>
         <p class="card-meta">${meta2}</p>
+        ${staffSelectHtml(lead)}
         <div class="kanban-card-actions">
             <button class="btn-view" onclick="openEditPipelineLead(${lead.id})">Edit</button>
             <button class="btn-delete" onclick="requestDeletePipelineLead(${lead.id})">Delete</button>

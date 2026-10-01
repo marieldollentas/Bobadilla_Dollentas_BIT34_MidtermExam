@@ -491,7 +491,7 @@ letter-spacing: .3px;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--gap);
-    align-items: start;
+    align-items: stretch;
 }
 
 .span-4 { grid-column: span 4; }
@@ -602,36 +602,59 @@ letter-spacing: .3px;
 }
 
 /* ---------- 10. Chart cards ---------- */
+/* Compact, evenly sized dashboard charts: cards stretch to a shared row height,
+   the plot area takes a fixed compact height, and the SVG is capped so a chart
+   never grows taller or wider than its neighbours. */
 .chart-card {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+    min-width: 0;
+}
+
+.chart-card .card-head h3,
+.chart-card .card-sub {
+    overflow-wrap: break-word;
+}
+
+/* Two lines of head text per card keeps every chart card the same height */
+.chart-card .card-head {
+    min-height: 46px;
 }
 
 .chart {
     width: 100%;
-    min-height: 178px;
+    height: 184px;
+    max-height: 184px;
+    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .chart svg {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    max-height: 100%;
+}
+
+/* Chart cards keep one consistent padding so every graph lines up */
+.dashboard-grid > .card {
+    padding: 18px 20px;
 }
 
 .chart .chart-value {
     font-family: var(--font);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     fill: var(--primary);
 }
 
 .chart .chart-label {
     font-family: var(--font);
-    font-size: 9.5px;
+    font-size: 9px;
     fill: #8b8ba3;
 }
 
@@ -1171,6 +1194,63 @@ select.search-input {
     margin-left: 6px;
 }
 
+/* Inline "Assigned Staff" editor on a lead card, reusing the shared input look */
+.staff-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 11px;
+}
+
+.staff-inline-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.staff-inline-label svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.staff-inline-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 7px 30px 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2377778a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 13px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.staff-inline-select:focus {
+    outline: none;
+    border-color: #c3baf1;
+    box-shadow: 0 0 0 4px rgba(91, 75, 196, .18);
+}
+
 .kanban-card-actions {
     display: flex;
     gap: 8px;
@@ -1695,7 +1775,9 @@ select.search-input {
 
 /* ---------- 24. Responsive ---------- */
 @media (max-width: 1280px) {
+    .span-4,
     .span-5,
+    .span-6,
     .span-7 { grid-column: span 6; }
 }
 
