@@ -672,21 +672,32 @@ letter-spacing: .3px;
 .chart rect { rx: 5; }
 
 /* ---------- 11. Campaign summary strip ---------- */
-.campaign-summary {
+.campaign-summary,
+.kpi-strip {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-top: 16px;
     padding-top: 15px;
     border-top: 1px solid var(--border-soft);
 }
 
+.campaign-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Same strip, sized for the four dashboard Coach Tracker KPIs */
+.kpi-strip {
+    grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+}
+
+.kpi-strip div,
 .campaign-summary div {
     background: var(--background);
     border-radius: var(--radius-sm);
     padding: 10px 13px;
 }
 
+.kpi-strip span,
 .campaign-summary span {
     display: block;
     font-size: 10.5px;
@@ -696,6 +707,7 @@ letter-spacing: .3px;
     color: var(--text-muted);
 }
 
+.kpi-strip strong,
 .campaign-summary strong {
     display: block;
     margin-top: 3px;
@@ -2032,4 +2044,273 @@ a.activity-item:focus-visible .activity-title {
 @media (max-width: 560px) {
     .activity-item { padding: 10px 0; }
     .activity-title { font-size: 12px; }
+}
+
+/* ---------- 26. Coach Tracker ---------- */
+/* Only new selectors, all built from the tokens above, so the Coach
+   Tracker page reads exactly like the rest of the CRM. */
+.head-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.select-compact {
+    width: auto;
+    min-width: 190px;
+}
+
+.date-compact {
+    width: auto;
+}
+
+/* Working-day picker inside the coach form */
+.day-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.day-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+
+.day-chip:hover {
+    border-color: var(--primary-200);
+    background: var(--primary-50);
+    color: var(--primary);
+}
+
+.day-chip input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* Availability legend + weekly grid */
+.schedule-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.schedule-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+}
+
+.schedule-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.schedule-table th {
+    padding: 11px 8px;
+    text-align: left;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.schedule-table th.is-today {
+    color: var(--primary);
+}
+
+.schedule-table td {
+    padding: 5px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+}
+
+.schedule-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.schedule-table tbody td.schedule-slot {
+    padding-left: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.schedule-empty {
+    padding: 26px 12px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.schedule-cell {
+    border-radius: 9px;
+    padding: 7px 9px;
+    min-height: 46px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.schedule-cell small {
+    display: block;
+    margin-top: 2px;
+    font-size: 10.5px;
+    font-weight: 500;
+    opacity: .85;
+}
+
+.schedule-cell.available { background: var(--success-bg); color: var(--success-ink); }
+.schedule-cell.booked { background: var(--info-bg); color: var(--info-ink); }
+.schedule-cell.unavailable { background: #f4f4fa; color: var(--text-muted); font-weight: 500; }
+
+/* Compact list used inside the coach / client dialogs */
+.mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.mini-list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--background);
+    border: 1px solid var(--border-soft);
+}
+
+.mini-list-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mini-list-title {
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.details-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Performance cards */
+.coach-perf-grid {
+    margin-top: 18px;
+}
+
+.perf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.perf-metric {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--background);
+    border: 1px solid var(--border-soft);
+}
+
+.perf-metric span {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.perf-metric strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -.4px;
+}
+
+.perf-rates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 13px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.perf-rates span {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.perf-rates strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+}
+
+.rating-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.stars {
+    color: var(--warning);
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+@media (max-width: 900px) {
+    .select-compact { min-width: 0; width: 100%; }
+    .date-compact { width: 100%; }
+    .card-head .head-actions { width: 100%; }
+}
+
+@media (max-width: 560px) {
+    .perf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .perf-rates { grid-template-columns: 1fr; }
+    .mini-list-row { flex-direction: column; align-items: flex-start; gap: 6px; }
 }

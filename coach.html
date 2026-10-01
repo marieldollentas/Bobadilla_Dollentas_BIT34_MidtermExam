@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Tracker - Anytime Fitness CRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <input type="checkbox" id="navToggle" class="nav-toggle" aria-hidden="true" tabindex="-1">
+    <label class="nav-backdrop" for="navToggle" aria-hidden="true"></label>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+                </span>
+                <div class="logo-text">
+                    <h2>Anytime Fitness</h2>
+                    <p>Branch CRM Portal</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-section-label nav-text">Workspace</span>
+                <a href="index.html" title="Dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="members.html" title="Customer Directory">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 19v-1.5a3.5 3.5 0 0 0-3.5-3.5H6.5A3.5 3.5 0 0 0 3 17.5V19"/><circle cx="9.2" cy="7.5" r="3.2"/><path d="M21 19v-1.5a3.5 3.5 0 0 0-2.6-3.38"/><path d="M16 4.3a3.2 3.2 0 0 1 0 6.2"/></svg>
+                    <span class="nav-text">Customer Directory</span>
+                </a>
+                <a href="pipeline.html" title="Sales Pipeline">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5"/><path d="M15.5 6.5H21V12"/></svg>
+                    <span class="nav-text">Sales Pipeline</span>
+                </a>
+                <a href="coach.html" class="active" title="Coach Tracker">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 13.5h.01"/></svg>
+                    <span class="nav-text">Coach Tracker</span>
+                </a>
+                <a href="tickets.html" title="Support &amp; Inquiries">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.4"/><path d="M6.1 6.1l3.5 3.5M14.4 14.4l3.5 3.5M17.9 6.1l-3.5 3.5M9.6 14.4l-3.5 3.5"/></svg>
+                    <span class="nav-text">Support &amp; Inquiries</span>
+                </a>
+            </nav>
+            <div class="sidebar-foot">
+                <a href="login.html" onclick="logoutCustomer()" title="Logout">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5h3.5A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 8.5L6 12l4 3.5"/><path d="M6 12h9"/></svg>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="main-wrap">
+            <header class="topbar">
+                <label class="nav-toggle-btn" for="navToggle" title="Toggle navigation">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </label>
+
+                <div class="topbar-search">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+                    <input type="text" id="topbarSearch" placeholder="Search coaches, specialties or contacts..." aria-label="Search coaches">
+                </div>
+
+                <span class="topbar-meta" id="topbarDate"></span>
+
+                <div class="topbar-right">
+                    <div class="user-chip">
+                        <span class="avatar" id="userAvatar">AF</span>
+                        <span class="user-chip-text">
+                            <span class="user-name" id="userProfile">Guest</span>
+                            <span class="user-role" id="userRole">Signed out</span>
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <section class="page-header">
+                    <div class="page-header-row">
+                        <div>
+                            <span class="eyebrow">Coaching Operations</span>
+                            <h1>Coach Tracker</h1>
+                            <p>Manage the coaching team, their weekly availability, client assignments and every training session in one place.</p>
+                        </div>
+                        <button id="openCoachModal" class="btn-primary">+ Add Coach</button>
+                    </div>
+                </section>
+
+                <!-- Coach statistics (real values rendered by script.js) -->
+                <section class="stats-grid">
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Total Coaches</span>
+                            <span class="stat-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M15.5 19v-1.5a3.5 3.5 0 0 0-3.5-3.5H6.5A3.5 3.5 0 0 0 3 17.5V19"/><circle cx="9.2" cy="7.5" r="3.2"/><path d="M21 19v-1.5a3.5 3.5 0 0 0-2.6-3.38"/><path d="M16 4.3a3.2 3.2 0 0 1 0 6.2"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number" id="coachStatTotal">0</p>
+                        <p class="stat-note">Coaching staff on record</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Active Coaches</span>
+                            <span class="stat-icon green" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4.5 12.5l4 4 9-9"/><circle cx="12" cy="12" r="8.5"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number" id="coachStatActive">0</p>
+                        <p class="stat-note">Available for client assignments</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Available Now</span>
+                            <span class="stat-icon blue" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number" id="coachStatAvailable">0</p>
+                        <p class="stat-note">Inside today's working hours</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Sessions Today</span>
+                            <span class="stat-icon amber" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 13.5h.01"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number warning" id="coachStatSessions">0</p>
+                        <p class="stat-note">Scheduled across the coaching team</p>
+                    </article>
+                </section>
+
+                <!-- Coach Directory: search, filters and the coach table -->
+                <section class="filter-section">
+                    <h3>Search &amp; Filter Coaches</h3>
+                    <div class="ticket-filter-bar">
+                        <input type="text" id="coachSearch" class="search-input" placeholder="Search by name, email, phone or specialty...">
+                        <select id="filterCoachStatus" class="search-input">
+                            <option value="all">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                        <select id="filterCoachSpecialization" class="search-input">
+                            <option value="all">All Specializations</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Coach Directory</h2>
+                            <p class="card-sub">Every registered coach with contact details, specialization and workload</p>
+                        </div>
+                        <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Coach</th>
+                                    <th>Contact Information</th>
+                                    <th>Specialization</th>
+                                    <th>Status</th>
+                                    <th>Clients</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coachTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Availability grid + upcoming appointments -->
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Coach Availability &amp; Schedule</h2>
+                            <p class="card-sub">Weekly working hours (grid shows 6:00 AM – 8:00 PM slots), booked slots and the next appointments</p>
+                        </div>
+                        <select id="scheduleCoach" class="search-input select-compact" aria-label="Select a coach schedule"></select>
+                    </div>
+
+                    <div class="schedule-legend">
+                        <span class="badge active">Available</span>
+                        <span class="badge status-badge open">Booked</span>
+                        <span class="badge warning">Unavailable</span>
+                        <span class="card-meta" id="scheduleSummary"></span>
+                    </div>
+
+                    <div class="schedule-wrap">
+                        <table class="schedule-table">
+                            <thead>
+                                <tr id="scheduleHead"></tr>
+                            </thead>
+                            <tbody id="scheduleBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="card-head" style="margin-top:22px;">
+                        <div>
+                            <h3>Upcoming Appointments</h3>
+                            <p class="card-sub">Scheduled sessions from today onwards</p>
+                        </div>
+                        <span class="card-chip" id="upcomingCount">0 upcoming</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Client</th>
+                                    <th>Coach</th>
+                                    <th>Training Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="upcomingBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Client assignment: who trains with which coach -->
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Client Assignment</h2>
+                            <p class="card-sub">Member records from the Customer Directory assigned to a coach</p>
+                        </div>
+                        <div class="head-actions">
+                            <select id="assignmentCoach" class="search-input select-compact" aria-label="Select a coach"></select>
+                            <button id="openAssignModal" class="btn-primary">+ Assign Client</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Membership</th>
+                                    <th>Assigned Coach</th>
+                                    <th>Assignment Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Session tracking: create, update and annotate every session -->
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Session Tracking</h2>
+                            <p class="card-sub">Training sessions handled by each coach, with status and progress notes</p>
+                        </div>
+                        <button id="openSessionModal" class="btn-primary">+ Create Session</button>
+                    </div>
+
+                    <div class="ticket-filter-bar" style="margin-top:16px;">
+                        <input type="text" id="sessionSearch" class="search-input" placeholder="Search by client, coach or training type...">
+                        <select id="filterSessionCoach" class="search-input">
+                            <option value="all">All Coaches</option>
+                        </select>
+                        <select id="filterSessionStatus" class="search-input">
+                            <option value="all">All Session Statuses</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Missed">Missed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Training Type</th>
+                                    <th>Status</th>
+                                    <th>Coach</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessionTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Performance overview with reporting period -->
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Coach Performance Overview</h2>
+                            <p class="card-sub">Workload and attendance for the selected reporting period</p>
+                        </div>
+                        <div class="head-actions">
+                            <input type="date" id="performanceFrom" class="search-input date-compact" aria-label="Reporting period start">
+                            <input type="date" id="performanceTo" class="search-input date-compact" aria-label="Reporting period end">
+                            <select id="performancePeriod" class="search-input select-compact" aria-label="Reporting period">
+                                <option value="week">This Week</option>
+                                <option value="month" selected>This Month</option>
+                                <option value="last30">Last 30 Days</option>
+                                <option value="last90">Last 3 Months</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid coach-perf-grid" id="performanceGrid"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add / Edit Coach Modal -->
+    <div id="coachModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeCoachModal">&times;</span>
+            <h2 id="coachModalTitle">Add Coach</h2>
+            <form id="coachForm">
+                <input type="hidden" id="coachId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="coachName">Full Name</label>
+                        <input type="text" id="coachName" class="search-input" placeholder="e.g. Coach Joeff" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachEmail">Email</label>
+                        <input type="email" id="coachEmail" class="search-input" placeholder="e.g. coach@anytimefitness.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachPhone">Phone</label>
+                        <input type="text" id="coachPhone" class="search-input" placeholder="e.g. 0917 555 0142" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachSpecialization">Specialization</label>
+                        <select id="coachSpecialization" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachStatus">Employment Status</label>
+                        <select id="coachStatus" class="search-input">
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Working Days</label>
+                    <div class="day-grid" id="coachDayGrid"></div>
+                </div>
+
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="coachShiftStart">Working Hours — Start</label>
+                        <select id="coachShiftStart" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="coachShiftEnd">Working Hours — End</label>
+                        <select id="coachShiftEnd" class="search-input"></select>
+                    </div>
+                </div>
+
+                <p class="error-msg" id="coachFormError"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelCoachModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveCoachBtn">Save Coach</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coach Details Modal -->
+    <div id="coachDetailsModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeCoachDetails">&times;</span>
+            <div class="details-head">
+                <div>
+                    <h2 id="coachDetailsName">Coach</h2>
+                    <p class="card-sub" id="coachDetailsSpecialty">—</p>
+                </div>
+                <span id="coachDetailsStatus"></span>
+            </div>
+
+            <div class="profile-grid">
+                <div class="profile-item">
+                    <label>Email</label>
+                    <span id="coachDetailsEmail">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Phone</label>
+                    <span id="coachDetailsPhone">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Working Days</label>
+                    <span id="coachDetailsDays">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Working Hours</label>
+                    <span id="coachDetailsHours">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Assigned Clients</label>
+                    <span id="coachDetailsClients">0</span>
+                </div>
+                <div class="profile-item">
+                    <label>Upcoming Sessions</label>
+                    <span id="coachDetailsUpcoming">0</span>
+                </div>
+                <div class="profile-item">
+                    <label>Completed Sessions</label>
+                    <span id="coachDetailsCompleted">0</span>
+                </div>
+                <div class="profile-item">
+                    <label>Attendance Rate</label>
+                    <span id="coachDetailsAttendance">—</span>
+                </div>
+            </div>
+
+            <div class="rating-row">
+                <span class="stars" id="coachDetailsStars">★★★★★</span>
+                <span id="coachDetailsRating">No ratings yet</span>
+            </div>
+
+            <div class="head-actions" style="margin-top:12px;">
+                <select id="coachRatingInput" class="search-input select-compact" aria-label="Add a client rating">
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Good</option>
+                    <option value="3" selected>3 - Average</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="1">1 - Very Poor</option>
+                </select>
+                <button class="btn-secondary" onclick="rateCoach(window.pendingCoachId)">Add Client Rating</button>
+            </div>
+
+            <div class="form-group" style="margin-top:20px;">
+                <label>Assigned Clients</label>
+                <div class="mini-list" id="coachDetailsClientList"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Upcoming Sessions</label>
+                <div class="mini-list" id="coachDetailsUpcomingList"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Recent Session History</label>
+                <div class="mini-list" id="coachDetailsHistory"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="closeCoachDetailsBtn">Close</button>
+                <button type="button" class="btn-primary" id="editFromDetails">Edit Coach</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign / Reassign Client Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeAssignModal">&times;</span>
+            <h2 id="assignModalTitle">Assign Client to Coach</h2>
+            <form id="assignForm">
+                <input type="hidden" id="assignId">
+                <div class="form-group">
+                    <label for="assignCoach">Coach</label>
+                    <select id="assignCoach" class="search-input"></select>
+                </div>
+                <div class="form-group">
+                    <label for="assignClient">Client (from the Customer Directory)</label>
+                    <select id="assignClient" class="search-input"></select>
+                </div>
+                <p class="info-note" id="assignHint"></p>
+                <p class="error-msg" id="assignError"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelAssignModal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create / Edit Training Session Modal -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeSessionModal">&times;</span>
+            <h2 id="sessionModalTitle">Create Training Session</h2>
+            <form id="sessionForm">
+                <input type="hidden" id="sessionId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="sessionCoach">Coach</label>
+                        <select id="sessionCoach" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionClient">Client</label>
+                        <select id="sessionClient" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionType">Training Type</label>
+                        <select id="sessionType" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionStatus">Session Status</label>
+                        <select id="sessionStatus" class="search-input">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Missed">Missed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionDate">Session Date</label>
+                        <input type="date" id="sessionDate" class="search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionTime">Session Time</label>
+                        <input type="time" id="sessionTime" class="search-input" step="900" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sessionNotes">Session Notes / Progress Observations</label>
+                    <textarea id="sessionNotes" class="inquiry-input" rows="3" placeholder="e.g. Improved squat depth, add 2.5kg next week"></textarea>
+                </div>
+                <p class="error-msg" id="sessionFormError"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelSessionModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveSessionBtn">Save Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Client Details / Session History Modal -->
+    <div id="clientDetailsModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeClientDetails">&times;</span>
+            <h2 id="clientDetailsName">Client</h2>
+            <div class="profile-grid">
+                <div class="profile-item">
+                    <label>Membership</label>
+                    <span id="clientDetailsStatus">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Tier</label>
+                    <span id="clientDetailsTier">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Key Fob Number</label>
+                    <span id="clientDetailsFob">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Contact</label>
+                    <span id="clientDetailsContact">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Assigned Coach</label>
+                    <span id="clientDetailsCoach">—</span>
+                </div>
+                <div class="profile-item">
+                    <label>Date Joined</label>
+                    <span id="clientDetailsJoined">—</span>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:20px;">
+                <label>Session History</label>
+                <div class="mini-list" id="clientHistoryList"></div>
+            </div>
+            <div class="modal-actions">
+                <a class="btn-secondary" id="clientDirectoryLink" href="members.html">Open in Customer Directory</a>
+                <button type="button" class="btn-primary" id="closeClientDetailsBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
