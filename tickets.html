@@ -3,95 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Inquiries & Support - Anytime Fitness CRM</title>
+    <title>Customer Inquiries &amp; Support - Anytime Fitness CRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <input type="checkbox" id="navToggle" class="nav-toggle" aria-hidden="true" tabindex="-1">
+    <label class="nav-backdrop" for="navToggle" aria-hidden="true"></label>
+
     <div class="app-container">
         <aside class="sidebar">
             <div class="logo-area">
-                <h2>Anytime Fitness</h2>
-                <p>Branch CRM Portal</p>
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+                </span>
+                <div class="logo-text">
+                    <h2>Anytime Fitness</h2>
+                    <p>Branch CRM Portal</p>
+                </div>
             </div>
             <nav class="nav-menu">
-                <a href="index.html">Dashboard</a>
-                <a href="members.html">Customer Directory</a>
-                <a href="pipeline.html">Sales Pipeline</a>
-                <a href="tickets.html" class="active">Support & Inquiries</a>
-                <a href="login.html" onclick="logoutCustomer()">Logout</a>
+                <span class="nav-section-label nav-text">Workspace</span>
+                <a href="index.html" title="Dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="members.html" title="Customer Directory">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 19v-1.5a3.5 3.5 0 0 0-3.5-3.5H6.5A3.5 3.5 0 0 0 3 17.5V19"/><circle cx="9.2" cy="7.5" r="3.2"/><path d="M21 19v-1.5a3.5 3.5 0 0 0-2.6-3.38"/><path d="M16 4.3a3.2 3.2 0 0 1 0 6.2"/></svg>
+                    <span class="nav-text">Customer Directory</span>
+                </a>
+                <a href="pipeline.html" title="Sales Pipeline">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5"/><path d="M15.5 6.5H21V12"/></svg>
+                    <span class="nav-text">Sales Pipeline</span>
+                </a>
+                <a href="tickets.html" class="active" title="Support &amp; Inquiries">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.4"/><path d="M6.1 6.1l3.5 3.5M14.4 14.4l3.5 3.5M17.9 6.1l-3.5 3.5M9.6 14.4l-3.5 3.5"/></svg>
+                    <span class="nav-text">Support &amp; Inquiries</span>
+                </a>
             </nav>
+            <div class="sidebar-foot">
+                <a href="login.html" onclick="logoutCustomer()" title="Logout">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5h3.5A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 8.5L6 12l4 3.5"/><path d="M6 12h9"/></svg>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
         </aside>
 
-        <main class="main-content">
-            <header class="top-header">
-                <h1>Customer Inquiry & Support Tickets Module</h1>
-                <button id="openTicketModal" class="btn-primary">+ Add Walk-in Ticket</button>
+        <div class="main-wrap">
+            <header class="topbar">
+                <label class="nav-toggle-btn" for="navToggle" title="Toggle navigation">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </label>
+
+                <div class="topbar-search">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+                    <input type="text" id="topbarSearch" placeholder="Search tickets by name, contact or issue..." aria-label="Search tickets">
+                </div>
+
+                <span class="topbar-meta" id="topbarDate"></span>
+
+                <div class="topbar-right">
+                    <div class="user-chip">
+                        <span class="avatar" id="userAvatar">AF</span>
+                        <span class="user-chip-text">
+                            <span class="user-name" id="userProfile">Guest</span>
+                            <span class="user-role" id="userRole">Signed out</span>
+                        </span>
+                    </div>
+                </div>
             </header>
 
-            <section class="filter-section">
-                <h3>Search & Filter Support Tickets</h3>
-                <div class="ticket-filter-bar">
-                    <input type="text" id="ticketSearch" class="search-input" placeholder="Search by name, contact, or issue...">
-                    <select id="filterPriority" class="search-input">
-                        <option value="all">All Priorities</option>
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                    </select>
-                    <select id="filterStatus" class="search-input">
-                        <option value="all">All Statuses</option>
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                    </select>
-                    <select id="filterSource" class="search-input">
-                        <option value="all">All Sources</option>
-                        <option value="Staff">Staff Logged / Walk-in</option>
-                        <option value="Portal">Customer Portal</option>
-                    </select>
-                    <label class="filter-checkbox">
-                        <input type="checkbox" id="hideResolved"> Hide Resolved Tickets
-                    </label>
-                </div>
-            </section>
+            <main class="main-content">
+                <section class="page-header">
+                    <div class="page-header-row">
+                        <div>
+                            <span class="eyebrow">Member Care</span>
+                            <h1>Customer Inquiry &amp; Support Tickets Module</h1>
+                            <p>Front desk walk-ins and portal inquiries in one queue, with priority, status and a full comment history.</p>
+                        </div>
+                        <button id="openTicketModal" class="btn-primary">+ Add Walk-in Ticket</button>
+                    </div>
+                </section>
 
-            <section class="content-section">
-                <h2>Staff Logged Walk-in Tickets</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Date Logged</th>
-                            <th>Customer Name</th>
-                            <th>Contact Info</th>
-                            <th>Issue Description</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="staffTicketsBody"></tbody>
-                </table>
-            </section>
+                <!-- Ticket statistics (real values rendered by script.js) -->
+                <section class="stats-grid">
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Open Tickets</span>
+                            <span class="stat-icon blue" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.6-3.8 6.5-8.5 6.5a9.7 9.7 0 0 1-2.6-.35L4.5 20.5l1.2-3.4A6.3 6.3 0 0 1 3.5 12.5C3.5 8.9 7.3 6 12 6s8.5 2.9 8.5 6.5Z"/><path d="M9 12.5h.01M12 12.5h.01M15 12.5h.01"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number" id="ticketStatOpen">0</p>
+                        <p class="stat-note">Waiting for a first response</p>
+                    </article>
 
-            <section class="content-section">
-                <h2>Customer Portal Inquiries</h2>
-                <p class="card-meta">Inquiries submitted by customers from the member portal, including their contact details.</p>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Date Logged</th>
-                            <th>Customer Name</th>
-                            <th>Contact Info</th>
-                            <th>Issue Description</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customerInquiriesBody"></tbody>
-                </table>
-            </section>
-        </main>
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">In Progress</span>
+                            <span class="stat-icon amber" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number warning" id="ticketStatProgress">0</p>
+                        <p class="stat-note">Currently being handled by staff</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-top">
+                            <span class="stat-label">Resolved</span>
+                            <span class="stat-icon green" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4.5 12.5l4 4 9-9"/><circle cx="12" cy="12" r="8.5"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number" id="ticketStatResolved">0</p>
+                        <p class="stat-note">Closed and archived in this browser</p>
+                    </article>
+                </section>
+
+                <section class="filter-section">
+                    <h3>Search &amp; Filter Support Tickets</h3>
+                    <div class="ticket-filter-bar">
+                        <input type="text" id="ticketSearch" class="search-input" placeholder="Search by name, contact, or issue...">
+                        <select id="filterPriority" class="search-input">
+                            <option value="all">All Priorities</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                        <select id="filterStatus" class="search-input">
+                            <option value="all">All Statuses</option>
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                        <select id="filterSource" class="search-input">
+                            <option value="all">All Sources</option>
+                            <option value="Staff">Staff Logged / Walk-in</option>
+                            <option value="Portal">Customer Portal</option>
+                        </select>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="hideResolved"> Hide Resolved Tickets
+                        </label>
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Staff Logged Walk-in Tickets</h2>
+                            <p class="card-sub">Requests captured at the front desk</p>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date Logged</th>
+                                    <th>Customer Name</th>
+                                    <th>Contact Info</th>
+                                    <th>Issue Description</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTicketsBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Customer Portal Inquiries</h2>
+                            <p class="card-sub">Inquiries submitted by customers from the member portal, including their contact details.</p>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date Logged</th>
+                                    <th>Customer Name</th>
+                                    <th>Contact Info</th>
+                                    <th>Issue Description</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerInquiriesBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
 
     <!-- Add Walk-in Ticket Modal -->
@@ -128,7 +237,9 @@
                     <label for="ticketIssue">Issue Description</label>
                     <textarea id="ticketIssue" class="inquiry-input" rows="3" placeholder="Describe the issue or request" required></textarea>
                 </div>
-                <button type="submit" class="btn-primary">Save Ticket</button>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">Save Ticket</button>
+                </div>
             </form>
         </div>
     </div>

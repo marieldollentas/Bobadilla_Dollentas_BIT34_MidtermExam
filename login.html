@@ -4,14 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Anytime Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-body">
     <div class="auth-card">
         <div class="auth-brand">
-            <h2>Anytime Fitness</h2>
-            <p>Branch CRM Portal / Member Login</p>
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+            </span>
+            <div>
+                <h2>Anytime Fitness</h2>
+                <p>Branch CRM Portal / Member Login</p>
+            </div>
         </div>
+
+        <h1 style="font-size:22px;font-weight:700;letter-spacing:-.4px;">Welcome Back</h1>
+        <p class="card-sub" style="margin:6px 0 20px;">Sign in with your staff account or your member Key Fob Number.</p>
 
         <div class="auth-tabs">
             <button type="button" id="tabAdmin" class="auth-tab active">Staff / Admin</button>
@@ -27,7 +38,7 @@
                 <label for="loginPassword">Password</label>
                 <input type="password" id="loginPassword" class="search-input" placeholder="Enter password" required>
             </div>
-            <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px;">Sign In</button>
             <p class="error-msg" id="loginError"></p>
             <p class="info-note" id="adminHint">Staff demo credentials: <strong>admin</strong> / <strong>admin123</strong></p>
             <p class="info-note" id="customerHint" style="display: none;">Customers must <a href="register.html" class="auth-link">register</a> first before logging in.</p>

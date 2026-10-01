@@ -4,37 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Membership - Anytime Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="customer-portal">
         <header class="customer-header">
-            <div>
-                <h1>Welcome, <span id="welcomeName"></span>!</h1>
-                <p>Anytime Fitness Member Portal</p>
+            <div class="brand-inline">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+                </span>
+                <div class="brand-text">
+                    <strong>Anytime Fitness</strong>
+                    <small>Anytime Fitness Member Portal</small>
+                </div>
             </div>
-            <a href="login.html" class="btn-primary" style="text-decoration: none;" onclick="logoutCustomer()">Logout</a>
+            <div class="topbar-right">
+                <div class="user-chip">
+                    <span class="avatar" id="userAvatar">AF</span>
+                    <span class="user-chip-text">
+                        <span class="user-name">My Account</span>
+                        <span class="user-role">Signed in</span>
+                    </span>
+                </div>
+                <a href="login.html" class="btn-primary" style="text-decoration: none;" onclick="logoutCustomer()">Logout</a>
+            </div>
         </header>
 
         <div class="portal-body">
-            <section class="content-section">
-                <h2>My Membership Details</h2>
-                <div class="profile-grid">
+            <section class="page-header">
+                <span class="eyebrow">Member Portal</span>
+                <h1>Welcome, <span id="welcomeName"></span>!</h1>
+                <p>Check your membership details and send an inquiry to the front desk at any time.</p>
+            </section>
+
+            <section class="content-section membership-hero span-12">
+                <div>
+                    <h2>Membership Status</h2>
+                    <p class="card-sub">Your plan, renewal date and current standing at the branch.</p>
+                </div>
+                <span id="pStatus" class="badge active">Active</span>
+            </section>
+
+            <section class="content-section span-7">
+                <div class="card-head">
+                    <div>
+                        <h2>Personal Information</h2>
+                        <p class="card-sub">Details the front desk uses to reach you</p>
+                    </div>
+                </div>
+                <div class="profile-grid" style="margin-top: 16px;">
                     <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
                     <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
                     <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
                     <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
                     <div class="profile-item"><label>Key Fob Number</label><span id="pFob"></span></div>
-                    <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
-                    <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
-                    <div class="profile-item"><label>Expiration Date</label><span id="pExp"></span></div>
-                    <div class="profile-item"><label>Status</label><span id="pStatus" class="badge active">Active</span></div>
                 </div>
             </section>
 
-            <section class="content-section">
-                <h2>Send an Inquiry</h2>
-                <div class="form-group">
+            <section class="content-section span-5">
+                <div class="card-head">
+                    <div>
+                        <h2>Membership Information</h2>
+                        <p class="card-sub">Plan length and expiration</p>
+                    </div>
+                </div>
+                <div class="profile-grid" style="margin-top: 16px;">
+                    <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
+                    <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
+                    <div class="profile-item"><label>Expiration Date</label><span id="pExp"></span></div>
+                </div>
+            </section>
+
+            <section class="content-section span-5">
+                <div class="card-head">
+                    <div>
+                        <h2>Send an Inquiry</h2>
+                        <p class="card-sub">Questions, feedback or a change request</p>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 16px;">
                     <label>Priority</label>
                     <select id="inqPriority" class="search-input">
                         <option value="Low">Low</option>
@@ -62,10 +113,14 @@
                 <p id="inqStatus" class="success-msg"></p>
             </section>
 
-            <section class="content-section">
-                <h2>My Support Tickets</h2>
-                <p class="card-meta">Click <strong>View Details</strong> to see the full conversation, including admin comments and replies.</p>
-                <div class="ticket-filter-bar" style="margin-top:12px;">
+            <section class="content-section span-7">
+                <div class="card-head">
+                    <div>
+                        <h2>My Support Tickets</h2>
+                        <p class="card-sub">Click View / Hide Details to see the full conversation, including admin comments and replies.</p>
+                    </div>
+                </div>
+                <div class="ticket-filter-bar" style="margin-top:16px;">
                     <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
                     <select id="portalStatusFilter" class="search-input">
                         <option value="all">All Statuses</option>

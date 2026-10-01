@@ -4,14 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Anytime Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-body">
     <div class="auth-card auth-wide">
         <div class="auth-brand">
-            <h2>Anytime Fitness</h2>
-            <p>Member Registration</p>
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+            </span>
+            <div>
+                <h2>Anytime Fitness</h2>
+                <p>Member Registration</p>
+            </div>
         </div>
+
+        <h1 style="font-size:22px;font-weight:700;letter-spacing:-.4px;">Create Your Account</h1>
+        <p class="card-sub" style="margin:6px 0 20px;">Your Key Fob Number is assigned automatically and becomes your sign-in username.</p>
 
         <form id="registerForm">
             <div class="form-group">
@@ -44,7 +55,7 @@
             </div>
             <div class="form-group">
                 <label for="regKeyFob">Key Fob Number (Your Username)</label>
-                <input type="text" id="regKeyFob" class="search-input" readonly>
+                <input type="text" id="regKeyFob" class="search-input readonly-mono" readonly>
                 <p class="card-meta" style="margin-top: 4px;">Your Key Fob Number is automatically assigned and will be used to sign in.</p>
             </div>
             <div class="form-group">

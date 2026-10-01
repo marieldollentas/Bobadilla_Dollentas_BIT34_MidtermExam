@@ -1732,3 +1732,161 @@ function renderDashboardCharts() {
         emptyText: "No pipeline leads yet."
     });
 }
+
+// =============================================================
+// Dashboard presentation extras (additive only)
+// The redesigned cards below are filled from the same localStorage data the
+// modules above already use, so every number is real rather than placeholder.
+// No existing ID, storage key, listener, function or validation rule is
+// changed, and every element is optional, so all pages still boot as before.
+// =============================================================
+document.addEventListener("DOMContentLoaded", () => {
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+
+    const formatNumber = (value) => (Number(value) || 0).toLocaleString("en-US");
+
+    const ticketsByStatus = (status) => allTickets()
+        .filter(t => String(t.status || "").toLowerCase() === status).length;
+
+    // Header chrome: avatar initials, role label and today's date
+    function renderTopbarChrome() {
+        const role = sessionStorage.getItem("crmRole");
+        const user = sessionStorage.getItem("crmCurrentUser") || "";
+        setText("userAvatar", (user.slice(0, 2) || "AF").toUpperCase());
+        setText("userRole", role === "admin"
+            ? "Front Desk Staff"
+            : role === "customer" ? "Gym Member" : "Signed out");
+        setText("topbarDate", new Date().toLocaleDateString("en-US", {
+            weekday: "short", month: "short", day: "numeric", year: "numeric"
+        }));
+    }
+
+    // Dashboard: the supporting line under each KPI card
+    function renderKpiNotes() {
+        const rows = getDirectoryCustomers();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let active = 0;
+        let expiring = 0;
+        rows.forEach(c => {
+            const status = customerStatus(c.exp, today);
+            if (status === "Active") active++;
+            if (status === "Expiring Soon") expiring++;
+        });
+
+        const open = ticketsByStatus("open");
+        const progress = ticketsByStatus("in progress");
+
+        setText("statActiveNote", `${formatNumber(active)} of ${formatNumber(rows.length)} member record${rows.length === 1 ? "" : "s"} active`);
+        setText("statExpiringNote", expiring
+            ? `Renewal${expiring === 1 ? "" : "s"} due within 30 days`
+            : "No renewals due in the next 30 days");
+        setText("statOpenNote", `${formatNumber(open)} open · ${formatNumber(progress)} in progress`);
+    }
+
+    // Dashboard: real totals under the marketing campaign cards
+    function renderCampaignTotals() {
+        const campaigns = getCampaigns();
+        setText("campaignStatReach", formatNumber(campaigns.reduce((sum, c) => sum + (Number(c.reach) || 0), 0)));
+        setText("campaignStatClicks", formatNumber(campaigns.reduce((sum, c) => sum + (Number(c.clicks) || 0), 0)));
+        setText("campaignStatRunning", formatNumber(campaigns.filter(c => String(c.status || "") === "Running").length));
+    }
+
+    // Customer Directory: the three directory statistic cards
+    function renderDirectoryStats() {
+        if (!document.getElementById("memberStatTotal")) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const rows = getDirectoryCustomers();
+        const withStatus = (status) => rows.filter(c => customerStatus(c.exp, today) === status).length;
+
+        setText("memberStatTotal", formatNumber(rows.length));
+        setText("memberStatActive", formatNumber(withStatus("Active")));
+        setText("memberStatExpiring", formatNumber(withStatus("Expiring Soon")));
+    }
+
+    // Support module: the three ticket statistic cards
+    function renderTicketStats() {
+        if (!document.getElementById("ticketStatOpen")) return;
+
+        setText("ticketStatOpen", formatNumber(ticketsByStatus("open")));
+        setText("ticketStatProgress", formatNumber(ticketsByStatus("in progress")));
+        setText("ticketStatResolved", formatNumber(ticketsByStatus("resolved")));
+    }
+
+    // The header search mirrors the page's own search field so there is a single
+    // filter instead of two. On the dashboard it filters the campaign cards.
+    const TOPBAR_SEARCH_TARGETS = ["searchCustomer", "ticketSearch", "pipelineSearch"];
+
+    function filterCampaignCards(term) {
+        const wrap = document.getElementById("campaignCards");
+        if (!wrap) return;
+
+        const query = term.trim().toLowerCase();
+        Array.from(wrap.children).forEach(child => {
+            if (!child.classList.contains("campaign-card")) {
+                child.style.display = query ? "none" : "";
+                return;
+            }
+            child.style.display = !query || child.textContent.toLowerCase().includes(query) ? "" : "none";
+        });
+    }
+
+    function wireTopbarSearch() {
+        const bar = document.getElementById("topbarSearch");
+        if (!bar) return;
+
+        const target = TOPBAR_SEARCH_TARGETS
+            .map(id => document.getElementById(id))
+            .find(el => el) || null;
+
+        if (target) {
+            bar.addEventListener("input", () => {
+                if (target.value === bar.value) return;
+                target.value = bar.value;
+                target.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+            target.addEventListener("input", () => {
+                if (bar.value !== target.value) bar.value = target.value;
+            });
+            return;
+        }
+
+        bar.addEventListener("input", () => filterCampaignCards(bar.value));
+    }
+
+    renderTopbarChrome();
+    renderKpiNotes();
+    renderCampaignTotals();
+    renderDirectoryStats();
+    renderTicketStats();
+    wireTopbarSearch();
+
+    // Keep the campaign totals in step with add / edit / delete in this tab
+    const campaignCards = document.getElementById("campaignCards");
+    if (campaignCards && typeof MutationObserver === "function") {
+        new MutationObserver(() => renderCampaignTotals()).observe(campaignCards, { childList: true });
+    }
+
+    // Likewise for the support statistics, which re-render whenever either
+    // ticket table is repainted by the module above
+    ["staffTicketsBody", "customerInquiriesBody"].forEach(id => {
+        const tbody = document.getElementById(id);
+        if (tbody && typeof MutationObserver === "function") {
+            new MutationObserver(() => renderTicketStats()).observe(tbody, { childList: true });
+        }
+    });
+
+    // Another tab writing to localStorage refreshes the derived totals too
+    window.addEventListener("storage", () => {
+        renderKpiNotes();
+        renderCampaignTotals();
+        renderDirectoryStats();
+        renderTicketStats();
+    });
+});
