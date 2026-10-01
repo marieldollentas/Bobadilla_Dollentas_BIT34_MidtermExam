@@ -572,6 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
+        renderPortalCoachSection(customer);
         renderMyInquiries();
 
         window.submitInquiry = () => {
@@ -2609,6 +2610,101 @@ function renderCoachSummaryStats() {
     Object.entries(values).forEach(([id, value]) => {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
+    });
+}
+
+// ---- Member portal (customer.html) ----
+// Read-only mirror of the Coach Tracker: the member sees the coach they
+// are assigned to and their own sessions. Same storage keys as the
+// Coach Tracker page, so staff updates appear on the next visit.
+function portalCoachForCustomer(customer) {
+    if (!customer) return null;
+    const clientId = "reg-" + (customer.username || "");
+    const assignment = getCoachAssignments().find(row => String(row.clientId) === String(clientId));
+    if (!assignment) return null;
+    return { assignment, coach: coachById(assignment.coachId) };
+}
+
+function renderPortalCoachSection(customer) {
+    const card = document.getElementById("customerCoachCard");
+    const empty = document.getElementById("customerCoachEmpty");
+    if (!card || !empty) return;
+
+    const found = portalCoachForCustomer(customer);
+    const coach = found && found.coach;
+
+    // A member keeps their session history even when the coach record
+    // was removed, so sessions render before the coach branch returns.
+    renderPortalSessions(customer);
+
+    if (!coach) {
+        // Assigned to a coach record that no longer exists.
+        empty.textContent = found
+            ? "Your coach profile is no longer available. Please contact the front desk."
+            : "You haven't been assigned a coach yet. The front desk will assign one soon.";
+        empty.style.display = "block";
+        card.style.display = "none";
+        return;
+    }
+
+    empty.style.display = "none";
+    card.style.display = "grid";
+
+    const average = coachRatingAverage(coach);
+    const values = {
+        cCoachName: coach.name,
+        cCoachSpec: coach.specialization || "Coach",
+        cCoachPhone: coach.phone || "—",
+        cCoachEmail: coach.email || "—",
+        cCoachShift: coachShiftLabel(coach),
+        cCoachDays: coachWorkingDayLabels(coach),
+        cCoachStatus: coach.status || "—",
+        cCoachRating: average === null
+            ? "No ratings yet"
+            : `${ratingStarsHtml(average)} ${average.toFixed(1)}/5 (${Number(coach.ratingCount)} rating${Number(coach.ratingCount) === 1 ? "" : "s"})`
+    };
+
+    Object.entries(values).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    });
+}
+
+function renderPortalSessions(customer) {
+    const tbody = document.getElementById("customerSessionsBody");
+    const empty = document.getElementById("customerSessionsEmpty");
+    if (!tbody || !empty) return;
+
+    const clientId = "reg-" + (customer.username || "");
+    const sessions = getCoachSessions()
+        .filter(session => String(session.clientId) === String(clientId))
+        .sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
+
+    // Upcoming first, then most recent past, so the next session is on top.
+    const today = todayISO();
+    const upcoming = sessions.filter(session => session.date >= today);
+    const past = sessions.filter(session => session.date < today).reverse();
+    const ordered = [...upcoming, ...past];
+
+    tbody.innerHTML = "";
+    if (ordered.length === 0) {
+        empty.style.display = "block";
+        return;
+    }
+    empty.style.display = "none";
+
+    ordered.forEach(session => {
+        const coach = coachById(session.coachId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${escapeHtml(sessionDayLabel(session.date))}</td>
+            <td>${escapeHtml(formatClock(session.time))}</td>
+            <td>${escapeHtml(coach ? coach.name : "Previous coach")}</td>
+            <td>${escapeHtml(session.type || "—")}</td>
+            <td>${sessionStatusBadge(session.status)}</td>
+            <td>${escapeHtml(session.notes || "—")}</td>
+        `;
+        tbody.appendChild(tr);
     });
 }
 

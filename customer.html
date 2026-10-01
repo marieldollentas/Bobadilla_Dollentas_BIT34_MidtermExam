@@ -67,6 +67,51 @@
             <section class="content-section span-5">
                 <div class="card-head">
                     <div>
+                        <h2>My Coach</h2>
+                        <p class="card-sub">Your assigned coach and contact details</p>
+                    </div>
+                </div>
+                <div id="customerCoachEmpty" class="card-sub" style="margin-top:16px; display:none;">You haven't been assigned a coach yet. The front desk will assign one soon.</div>
+                <div id="customerCoachCard" class="profile-grid" style="margin-top:16px; display:none;">
+                    <div class="profile-item"><label>Coach Name</label><span id="cCoachName"></span></div>
+                    <div class="profile-item"><label>Specialization</label><span id="cCoachSpec"></span></div>
+                    <div class="profile-item"><label>Contact Number</label><span id="cCoachPhone"></span></div>
+                    <div class="profile-item"><label>Email</label><span id="cCoachEmail"></span></div>
+                    <div class="profile-item"><label>Shift Schedule</label><span id="cCoachShift"></span></div>
+                    <div class="profile-item"><label>Working Days</label><span id="cCoachDays"></span></div>
+                    <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
+                    <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
+                </div>
+            </section>
+
+            <section class="content-section span-7">
+                <div class="card-head">
+                    <div>
+                        <h2>My Training Sessions</h2>
+                        <p class="card-sub">Upcoming and past sessions with your coach</p>
+                    </div>
+                </div>
+                <div id="customerSessionsEmpty" class="card-sub" style="margin-top:16px;">No training sessions scheduled yet.</div>
+                <div class="table-wrap" style="margin-top:16px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Coach</th>
+                                <th>Session Type</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerSessionsBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="content-section span-5">
+                <div class="card-head">
+                    <div>
                         <h2>Membership Information</h2>
                         <p class="card-sub">Plan length and expiration</p>
                     </div>
