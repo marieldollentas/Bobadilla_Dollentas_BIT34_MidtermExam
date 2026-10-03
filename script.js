@@ -557,6 +557,14 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("otherPlatformGroup").style.display = "none";
             document.getElementById("campaignModalTitle").textContent = "Add Marketing Campaign";
             campaignForm.querySelector('button[type="submit"]').textContent = "Save Campaign";
+
+            // Stale feedback from a previous entry would otherwise greet the user
+            // the moment the form reopens.
+            const hint = document.getElementById("campaignPostUrlHint");
+            const error = document.getElementById("campaignPostUrlError");
+            if (hint) { hint.textContent = ""; hint.hidden = true; }
+            if (error) { error.textContent = ""; error.hidden = true; }
+
             campaignModal.style.display = "flex";
             document.getElementById("campaignTitle").focus();
         });
@@ -578,12 +586,63 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleCustomPlatform();
     }
 
+    // Live feedback on the post link: an unrecognised address is explained before
+    // the campaign is saved, and a recognised one picks its own platform so staff
+    // do not have to set Instagram and Facebook twice.
+    const campaignPostUrlInput = document.getElementById("campaignPostUrl");
+    const campaignPostUrlHint = document.getElementById("campaignPostUrlHint");
+    const campaignPostUrlError = document.getElementById("campaignPostUrlError");
+
+    if (campaignPostUrlInput) {
+        campaignPostUrlInput.addEventListener("input", () => {
+            const info = parseSocialPostUrl(campaignPostUrlInput.value);
+
+            if (campaignPostUrlError) {
+                campaignPostUrlError.textContent = info.reason;
+                campaignPostUrlError.hidden = !info.reason;
+            }
+            if (campaignPostUrlHint) {
+                campaignPostUrlHint.textContent = info.ok ? info.note : "";
+                campaignPostUrlHint.hidden = !info.ok;
+            }
+
+            if (info.ok && CAMPAIGN_PLATFORMS.includes(info.platform) && campaignPlatformSelect) {
+                campaignPlatformSelect.value = info.platform;
+                campaignPlatformSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        });
+
+        campaignPostUrlInput.addEventListener("blur", () => {
+            // A link copied without a scheme is normalised on the way out so what
+            // gets stored is the address the parser actually accepted.
+            const info = parseSocialPostUrl(campaignPostUrlInput.value);
+            if (info.ok && !/^https?:\/\//i.test(campaignPostUrlInput.value.trim())) {
+                campaignPostUrlInput.value = info.url;
+            }
+        });
+    }
+
     if (campaignForm) {
         campaignForm.addEventListener("submit", (e) => {
             e.preventDefault();
             const title = document.getElementById("campaignTitle").value.trim();
             if (!title) {
                 alert("Please enter the campaign title.");
+                return;
+            }
+
+            // A post link that cannot be parsed is refused here rather than saved,
+            // because the card's preview and embed both depend on a real permalink.
+            // The field stays optional: campaigns without a link still save.
+            const postUrl = document.getElementById("campaignPostUrl").value.trim();
+            const postInfo = parseSocialPostUrl(postUrl);
+            if (postUrl && !postInfo.ok) {
+                if (campaignPostUrlError) {
+                    campaignPostUrlError.textContent = postInfo.reason;
+                    campaignPostUrlError.hidden = false;
+                }
+                if (campaignPostUrlHint) campaignPostUrlHint.hidden = true;
+                if (campaignPostUrlInput) campaignPostUrlInput.focus();
                 return;
             }
 
@@ -595,10 +654,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 title,
                 platform: platform === "Other" && customPlatform ? customPlatform : platform,
                 status: document.getElementById("campaignStatus").value,
-                reach: Number(document.getElementById("campaignReach").value) || 0,
-                clicks: Number(document.getElementById("campaignClicks").value) || 0,
-                postUrl: document.getElementById("campaignPostUrl").value.trim(),
-                linkLabel: document.getElementById("campaignLinkLabel").value.trim(),
+                // The canonical permalink is stored so the official embed script
+                // is handed exactly the URL shape it documents.
+                postUrl: postInfo.ok ? postInfo.url : "",
                 imageUrl: document.getElementById("campaignImageUrl").value.trim()
             };
 
@@ -1905,30 +1963,196 @@ function campaignPlatformOption(platform) {
     return CAMPAIGN_PLATFORMS.includes(platform) ? platform : "Other";
 }
 
+// ---- Social post embeds (Instagram / Facebook) ----
+// Neither platform exposes post content to a browser page directly, so a pasted
+// link is all we can read here. The URL is therefore parsed into the canonical
+// permalink each platform's official embed script expects, and the embed itself
+// is requested from that script only when a user asks for it.
+//
+// Recognised shapes return { ok: true, platform, url, embeddable, note }.
+// Anything else returns { ok: false, reason } so the caller can explain the
+// problem in the campaign form instead of silently dropping the input.
+
+const INSTAGRAM_HOSTS = ["instagram.com", "www.instagram.com", "m.instagram.com"];
+const FACEBOOK_HOSTS = ["facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com", "mbasic.facebook.com"];
+
+// Short hosts that stand in for a facebook.com permalink. Facebook does not
+// accept them in the XFBML plugin, so the card links out instead of embedding.
+const FACEBOOK_SHORT_HOSTS = ["fb.watch", "fb.com"];
+
+function hostMatches(host, list) {
+    return list.indexOf(host.toLowerCase()) !== -1;
+}
+
+// Instagram permalinks are /p|reel|reels|tv/<shortcode>. The username segment
+// some shared URLs carry is dropped so the embed script always gets the shape it
+// documents, and the trailing slash is added back as the canonical form.
+function parseInstagramPermalink(pathname) {
+    const match = pathname.match(/^\/(?:[\w.%-]+\/)?(p|reel|reels|tv)\/([\w-]+)\/?$/);
+    if (!match) return null;
+    return `https://www.instagram.com/${match[1]}/${match[2]}/`;
+}
+
+// Facebook exposes the same post under many URLs. Reduce them to the documented
+// permalink forms: the page posts path, and the photo/video/permalink endpoints.
+function parseFacebookPermalink(url) {
+    const path = url.pathname.replace(/\/+$/, "");
+    const query = url.searchParams;
+
+    if (path === "/permalink.php" && query.get("story_fbid")) {
+        const id = query.get("id") || "";
+        return `https://www.facebook.com/permalink.php?story_fbid=${encodeURIComponent(query.get("story_fbid"))}${id ? `&id=${encodeURIComponent(id)}` : ""}`;
+    }
+
+    const postMatch = path.match(/\/posts\/(\d+)$/);
+    if (postMatch) return `https://www.facebook.com${path}/`;
+
+    const fbid = query.get("fbid");
+    if (fbid) return `https://www.facebook.com/photo.php?fbid=${encodeURIComponent(fbid)}`;
+
+    const video = query.get("v");
+    if (video) return `https://www.facebook.com/video.php?v=${encodeURIComponent(video)}`;
+
+    const videoMatch = path.match(/\/videos\/(\d+)$/);
+    if (videoMatch) return `https://www.facebook.com${path}/`;
+
+    return null;
+}
+
+function parseSocialPostUrl(raw) {
+    const value = String(raw || "").trim();
+    if (!value) return { ok: false, reason: "" };
+
+    // Accept links pasted without a scheme, which browsers treat as relative
+    let candidate = value;
+    if (!/^https?:\/\//i.test(candidate)) candidate = `https://${candidate}`;
+
+    let parsed;
+    try {
+        parsed = new URL(candidate);
+    } catch (e) {
+        return { ok: false, reason: "That does not look like a valid web address." };
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, reason: "Only http and https addresses can be previewed." };
+    }
+
+    const host = parsed.hostname;
+
+    if (hostMatches(host, INSTAGRAM_HOSTS)) {
+        const url = parseInstagramPermalink(parsed.pathname);
+        if (!url) {
+            return { ok: false, reason: "Use an Instagram post link such as instagram.com/p/XXXXXX. Stories and profile pages cannot be embedded." };
+        }
+        return { ok: true, platform: "Instagram", url, embeddable: true, note: "Instagram post recognised. It will render as a live embed." };
+    }
+
+    if (hostMatches(host, FACEBOOK_HOSTS)) {
+        const url = parseFacebookPermalink(parsed);
+        if (!url) {
+            return { ok: false, reason: "Use a link to a specific Facebook post, photo, video or reel. Facebook pages cannot be embedded." };
+        }
+        return { ok: true, platform: "Facebook", url, embeddable: true, note: "Facebook post recognised. It will render as a live embed." };
+    }
+
+    if (hostMatches(host, FACEBOOK_SHORT_HOSTS)) {
+        return {
+            ok: true,
+            platform: "Facebook",
+            url: parsed.href,
+            embeddable: false,
+            note: "Facebook share links open the post but cannot be embedded. Paste the full facebook.com post link to preview it here."
+        };
+    }
+
+    if (hostMatches(host, ["twitter.com", "www.twitter.com", "x.com", "www.x.com"])) {
+        return { ok: true, platform: "Twitter", url: parsed.href, embeddable: false, note: "Twitter posts link out only." };
+    }
+
+    if (hostMatches(host, ["tiktok.com", "www.tiktok.com", "vm.tiktok.com"])) {
+        return { ok: true, platform: "TikTok", url: parsed.href, embeddable: false, note: "TikTok posts link out only." };
+    }
+
+    return { ok: false, reason: "Only Instagram and Facebook post links can be embedded here." };
+}
+
+// Reads the saved post link of a campaign and returns the same shape as
+// parseSocialPostUrl so the card renderer never has to re-check for failures.
+function campaignSocialInfo(campaign) {
+    const raw = safeUrl(campaign.postUrl);
+    if (!raw) return { ok: false, reason: "", platform: campaign.platform || "", url: "", embeddable: false };
+    return parseSocialPostUrl(raw);
+}
+
+const CAMPAIGN_PLATFORM_TINTS = {
+    Instagram: "instagram",
+    Facebook: "facebook",
+    Twitter: "twitter",
+    TikTok: "tiktok"
+};
+
+// Platform chip drawn over the thumbnail. The chip text also keeps the card
+// searchable by platform name through the existing topbar filter.
+function campaignPlatformChip(platform) {
+    if (!platform) return "";
+    const tint = CAMPAIGN_PLATFORM_TINTS[platform] || "generic";
+    return `<span class="social-platform social-platform-${tint}">${escapeHtml(platform)}</span>`;
+}
+
+// The embedded post is unusable inside a 190px dashboard column, so an expanded
+// card takes the full width of the grid instead of stretching a single column.
+function setCampaignEmbedded(card, expanded) {
+    if (!card) return;
+    card.classList.toggle("is-embedded", !!expanded);
+    const panel = card.querySelector(".campaign-embed");
+    if (panel) panel.hidden = !expanded;
+    const toggle = card.querySelector(".social-embed-toggle");
+    if (toggle) {
+        toggle.textContent = expanded ? "Hide Post" : "Preview Post";
+        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+}
+
 function buildCampaignCard(campaign) {
     const div = document.createElement("div");
     div.className = "campaign-card";
     div.setAttribute("data-id", campaign.id);
 
-    const reach = (Number(campaign.reach) || 0).toLocaleString("en-US");
-    const clicks = (Number(campaign.clicks) || 0).toLocaleString("en-US");
-    const postUrl = safeUrl(campaign.postUrl);
+    const info = campaignSocialInfo(campaign);
     const imageUrl = safeUrl(campaign.imageUrl);
-    const label = escapeHtml(campaign.linkLabel || "View Post");
-    const link = postUrl
-        ? `<a href="${escapeHtml(postUrl)}" target="_blank" rel="noopener" class="social-link">${label}</a>`
+    const label = escapeHtml(info.ok && info.embeddable ? "Open Post" : "View Post");
+    const link = info.url
+        ? `<a href="${escapeHtml(info.url)}" target="_blank" rel="noopener" class="social-link">${label}</a>`
+        : "";
+
+    // A saved link that no longer parses is surfaced on the card rather than
+    // dropped, so the staff member who added it can see why it stopped working.
+    const note = !info.ok && campaign.postUrl
+        ? `<p class="campaign-note">Link not previewed: ${escapeHtml(info.reason)}</p>`
+        : (info.ok && info.note && !info.embeddable
+            ? `<p class="campaign-note">${escapeHtml(info.note)}</p>`
+            : "");
+
+    const toggle = info.ok && info.embeddable
+        ? `<button class="btn-view social-embed-toggle" aria-expanded="false" onclick="toggleCampaignEmbed(${Number(campaign.id)})">Preview Post</button>`
         : "";
 
     div.innerHTML = `
-        <img src="${escapeHtml(imageUrl || CAMPAIGN_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(campaign.title)}" class="campaign-img">
-        <h4>${escapeHtml(campaign.title)} (${escapeHtml(campaign.platform)})</h4>
-        <p>Reach: ${reach} | Clicks: ${clicks}</p>
+        <div class="campaign-media">
+            <img src="${escapeHtml(imageUrl || CAMPAIGN_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(campaign.title)}" class="campaign-img">
+            ${campaignPlatformChip(info.ok ? info.platform : campaign.platform)}
+        </div>
+        <h4>${escapeHtml(campaign.title)}</h4>
+        ${note}
         ${link}
         ${campaignStatusBadge(campaign.status)}
         <div class="kanban-card-actions">
             <button class="btn-view" onclick="openEditCampaign(${Number(campaign.id)})">Edit</button>
+            ${toggle}
             <button class="btn-delete" onclick="requestDeleteCampaign(${Number(campaign.id)})">Delete</button>
         </div>
+        <div class="campaign-embed" hidden></div>
     `;
     return div;
 }
@@ -1949,6 +2173,197 @@ function renderCampaigns() {
     campaigns.forEach(c => container.appendChild(buildCampaignCard(c)));
 }
 
+// Official embed scripts are loaded at most once per page, but only after a user
+// opens a preview. They are keyed so Instagram and Facebook each get their own
+// entry and a card that is reopened does not fetch the vendor code again.
+const CAMPAIGN_EMBED_SCRIPTS = {};
+
+const INSTAGRAM_EMBED_SRC = "https://www.instagram.com/embed.js";
+const FACEBOOK_EMBED_SRC = "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0";
+
+// A preview should never leave a card spinning, so a vendor script that stalls is
+// treated the same as one that fails outright.
+const CAMPAIGN_EMBED_TIMEOUT = 8000;
+
+function loadCampaignEmbedScript(key, src) {
+    if (CAMPAIGN_EMBED_SCRIPTS[key]) return CAMPAIGN_EMBED_SCRIPTS[key];
+
+    const pending = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`The ${key} embed script could not be reached.`));
+        document.head.appendChild(script);
+    });
+
+    CAMPAIGN_EMBED_SCRIPTS[key] = pending;
+
+    // Clearing the cache on failure lets a user retry after coming back online
+    // instead of being stuck with a permanently broken preview.
+    pending.catch(() => {
+        if (CAMPAIGN_EMBED_SCRIPTS[key] === pending) delete CAMPAIGN_EMBED_SCRIPTS[key];
+    });
+
+    return pending;
+}
+
+function withCampaignEmbedTimeout(promise, label) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(label)), CAMPAIGN_EMBED_TIMEOUT))
+    ]);
+}
+
+// Shared shell for an open preview: a heading with a permanent link out, so a
+// visitor is never trapped behind a vendor script that failed to render.
+function buildCampaignEmbedPanel(platform, url) {
+    const panel = document.createElement("div");
+    panel.className = "campaign-embed-panel";
+
+    const head = document.createElement("div");
+    head.className = "campaign-embed-head";
+
+    const title = document.createElement("span");
+    title.className = "campaign-embed-title";
+    title.textContent = `${platform} preview`;
+
+    const link = document.createElement("a");
+    link.className = "social-link";
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Open Post ↗";
+
+    head.appendChild(title);
+    head.appendChild(link);
+
+    const frame = document.createElement("div");
+    frame.className = "campaign-embed-frame";
+
+    panel.appendChild(head);
+    panel.appendChild(frame);
+    return { panel, frame };
+}
+
+function campaignEmbedFailed(panel, message) {
+    const frame = panel.querySelector(".campaign-embed-frame");
+    if (!frame) return;
+
+    frame.innerHTML = "";
+    const note = document.createElement("p");
+    note.className = "campaign-note";
+    note.textContent = message;
+    frame.appendChild(note);
+    panel.dataset.state = "error";
+}
+
+// Instagram renders through a blockquote placeholder that embed.js upgrades into
+// an iframe. The blockquote content is the documented no-script fallback.
+function mountInstagramEmbed(panel, url) {
+    const { panel: shell, frame } = buildCampaignEmbedPanel("Instagram", url);
+    panel.appendChild(shell);
+
+    const quote = document.createElement("blockquote");
+    quote.className = "instagram-media campaign-embed-post";
+    quote.setAttribute("data-instgrm-permalink", url);
+    quote.setAttribute("data-instgrm-version", "14");
+    quote.setAttribute("data-instgrm-captioned", "");
+
+    const fallback = document.createElement("a");
+    fallback.href = url;
+    fallback.target = "_blank";
+    fallback.rel = "noopener";
+    fallback.textContent = "View this post on Instagram";
+    quote.appendChild(fallback);
+
+    frame.appendChild(quote);
+
+    return loadCampaignEmbedScript("Instagram", INSTAGRAM_EMBED_SRC)
+        .then(() => {
+            if (window.instgrm && window.instgrm.Embeds) {
+                window.instgrm.Embeds.process(quote);
+                panel.dataset.state = "ready";
+                return;
+            }
+            throw new Error("Instagram's embed script loaded without its embedder.");
+        })
+        .catch((error) => campaignEmbedFailed(panel, error.message));
+}
+
+// Facebook uses the XFBML plugin, which reads data-href off a plain container and
+// swaps in an iframe of its own.
+function mountFacebookEmbed(panel, url) {
+    const { panel: shell, frame } = buildCampaignEmbedPanel("Facebook", url);
+    panel.appendChild(shell);
+
+    const post = document.createElement("div");
+    post.className = "fb-post";
+    post.setAttribute("data-href", url);
+    post.setAttribute("data-width", "500");
+    post.setAttribute("data-show-text", "true");
+    frame.appendChild(post);
+
+    return loadCampaignEmbedScript("Facebook", FACEBOOK_EMBED_SRC)
+        .then(() => {
+            if (window.FB && window.FB.XFBML) {
+                window.FB.XFBML.parse(frame);
+                panel.dataset.state = "ready";
+                return;
+            }
+            throw new Error("Facebook's embed script loaded without its plugin.");
+        })
+        .catch((error) => campaignEmbedFailed(panel, error.message));
+}
+
+function requestCampaignEmbed(panel, info) {
+    panel.dataset.state = "pending";
+
+    const note = document.createElement("p");
+    // Neutral tone while waiting: the warning note is reserved for real failures.
+    note.className = "campaign-embed-loading";
+    note.textContent = `Loading ${info.platform} post…`;
+    panel.appendChild(note);
+
+    const mount = info.platform === "Instagram" ? mountInstagramEmbed : mountFacebookEmbed;
+    return withCampaignEmbedTimeout(mount(panel, info.url), "The post took too long to load. Use Open Post to view it on the platform.")
+        .then(() => note.remove())
+        .catch((error) => {
+            note.remove();
+            campaignEmbedFailed(panel, error.message);
+        });
+}
+
+// Expands or collapses the embedded post on one campaign card. Embeds are never
+// requested on page load so the dashboard keeps its existing weight and the
+// cards stay a fast, scannable summary.
+function toggleCampaignEmbed(id) {
+    const card = document.querySelector(`.campaign-card[data-id="${id}"]`);
+    if (!card) return;
+
+    const panel = card.querySelector(".campaign-embed");
+    if (!panel) return;
+
+    const wasExpanded = !panel.hidden;
+    if (wasExpanded) {
+        setCampaignEmbedded(card, false);
+        return;
+    }
+
+    setCampaignEmbedded(card, true);
+    if (panel.dataset.state === "ready" || panel.dataset.state === "pending") return;
+
+    const campaign = getCampaigns().find(c => String(c.id) === String(id));
+    const info = campaign && campaignSocialInfo(campaign);
+    if (!info || !info.ok || !info.embeddable) {
+        setCampaignEmbedded(card, false);
+        return;
+    }
+
+    panel.innerHTML = "";
+    requestCampaignEmbed(panel, info);
+}
+
 function openEditCampaign(id) {
     const campaign = getCampaigns().find(c => String(c.id) === String(id));
     const modal = document.getElementById("campaignModal");
@@ -1961,10 +2376,7 @@ function openEditCampaign(id) {
     document.getElementById("campaignPlatform").value = platform;
     document.getElementById("campaignPlatformOther").value = platform === "Other" ? (campaign.platform || "") : "";
     document.getElementById("campaignStatus").value = campaign.status || "Scheduled";
-    document.getElementById("campaignReach").value = Number(campaign.reach) || 0;
-    document.getElementById("campaignClicks").value = Number(campaign.clicks) || 0;
     document.getElementById("campaignPostUrl").value = campaign.postUrl || "";
-    document.getElementById("campaignLinkLabel").value = campaign.linkLabel || "";
     document.getElementById("campaignImageUrl").value = campaign.imageUrl || "";
 
     const group = document.getElementById("otherPlatformGroup");
@@ -3000,12 +3412,16 @@ document.addEventListener("DOMContentLoaded", () => {
         setText("statOpenNote", `${formatNumber(open)} open · ${formatNumber(progress)} in progress`);
     }
 
-    // Dashboard: real totals under the marketing campaign cards
+    // Dashboard: one counter per status under the marketing campaign cards
     function renderCampaignTotals() {
         const campaigns = getCampaigns();
-        setText("campaignStatReach", formatNumber(campaigns.reduce((sum, c) => sum + (Number(c.reach) || 0), 0)));
-        setText("campaignStatClicks", formatNumber(campaigns.reduce((sum, c) => sum + (Number(c.clicks) || 0), 0)));
-        setText("campaignStatRunning", formatNumber(campaigns.filter(c => String(c.status || "") === "Running").length));
+
+        // Driven by the same list that colours the card badges, so the counters
+        // and the status pills cannot drift apart.
+        CAMPAIGN_STATUSES.forEach((meta) => {
+            const count = campaigns.filter(c => String(c.status || "") === meta.value).length;
+            setText(`campaignStat${meta.value}`, formatNumber(count));
+        });
     }
 
     // Customer Directory: the three directory statistic cards

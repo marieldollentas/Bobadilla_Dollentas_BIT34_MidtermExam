@@ -783,9 +783,20 @@ letter-spacing: .3px;
     border-top: 1px solid var(--border-soft);
 }
 
+/* The three status counters, in the same lifecycle order as the card badges.
+   Each tile carries its status tone as an accent bar so the strip reads as a
+   pipeline at a glance; the classes keep the colour off the tile's position. */
 .campaign-summary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
+.campaign-summary > div {
+    border-left: 3px solid var(--border);
+}
+
+.campaign-summary > div.is-scheduled { border-left-color: var(--warning-ink); }
+.campaign-summary > div.is-running { border-left-color: var(--success-ink); }
+.campaign-summary > div.is-completed { border-left-color: var(--accent-ink); }
 
 /* Same strip, sized for the four dashboard Coach Tracker KPIs */
 .kpi-strip {
@@ -1465,11 +1476,6 @@ select.search-input {
     line-height: 1.35;
 }
 
-.campaign-card p {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-}
-
 .social-link {
     display: inline-block;
     font-size: 12px;
@@ -1482,7 +1488,182 @@ select.search-input {
     text-decoration: underline;
 }
 
-/* ---------- 19. Modals ---------- */
+/* ---------- 19. Social post previews ---------- */
+/* A campaign card shows a thumbnail with the platform badge over it, the caption
+   area, the metrics and the actions, in that order, so the card keeps reading as
+   the compact dashboard tile it has always been. */
+
+/* Positions the platform badge over the thumbnail without changing the image box. */
+.campaign-media {
+    position: relative;
+}
+
+.social-platform {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .94);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    line-height: 1.5;
+    box-shadow: 0 2px 6px -3px rgba(23, 22, 53, .5);
+    backdrop-filter: blur(4px);
+}
+
+/* Brand tints are used only to identify the platform at a glance; text colour
+   stays on the token palette so the badge remains readable. */
+.social-platform::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.social-platform-instagram::before { background: #c13584; }
+.social-platform-facebook::before { background: #1877f2; }
+.social-platform-twitter::before { background: #1d9bf0; }
+.social-platform-tiktok::before { background: #111; }
+
+/* Quiet note under the title: why a link was not embedded, or what went wrong.
+   Declared at a single class so it is not caught by the card's own text rules. */
+.campaign-note {
+    padding: 7px 9px;
+    border-radius: var(--radius-sm);
+    background: var(--warning-bg);
+    color: var(--warning-ink);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+/* Waiting for a vendor script is not a problem, so it gets the info tone
+   rather than the warning tone the failure note uses. */
+.campaign-embed-loading {
+    align-self: center;
+    padding: 7px 9px;
+    border-radius: var(--radius-sm);
+    background: var(--info-bg);
+    color: var(--info-ink);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+/* The helper copy under the campaign form fields. */
+.field-hint {
+    margin-top: 7px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* Full-width row inside the .details-summary form grid. */
+.form-span-all {
+    grid-column: 1 / -1;
+}
+
+/* An opened preview takes the whole grid width: a real Instagram or Facebook
+   embed is unreadable inside the 190px column the cards normally share. */
+.campaign-card.is-embedded {
+    grid-column: 1 / -1;
+}
+
+/* The placeholder for the embed. Kept out of the flow until a visitor asks for
+   it, so the card grid is unaffected while the panel is collapsed. */
+.campaign-embed[hidden] {
+    display: none;
+}
+
+/* "Preview Post" is the card's main affordance, so it wears the primary tint
+   while "Edit" and "Delete" stay quiet. */
+.social-embed-toggle {
+    background: var(--primary-50);
+    border-color: var(--primary-200);
+    color: var(--primary-700);
+}
+
+.social-embed-toggle:hover {
+    background: var(--primary-100);
+}
+
+.campaign-embed-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: #fff;
+}
+
+.campaign-embed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.campaign-embed-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.campaign-embed-frame {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+}
+
+/* The vendor scripts inject their own markup and set an inline width, so the
+   iframes are capped here to keep the preview inside the card. */
+.campaign-embed-frame iframe {
+    max-width: 100%;
+    border: 0;
+}
+
+.campaign-embed-frame .fb-post,
+.campaign-embed-frame .instagram-media {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Facebook's plugin renders a bare <span> spinner before the iframe lands. */
+.campaign-embed-frame .fb-post {
+    min-width: 220px;
+}
+
+/* Instagram's blockquote carries its own styling from the vendor stylesheet, so
+   only the layout inside our panel is set here. */
+.campaign-embed-post {
+    width: 100%;
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 12px;
+    border: 0;
+    background: var(--background);
+    box-shadow: none;
+}
+
+/* Before embed.js runs, the blockquote is only a link. Style that fallback so
+   the card does not look empty until the real embed replaces it. */
+.campaign-embed-post > a {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* ---------- 20. Modals ---------- */
 .modal {
     display: none;
     position: fixed;
@@ -1570,7 +1751,7 @@ select.search-input {
     font-size: 13px;
 }
 
-/* ---------- 20. Comment thread ---------- */
+/* ---------- 21. Comment thread ---------- */
 .ticket-thread {
     display: flex;
     flex-direction: column;
@@ -1639,7 +1820,7 @@ select.search-input {
     border-bottom: none;
 }
 
-/* ---------- 21. Member portal ---------- */
+/* ---------- 22. Member portal ---------- */
 .customer-portal {
     display: flex;
     flex-direction: column;
@@ -1814,7 +1995,7 @@ select.search-input {
     flex-wrap: wrap;
 }
 
-/* ---------- 22. Member portal ticket cards ---------- */
+/* ---------- 23. Member portal ticket cards ---------- */
 .ticket-list {
     display: flex;
     flex-direction: column;
@@ -1871,7 +2052,7 @@ select.search-input {
     margin-top: 10px;
 }
 
-/* ---------- 23. Auth pages ---------- */
+/* ---------- 24. Auth pages ---------- */
 .auth-body {
     display: flex;
     align-items: center;
@@ -1994,7 +2175,7 @@ select.search-input {
     user-select: all;
 }
 
-/* ---------- 24. Responsive ---------- */
+/* ---------- 25. Responsive ---------- */
 @media (max-width: 1280px) {
     .span-4,
     .span-5,
@@ -2125,7 +2306,7 @@ select.search-input {
     .campaign-cards { grid-template-columns: 1fr; }
 }
 
-/* ---------- 25. Recent activity ---------- */
+/* ---------- 26. Recent activity ---------- */
 /* One compact feed card that sits in the existing dashboard grid and reuses the
    shared tokens: pill header control, status-toned icon bubbles, hairline rows. */
 .activity-card {
@@ -2255,7 +2436,7 @@ a.activity-item:focus-visible .activity-title {
     .activity-title { font-size: 12px; }
 }
 
-/* ---------- 26. Coach Tracker ---------- */
+/* ---------- 27. Coach Tracker ---------- */
 /* Only new selectors, all built from the tokens above, so the Coach
    Tracker page reads exactly like the rest of the CRM. */
 .head-actions {
@@ -2604,4 +2785,10 @@ a.activity-item:focus-visible .activity-title {
     .perf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .perf-rates { grid-template-columns: 1fr; }
     .mini-list-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+    /* One campaign per row, so the embed gets the full column width and its
+       minimum size stops it pushing a scrollbar onto a narrow phone. */
+    .campaign-embed-panel { padding: 10px; }
+    .campaign-embed-frame .fb-post { min-width: 0; }
+    .campaign-embed-head { align-items: flex-start; }
 }

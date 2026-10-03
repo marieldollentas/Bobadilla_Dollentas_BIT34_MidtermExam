@@ -247,23 +247,23 @@
                                 <div class="card-head">
                                     <div>
                                         <h3>Active Social Media Marketing Campaigns</h3>
-                                        <p class="card-sub">Reach and click performance per campaign</p>
+                                        <p class="card-sub">Embedded Instagram and Facebook posts per campaign</p>
                                     </div>
                                     <button id="openCampaignModal" class="btn-primary">+ Add Campaign</button>
                                 </div>
                                 <div id="campaignCards" class="campaign-cards"></div>
                                 <div class="campaign-summary">
-                                    <div>
-                                        <span>Total Reach</span>
-                                        <strong id="campaignStatReach">0</strong>
+                                    <div class="is-scheduled">
+                                        <span>Scheduled</span>
+                                        <strong id="campaignStatScheduled">0</strong>
                                     </div>
-                                    <div>
-                                        <span>Total Clicks</span>
-                                        <strong id="campaignStatClicks">0</strong>
-                                    </div>
-                                    <div>
+                                    <div class="is-running">
                                         <span>Running Now</span>
                                         <strong id="campaignStatRunning">0</strong>
+                                    </div>
+                                    <div class="is-completed">
+                                        <span>Completed</span>
+                                        <strong id="campaignStatCompleted">0</strong>
                                     </div>
                                 </div>
                             </article>
@@ -312,9 +312,19 @@
             <form id="campaignForm">
                 <input type="hidden" id="campaignId">
                 <div class="details-summary">
-                    <div class="form-group">
+                    <div class="form-group form-span-all">
                         <label for="campaignTitle">Campaign Title</label>
                         <input type="text" id="campaignTitle" class="search-input" placeholder="e.g. Summer Shred Challenge" required>
+                    </div>
+                    <div class="form-group form-span-all">
+                        <label for="campaignPostUrl">Instagram / Facebook Post URL</label>
+                        <!-- type=text rather than type=url: the script parses and normalises this link
+                         itself, so a scheme-less paste such as instagram.com/p/XXXXXX is accepted
+                         and explained in its own words instead of a native browser bubble. -->
+                        <input type="text" inputmode="url" id="campaignPostUrl" class="search-input" placeholder="Paste a post link, e.g. instagram.com/p/XXXXXX">
+                        <p class="success-msg" id="campaignPostUrlHint" hidden></p>
+                        <p class="error-msg" id="campaignPostUrlError" hidden></p>
+                        <p class="field-hint">Leave blank for a campaign without a post. Instagram and Facebook links open as a live preview inside the card; the platform is filled in for you.</p>
                     </div>
                     <div class="form-group">
                         <label for="campaignPlatform">Platform</label>
@@ -338,25 +348,10 @@
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="campaignReach">Reach</label>
-                        <input type="number" id="campaignReach" class="search-input" min="0" step="1" placeholder="e.g. 3450">
-                    </div>
-                    <div class="form-group">
-                        <label for="campaignClicks">Clicks</label>
-                        <input type="number" id="campaignClicks" class="search-input" min="0" step="1" placeholder="e.g. 410">
-                    </div>
-                    <div class="form-group">
-                        <label for="campaignPostUrl">Post / Ad URL</label>
-                        <input type="url" id="campaignPostUrl" class="search-input" placeholder="https://instagram.com/...">
-                    </div>
-                    <div class="form-group">
-                        <label for="campaignLinkLabel">Link Label</label>
-                        <input type="text" id="campaignLinkLabel" class="search-input" placeholder="e.g. View IG Post">
-                    </div>
-                    <div class="form-group">
-                        <label for="campaignImageUrl">Image URL</label>
+                    <div class="form-group form-span-all">
+                        <label for="campaignImageUrl">Thumbnail Image URL</label>
                         <input type="url" id="campaignImageUrl" class="search-input" placeholder="https://images.unsplash.com/...">
+                        <p class="field-hint">Used as the card thumbnail. Instagram and Facebook do not let a browser read post images directly, so paste the media image address here.</p>
                     </div>
                 </div>
                 <div class="modal-actions">
