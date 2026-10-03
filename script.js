@@ -133,6 +133,76 @@ document.addEventListener("DOMContentLoaded", () => {
         countActiveMembers();
     };
 
+    // Repaints every view that shows membership state, so a renewal taken on
+    // one page never leaves a stale badge or button behind on another view of
+    // the same tab.
+    function refreshMembershipViews() {
+        if (document.getElementById("customerTableBody")) renderCustomerDirectory();
+        if (document.getElementById("recentActivityList")) renderRecentActivity();
+        if (document.getElementById("coachTableBody") && typeof renderCoachTracker === "function") renderCoachTracker();
+        if (document.getElementById("chartMembersStatus")) renderDashboardCharts();
+
+        countExpiringMembers();
+        countActiveMembers();
+        if (document.getElementById("statExpiring")) syncDashboard();
+    }
+
+    // Renew Membership: extends the member's existing tier by one more term and
+    // records the action in the activity feed. Every page that surfaces a
+    // renewal button (Customer Directory, Coach Tracker, client dialogs) calls
+    // this one function, so a renewal always behaves the same wherever it is
+    // triggered from.
+    window.renewMemberById = (encodedId) => {
+        const id = decodeURIComponent(encodedId || "");
+        const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+        if (!member) {
+            alert("Member not found. It may have already been removed.");
+            return false;
+        }
+
+        const today = todayStart();
+        const name = member.name || "This member";
+
+        if (!membershipNeedsRenewal(member, today)) {
+            alert(`${name}'s membership is not due for renewal yet (${renewalCountdownLabel(member, today)}).`);
+            return false;
+        }
+
+        const nextExp = renewalExpirationFor(member, today);
+        if (!nextExp) {
+            alert(`${name} does not have a valid membership tier, so the renewal term cannot be derived. Set a tier with Edit Membership first.`);
+            return false;
+        }
+
+        const months = tierDurationMonths(member.tier);
+        if (!confirm(`Renew ${name}'s ${member.tier}?\n\n${renewalCountdownLabel(member, today)} • New expiration: ${nextExp}\n\nConfirm the payment at the front desk before saving.`)) {
+            return false;
+        }
+
+        const previousExp = member.exp || "";
+        if (!updateDirectoryExpiration(member.id, nextExp)) {
+            alert("Member not found. It may have already been removed.");
+            return false;
+        }
+
+        logActivity({
+            type: "membership",
+            title: `${name}'s membership was renewed`,
+            meta: `${member.tier} • +${months} months • ${previousExp ? `Was expiring ${previousExp}` : "Expired"} • Now expires ${nextExp}`,
+            href: activityHref("members.html", name)
+        });
+
+        // The dialog that triggered the renewal holds a copy of the old record,
+        // so it is closed before the views repaint.
+        ["customerModal", "clientDetailsModal", "coachDetailsModal"].forEach(id2 => {
+            const modal = document.getElementById(id2);
+            if (modal) modal.style.display = "none";
+        });
+
+        refreshMembershipViews();
+        return true;
+    };
+
     // A tier always carries a fixed term, so the expiration date is never typed
     // in by hand: it is the member's join date plus the selected tier's term.
     // Keeping the date read-only and recomputing it from the tier is what makes
@@ -203,8 +273,26 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("customerModalTitle").textContent = `Edit ${customer.name || "Member"}'s Membership`;
         document.getElementById("saveCustomerBtn").textContent = "Update Membership";
         syncCustomerExpiration();
+        syncCustomerRenewalButton(customer);
         modal.style.display = "flex";
     };
+
+    // The dialog carries the same renewal action as the table row, so staff can
+    // renew straight from the member they are already editing. It stays hidden
+    // for a membership that is not due yet.
+    function syncCustomerRenewalButton(customer) {
+        const btn = document.getElementById("renewCustomerBtn");
+        if (!btn) return;
+
+        if (!membershipNeedsRenewal(customer)) {
+            btn.style.display = "none";
+            return;
+        }
+
+        const nextExp = renewalExpirationFor(customer);
+        btn.style.display = "";
+        btn.textContent = nextExp ? `Renew Membership → ${nextExp}` : "Renew Membership";
+    }
 
     // Save Membership: writes tier + derived expiration back to crmCustomers
     // (registered accounts, keyed by "reg-<username>") or to crmDirectory
@@ -278,6 +366,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (cancelCustomerBtn) cancelCustomerBtn.addEventListener("click", () => { customerModal.style.display = "none"; });
         if (customerForm) customerForm.addEventListener("submit", event => { event.preventDefault(); window.saveCustomer(); });
         if (customerTierEl) customerTierEl.addEventListener("change", syncCustomerExpiration);
+
+        const renewCustomerBtn = document.getElementById("renewCustomerBtn");
+        if (renewCustomerBtn) {
+            renewCustomerBtn.addEventListener("click", () => {
+                const id = document.getElementById("customerId").value;
+                if (!id) return;
+                window.renewMemberById(encodeURIComponent(id));
+            });
+        }
         customerModal.addEventListener("click", event => {
             if (event.target === customerModal) customerModal.style.display = "none";
         });
@@ -651,13 +748,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const pStatusEl = document.getElementById("pStatus");
         if (pStatusEl) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today = todayStart();
             const status = customerStatus(custExp, today);
             const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
             pStatusEl.textContent = status;
             pStatusEl.className = "badge " + cls;
         }
+
+        // Renewal panel + button, shown only while the term is expiring or expired
+        renderPortalRenewal(customer, custExp);
+
+        window.requestPortalRenewal = () => {
+            if (!submitPortalRenewalRequest(customer, custExp)) {
+                renderPortalRenewal(customer, custExp);
+                return;
+            }
+            if (renderMyInquiries) renderMyInquiries();
+            renderPortalRenewal(customer, custExp);
+        };
 
         // Prefill inquiry box with customer details
         const inquireEmail = document.getElementById("inqEmail");
@@ -703,6 +811,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div>
                             <span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span>
                             <span class="badge ${statusClass(inq.status)}">${inq.status}</span>
+                            ${inq.kind === RENEWAL_REQUEST_KIND ? '<span class="badge renewal">Renewal</span>' : ""}
                         </div>
                         <span class="ticket-date">${formatDateLogged(inq.date)}</span>
                     </div>
@@ -1144,13 +1253,18 @@ function renderCustomerInquiries() {
     inquiries.forEach(inq => {
         const resolved = String(inq.status || "").toLowerCase() === "resolved";
         const contact = [inq.email, inq.phone, inq.address].filter(Boolean).join(" | ") || "—";
+        // A portal renewal request is an inquiry like any other, but it carries
+        // a badge so the front desk can spot the renewal work immediately.
+        const renewalBadge = inq.kind === RENEWAL_REQUEST_KIND
+            ? '<span class="badge renewal">Renewal</span>'
+            : "";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${formatDateLogged(inq.date)}</td>
             <td>${inq.name}</td>
             <td>${contact}</td>
             <td>${inq.message}${commentsSummary(inq)}</td>
-            <td><span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span></td>
+            <td><span class="badge ${priorityClass(inq.priority)}">${inq.priority}</span>${renewalBadge}</td>
             <td><span class="badge status-badge ${statusClass(inq.status)}">${inq.status}</span></td>
             <td>
                 <button class="btn-view" onclick="openTicketDetails(${inq.id}, 'customer', this)">View / Reply</button>
@@ -1707,22 +1821,87 @@ function getDirectoryCustomers() {
     return [...staff, ...registered];
 }
 
+// One rule for "needs attention": anything inside this many days of its
+// expiration date is expiring, everything past it is expired.
+const RENEWAL_WINDOW_DAYS = 30;
+
 function customerStatus(expDate, today) {
     if (!expDate) return "Active";
     const d = new Date(expDate);
     if (isNaN(d.getTime())) return "Active";
     const diffDays = (d - today) / (24 * 60 * 60 * 1000);
     if (diffDays < 0) return "Expired";
-    if (diffDays <= 30) return "Expiring Soon";
+    if (diffDays <= RENEWAL_WINDOW_DAYS) return "Expiring Soon";
     return "Active";
+}
+
+function todayStart() {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+// Whole days from today to an expiration date, or null when the record has no
+// usable date. Negative once the term has lapsed.
+function daysUntilExpiration(expDate, today) {
+    if (!expDate) return null;
+    const target = new Date(expDate);
+    if (isNaN(target.getTime())) return null;
+    return Math.round((target - (today || todayStart())) / 86400000);
+}
+
+// "Expires in 5 days" / "Expires today" / "Expired 12 days ago"
+function renewalCountdownLabel(member, today) {
+    const days = daysUntilExpiration(member && member.exp, today);
+    if (days === null) return "No expiration date on record";
+    if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
+    if (days === 0) return "Expires today";
+    return `Expires in ${days} day${days === 1 ? "" : "s"}`;
+}
+
+// A membership is renewable exactly while customerStatus() reports it as
+// "Expiring Soon" or "Expired", so a renewal button can never appear beside a
+// membership the rest of the portal still shows as active.
+function membershipNeedsRenewal(member, today) {
+    if (!member || !member.tier) return false;
+    const status = customerStatus(member.exp, today || todayStart());
+    return status === "Expiring Soon" || status === "Expired";
+}
+
+// A renewal adds one full term of the member's existing tier, measured from the
+// later of today and the current expiration date: renewing early never discards
+// the days already paid for, and an expired membership restarts from today.
+function renewalExpirationFor(member, today) {
+    const months = tierDurationMonths(member && member.tier);
+    if (!months) return "";
+    const from = today || todayStart();
+    const current = member && member.exp ? new Date(member.exp) : null;
+    const base = current && !isNaN(current.getTime()) && current > from ? current : from;
+    return computeExpirationDate(months, base);
+}
+
+// Renewals only move the expiration date, so the change is written back to
+// whichever store already owns the record: a registered account (crmCustomers,
+// keyed "reg-<username>") or a front desk directory entry (crmDirectory).
+function updateDirectoryExpiration(id, exp) {
+    const isRegistered = String(id).indexOf("reg-") === 0;
+    const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    const record = isRegistered
+        ? list.find(c => c.username === id.slice(4))
+        : list.find(d => String(d.id) === String(id));
+    if (!record) return false;
+
+    record.exp = exp;
+    localStorage.setItem(storeKey, JSON.stringify(list));
+    return true;
 }
 
 function renderCustomerDirectory() {
     const tbody = document.getElementById("customerTableBody");
     if (!tbody) return;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayStart();
 
     const rows = getDirectoryCustomers();
     tbody.innerHTML = "";
@@ -1734,6 +1913,11 @@ function renderCustomerDirectory() {
     rows.forEach(c => {
         const status = customerStatus(c.exp, today);
         const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
+        // Only members inside the renewal window carry the button, so the
+        // action column stays quiet for the healthy part of the directory.
+        const renewBtn = membershipNeedsRenewal(c, today)
+            ? `<button class="btn-renew" onclick="renewMemberById('${encodeURIComponent(c.id)}')">Renew</button>`
+            : "";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${c.name}</td>
@@ -1745,6 +1929,7 @@ function renderCustomerDirectory() {
             <td><span class="badge ${cls}">${status}</span></td>
             <td>
                 <div class="row-actions">
+                    ${renewBtn}
                     <button class="btn-view" onclick="openEditCustomer('${encodeURIComponent(c.id)}')">Edit</button>
                     <button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button>
                 </div>
@@ -2347,24 +2532,28 @@ document.addEventListener("DOMContentLoaded", () => {
     // Dashboard: the supporting line under each KPI card
     function renderKpiNotes() {
         const rows = getDirectoryCustomers();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStart();
 
         let active = 0;
         let expiring = 0;
+        let expired = 0;
         rows.forEach(c => {
             const status = customerStatus(c.exp, today);
             if (status === "Active") active++;
             if (status === "Expiring Soon") expiring++;
+            if (status === "Expired") expired++;
         });
 
         const open = ticketsByStatus("open");
         const progress = ticketsByStatus("in progress");
 
         setText("statActiveNote", `${formatNumber(active)} of ${formatNumber(rows.length)} member record${rows.length === 1 ? "" : "s"} active`);
-        setText("statExpiringNote", expiring
-            ? `Renewal${expiring === 1 ? "" : "s"} due within 30 days`
-            : "No renewals due in the next 30 days");
+        // Expired memberships are renewable too, so the renewal workload is
+        // spelled out instead of leaving lapsed terms off the card.
+        setText("statExpiringNote", [
+            expiring ? `${formatNumber(expiring)} renewal${expiring === 1 ? "" : "s"} due within 30 days` : "No renewals due in the next 30 days",
+            expired ? `${formatNumber(expired)} expired` : ""
+        ].filter(Boolean).join(" · "));
         setText("statOpenNote", `${formatNumber(open)} open · ${formatNumber(progress)} in progress`);
     }
 
@@ -2380,14 +2569,20 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderDirectoryStats() {
         if (!document.getElementById("memberStatTotal")) return;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStart();
         const rows = getDirectoryCustomers();
         const withStatus = (status) => rows.filter(c => customerStatus(c.exp, today) === status).length;
 
+        const expiring = withStatus("Expiring Soon");
+        const expired = withStatus("Expired");
+
         setText("memberStatTotal", formatNumber(rows.length));
         setText("memberStatActive", formatNumber(withStatus("Active")));
-        setText("memberStatExpiring", formatNumber(withStatus("Expiring Soon")));
+        setText("memberStatExpiring", formatNumber(expiring));
+        setText("memberStatExpiringNote", [
+            expiring ? `Renewals to collect within 30 days` : "No renewals due in the next 30 days",
+            expired ? `${formatNumber(expired)} expired` : ""
+        ].filter(Boolean).join(" · "));
     }
 
     // Support module: the three ticket statistic cards
@@ -2488,8 +2683,9 @@ document.addEventListener("DOMContentLoaded", () => {
 //   1. entries appended by logActivity() from the existing action handlers
 //      (member registration, ticket creation / update / resolution, lead
 //      creation, stage change, staff assignment and follow-up scheduling);
-//   2. "membership expiring" rows derived on the fly from the Customer
-//      Directory, which is already the source of truth for renewals.
+//   2. "membership expiring" / "membership expired" renewal rows derived on
+//      the fly from the Customer Directory, which is already the source of
+//      truth for renewals.
 // Nothing here removes or renames an existing key, function or element, and
 // every new function is guarded so the feed can never block a CRM action.
 // =============================================================
@@ -2497,7 +2693,7 @@ const ACTIVITY_KEY = "crmActivities";
 const ACTIVITY_LOG_LIMIT = 80;        // newest entries kept in storage
 const ACTIVITY_PREVIEW_COUNT = 6;     // rows shown before "View All"
 const ACTIVITY_FULL_COUNT = 30;       // rows shown after "View All"
-const ACTIVITY_EXPIRING_LIMIT = 3;    // nearest renewals surfaced in the feed
+const ACTIVITY_EXPIRING_LIMIT = 4;    // nearest renewals surfaced in the feed
 
 // Icons match the stroke style of the existing nav / stat icons, and the tone
 // reuses the shared status palette so each activity type reads at a glance.
@@ -2514,6 +2710,10 @@ const ACTIVITY_TYPES = {
         tone: "green",
         icon: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.2 6"/><path d="M20 6v5h-5"/></svg>'
     },
+    renewal: {
+        tone: "brand",
+        icon: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.2 6"/><path d="M20 6v5h-5"/></svg>'
+    },
     followup: {
         tone: "brand",
         icon: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 13.5h.01"/></svg>'
@@ -2525,6 +2725,10 @@ const ACTIVITY_TYPES = {
     expiring: {
         tone: "amber",
         icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+    },
+    expired: {
+        tone: "rose",
+        icon: '<svg viewBox="0 0 24 24"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v3.5"/><path d="M12 16.6h.01"/></svg>'
     },
     resolved: {
         tone: "green",
@@ -2687,28 +2891,25 @@ function logLeadStaffAssigned(lead, staff) {
 }
 
 // Renewals are not a separate event, so the nearest expiring memberships are
-// derived from the Customer Directory instead of being logged. Row ids stay
-// stable across renders, so a renewal never produces a duplicate row.
+// derived from the Customer Directory instead of being logged. Lapsed terms
+// count as renewal work too, so a member whose membership has run out still
+// shows up here. Row ids stay stable across renders, so a renewal never
+// produces a duplicate row.
 function membershipExpiryActivities() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayStart();
 
     return getDirectoryCustomers()
-        .map(member => {
-            const expiry = new Date(member.exp);
-            return {
-                member,
-                days: isNaN(expiry.getTime()) ? null : Math.round((expiry - today) / 86400000)
-            };
-        })
-        .filter(row => row.days !== null && row.days >= 0 && row.days <= 30)
+        .map(member => ({ member, days: daysUntilExpiration(member.exp, today) }))
+        .filter(row => row.days !== null && row.days <= RENEWAL_WINDOW_DAYS)
         .sort((a, b) => a.days - b.days)
         .slice(0, ACTIVITY_EXPIRING_LIMIT)
         .map(({ member, days }) => ({
             id: `expiring-${member.id}-${member.exp}`,
-            type: "expiring",
-            title: `${member.name}'s membership expires in ${days} day${days === 1 ? "" : "s"}`,
-            meta: `${member.tier || "Membership"} • Expiring Soon`,
+            type: days < 0 ? "expired" : "expiring",
+            title: days < 0
+                ? `${member.name}'s membership expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`
+                : `${member.name}'s membership expires in ${days} day${days === 1 ? "" : "s"}`,
+            meta: `${member.tier || "Membership"} • ${days < 0 ? "Renewal due" : "Expiring Soon"}`,
             timeLabel: "Today",
             at: today.toISOString(),
             href: activityHref("members.html", member.name)
@@ -3112,6 +3313,136 @@ function renderCoachSummaryStats() {
 // Read-only mirror of the Coach Tracker: the member sees the coach they
 // are assigned to and their own sessions. Same storage keys as the
 // Coach Tracker page, so staff updates appear on the next visit.
+
+// A member cannot change their own tier or expiration date, so the portal
+// renewal button files a renewal request with the front desk instead of
+// extending the record. It is stored as a normal portal inquiry with this
+// marker, which is what lets the support page spot it and what stops the
+// member from queueing the same request twice.
+const RENEWAL_REQUEST_KIND = "renewal";
+
+function getRenewalRequests() {
+    return JSON.parse(localStorage.getItem("crmInquiries") || "[]")
+        .filter(inq => inq && inq.kind === RENEWAL_REQUEST_KIND);
+}
+
+// An open request blocks a second one; a resolved request leaves the member
+// free to ask again once the term is close to ending again.
+function openRenewalRequest(username) {
+    return getRenewalRequests().some(inq =>
+        String(inq.username) === String(username) &&
+        String(inq.status || "").toLowerCase() !== "resolved"
+    );
+}
+
+// Shows the renewal panel only while the membership is expiring or expired, and
+// flips the button to a confirmation once the request is on file.
+function renderPortalRenewal(customer, exp) {
+    const panel = document.getElementById("portalRenewalPanel");
+    if (!panel || !customer) return;
+
+    const today = todayStart();
+    const status = customerStatus(exp, today);
+    const dueForRenewal = status === "Expiring Soon" || status === "Expired";
+
+    if (!dueForRenewal) {
+        panel.style.display = "none";
+        return;
+    }
+
+    const months = tierDurationMonths(customer.tier);
+    const nextExp = renewalExpirationFor({ tier: customer.tier, exp }, today);
+    const requested = openRenewalRequest(customer.username);
+
+    panel.style.display = "flex";
+    panel.classList.toggle("is-expired", status === "Expired");
+
+    const title = document.getElementById("portalRenewalTitle");
+    if (title) {
+        const days = daysUntilExpiration(exp, today);
+        title.textContent = status === "Expired"
+            ? "Your membership has expired"
+            : days === 0
+                ? "Your membership expires today"
+                : `Your membership expires in ${days} day${days === 1 ? "" : "s"}`;
+    }
+
+    const note = document.getElementById("portalRenewalNote");
+    if (note) {
+        note.textContent = `${customer.tier || "Your membership"}${months ? ` (${months}-month term)` : ""} • ${renewalCountdownLabel({ exp }, today)}.`
+            + (nextExp && !requested ? ` Renewing now runs the term to ${nextExp}.` : "");
+    }
+
+    const button = document.getElementById("portalRenewalBtn");
+    if (button) {
+        button.disabled = requested;
+        button.textContent = requested ? "Renewal Requested" : "Renew Membership";
+    }
+
+    const message = document.getElementById("portalRenewalMsg");
+    if (message) {
+        message.textContent = requested
+            ? "The front desk has your renewal request and will confirm payment and your new start date with you."
+            : "Send a renewal request to the front desk. Payment is confirmed at the counter.";
+    }
+}
+
+// The renewal request itself: a high priority portal inquiry the support page
+// picks up like any other, so a renewal is never lost outside the CRM.
+function submitPortalRenewalRequest(customer, exp) {
+    const today = todayStart();
+    const status = customerStatus(exp, today);
+    if (status !== "Expiring Soon" && status !== "Expired") {
+        alert("Your membership is not due for renewal yet.");
+        return false;
+    }
+
+    if (openRenewalRequest(customer.username)) {
+        alert("You already have a renewal request on file. Our front desk will get back to you shortly.");
+        return false;
+    }
+
+    const tier = customer.tier || "your membership";
+    const countdown = renewalCountdownLabel({ exp }, today);
+    if (!confirm(`Send a renewal request for your ${tier}?\n\n${countdown}. Payment is confirmed at the front desk.`)) {
+        return false;
+    }
+
+    const inquiries = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
+    const now = new Date().toISOString();
+    inquiries.push({
+        id: Date.now(),
+        kind: RENEWAL_REQUEST_KIND,
+        username: customer.username,
+        name: customer.name,
+        email: customer.email || "",
+        phone: customer.phone || "",
+        address: customer.address || "",
+        date: now,
+        message: `Membership renewal request: my ${tier} ${countdown.toLowerCase()}. Please confirm my new membership term and payment at the front desk.`,
+        priority: "High",
+        status: "Open",
+        reply: "",
+        comments: [{
+            author: customer.name,
+            role: "customer",
+            text: `Membership renewal request: my ${tier} ${countdown.toLowerCase()}. Please confirm my new membership term and payment at the front desk.`,
+            date: now
+        }]
+    });
+    localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
+
+    logActivity({
+        type: "renewal",
+        title: `${customer.name} requested a membership renewal`,
+        meta: `${tier} • ${countdown} • Renewal request`,
+        href: activityHref("tickets.html", customer.name)
+    });
+
+    getOpenTicketsCount();
+    return true;
+}
+
 function portalCoachForCustomer(customer) {
     if (!customer) return null;
     const clientId = "reg-" + (customer.username || "");
@@ -3536,6 +3867,11 @@ function renderAssignments() {
         const member = members.find(c => String(c.id) === String(row.clientId));
         const name = member ? member.name : (row.clientName || "Removed member");
         const status = member ? memberMembershipStatus(member, today) : "Inactive";
+        // Clients whose membership is expiring or expired can be renewed from
+        // here as well, using the same action as the Customer Directory.
+        const renewBtn = member && membershipNeedsRenewal(member, today)
+            ? `<button class="btn-renew" onclick="renewMemberById('${encodeURIComponent(row.clientId)}')">Renew</button>`
+            : "";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
@@ -3546,9 +3882,12 @@ function renderAssignments() {
             <td>${escapeHtml(coach.name)}</td>
             <td>${escapeHtml(formatDateLogged(row.assignedAt))}</td>
             <td>
-                <button class="btn-view" onclick="openClientDetails('${encodeURIComponent(row.clientId)}')">View</button>
-                <button class="btn-view" onclick="openAssignModal('${encodeURIComponent(coach.id)}', '${encodeURIComponent(row.id)}')">Reassign</button>
-                <button class="btn-delete" onclick="unassignClient('${encodeURIComponent(row.id)}')">Unassign</button>
+                <div class="row-actions">
+                    ${renewBtn}
+                    <button class="btn-view" onclick="openClientDetails('${encodeURIComponent(row.clientId)}')">View</button>
+                    <button class="btn-view" onclick="openAssignModal('${encodeURIComponent(coach.id)}', '${encodeURIComponent(row.id)}')">Reassign</button>
+                    <button class="btn-delete" onclick="unassignClient('${encodeURIComponent(row.id)}')">Unassign</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -3891,6 +4230,10 @@ function openClientDetails(encodedClientId) {
     today.setHours(0, 0, 0, 0);
     const assignment = getCoachAssignments().find(row => String(row.clientId) === String(member.id));
 
+    // Remembered the same way as the coach dialog, so the renewal button can
+    // act on the client this dialog is showing.
+    window.pendingClientId = member.id;
+
     document.getElementById("clientDetailsName").textContent = member.name;
     document.getElementById("clientDetailsStatus").innerHTML = membershipBadge(memberMembershipStatus(member, today));
     document.getElementById("clientDetailsTier").textContent = member.tier || "—";
@@ -3908,6 +4251,16 @@ function openClientDetails(encodedClientId) {
 
     renderMiniSessionList(document.getElementById("clientHistoryList"), history,
         "No training sessions recorded for this client yet.");
+
+    // A client due for renewal also gets the renewal button here, so staff do
+    // not have to go back to the Customer Directory to extend the term.
+    const renewBtn = document.getElementById("renewClientBtn");
+    if (renewBtn) {
+        const due = membershipNeedsRenewal(member, today);
+        renewBtn.style.display = due ? "" : "none";
+        const nextExp = renewalExpirationFor(member, today);
+        renewBtn.textContent = due && nextExp ? `Renew Membership → ${nextExp}` : "Renew Membership";
+    }
 
     modal.style.display = "flex";
 }
@@ -4286,8 +4639,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const clientModal = document.getElementById("clientDetailsModal");
     const closeClientBtn = document.getElementById("closeClientDetails");
     const closeClientBtn2 = document.getElementById("closeClientDetailsBtn");
+    const renewClientBtn = document.getElementById("renewClientBtn");
     if (closeClientBtn) closeClientBtn.addEventListener("click", () => { clientModal.style.display = "none"; });
     if (closeClientBtn2) closeClientBtn2.addEventListener("click", () => { clientModal.style.display = "none"; });
+    if (renewClientBtn) {
+        renewClientBtn.addEventListener("click", () => {
+            if (!window.pendingClientId) return;
+            if (typeof window.renewMemberById === "function") {
+                window.renewMemberById(encodeURIComponent(window.pendingClientId));
+            }
+        });
+    }
 
     // Clicking the backdrop closes any open dialog, like the other modules
     [coachModal, detailsModal, assignModal, sessionModal, clientModal].forEach(modal => {

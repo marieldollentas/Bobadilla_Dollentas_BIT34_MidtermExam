@@ -923,6 +923,13 @@ letter-spacing: .3px;
 .badge.danger { background: var(--danger-bg); color: var(--danger-ink); }
 .badge.open { background: var(--accent-bg); color: var(--accent-ink); }
 
+/* Tags a portal inquiry that is a membership renewal request */
+.badge.renewal {
+    margin-left: 6px;
+    background: var(--primary-100);
+    color: var(--primary-700);
+}
+
 /* Ticket status gets its own tone so "Open" is not confused with campaign/heat */
 .status-badge.open { background: var(--info-bg); color: var(--info-ink); }
 
@@ -930,7 +937,9 @@ letter-spacing: .3px;
 .btn-primary,
 .btn-secondary,
 .btn-delete-solid,
+.btn-renew-solid,
 .btn-view,
+.btn-renew,
 .btn-delete {
     display: inline-flex;
     align-items: center;
@@ -981,6 +990,40 @@ letter-spacing: .3px;
 
 .btn-view:hover {
     background: var(--primary-200);
+}
+
+/* Renewal actions only appear while a membership is expiring or expired, so
+   they are toned as attention items: a small pill inside table rows and a
+   full-size version for the portal call-to-action and the dialogs. */
+.btn-renew {
+    padding: 7px 13px;
+    border-radius: 9px;
+    background: var(--warning-bg);
+    color: var(--warning-ink);
+    font-size: 12px;
+}
+
+.btn-renew:hover {
+    background: #ffe9c4;
+}
+
+.btn-renew-solid {
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    background: var(--warning-bg);
+    color: var(--warning-ink);
+    box-shadow: inset 0 0 0 1px #f3ddac;
+}
+
+.btn-renew-solid:hover {
+    background: #ffeccb;
+}
+
+.btn-renew[disabled],
+.btn-renew-solid[disabled] {
+    cursor: not-allowed;
+    opacity: .65;
+    transform: none;
 }
 
 .btn-delete {
@@ -1713,6 +1756,62 @@ select.search-input {
     font-size: 12.5px;
     padding: 7px 15px;
     box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .5);
+}
+
+/* Member portal renewal panel. Hidden until script.js finds a membership that
+   is expiring or expired, and switched to the danger tone once it has lapsed. */
+.renewal-panel {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 18px 20px;
+    border: 1px solid #f3ddac;
+    border-left: 4px solid var(--warning);
+    border-radius: var(--radius-md);
+    background: var(--warning-bg);
+}
+
+.renewal-panel.is-expired {
+    border-color: #f6c6d0;
+    border-left-color: var(--danger);
+    background: var(--danger-bg);
+}
+
+.renewal-panel .renewal-copy {
+    min-width: 0;
+}
+
+.renewal-panel h3 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    color: var(--warning-ink);
+}
+
+.renewal-panel.is-expired h3 {
+    color: var(--danger-ink);
+}
+
+.renewal-note {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.renewal-msg {
+    margin-top: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.renewal-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 /* ---------- 22. Member portal ticket cards ---------- */

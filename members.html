@@ -118,7 +118,7 @@
                             </span>
                         </div>
                         <p class="stat-number warning" id="memberStatExpiring">0</p>
-                        <p class="stat-note">Renewals to collect within 30 days</p>
+                        <p class="stat-note" id="memberStatExpiringNote">Renewals to collect within 30 days</p>
                     </article>
                 </section>
 
@@ -192,6 +192,7 @@
                 <p class="error-msg" id="customerFormError"></p>
 
                 <div class="modal-actions">
+                    <button type="button" class="btn-renew btn-renew-solid" id="renewCustomerBtn" style="display: none;">Renew Membership</button>
                     <button type="button" class="btn-secondary" id="cancelCustomerModal">Cancel</button>
                     <button type="submit" class="btn-primary" id="saveCustomerBtn">Update Membership</button>
                 </div>

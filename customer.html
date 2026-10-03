@@ -48,6 +48,19 @@
                 <span id="pStatus" class="badge active">Active</span>
             </section>
 
+            <!-- Renewal panel: rendered by script.js only while the membership is
+                 expiring or expired, so an active term shows nothing here. -->
+            <section class="renewal-panel span-12" id="portalRenewalPanel" style="display: none;">
+                <div class="renewal-copy">
+                    <h3 id="portalRenewalTitle">Membership expiring soon</h3>
+                    <p class="renewal-note" id="portalRenewalNote"></p>
+                    <p class="renewal-msg" id="portalRenewalMsg"></p>
+                </div>
+                <div class="renewal-actions">
+                    <button type="button" class="btn-renew btn-renew-solid" id="portalRenewalBtn" onclick="requestPortalRenewal()">Renew Membership</button>
+                </div>
+            </section>
+
             <section class="content-section span-7">
                 <div class="card-head">
                     <div>
