@@ -52,20 +52,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ticketsEl) ticketsEl.textContent = localStorage.getItem(TICKETS_KEY) || "0";
         if (activeEl) activeEl.textContent = localStorage.getItem(ACTIVE_KEY) || "0";
         if (frozenEl) {
-            const rows = getDirectoryCustomers();
+            const rows = getActiveDirectoryCustomers();
             const today = todayStart();
             const frozen = rows.filter(r => getMemberStatus(r, today) === "Frozen").length;
             frozenEl.textContent = frozen;
         }
         if (totalEl) {
-            totalEl.textContent = getDirectoryCustomers().length;
+            totalEl.textContent = getActiveDirectoryCustomers().length;
         }
     }
 
     function countActiveMembers() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const count = getDirectoryCustomers().filter(c => getMemberStatus(c, today) === "Active").length;
+        const count = getActiveDirectoryCustomers().filter(c => getMemberStatus(c, today) === "Active").length;
         localStorage.setItem(ACTIVE_KEY, count);
         return count;
     }
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function countExpiringMembers() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const count = getDirectoryCustomers().filter(c => customerStatus(c.exp, today) === "Expiring Soon").length;
+        const count = getActiveDirectoryCustomers().filter(c => customerStatus(c.exp, today) === "Expiring Soon").length;
         localStorage.setItem(EXPIRE_KEY, count);
         return count;
     }
@@ -108,38 +108,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Customer Directory: render stored members + registered accounts
     renderCustomerDirectory();
+    renderArchivedMembers();
 
-    // Remove Member: validates the record exists and asks for confirmation
-    // before deleting a directory entry or a registered login account.
-    window.removeDirectoryCustomer = (id) => {
+    // Archive Member: retires a membership instead of deleting it. The record
+    // and its login stay on file as a past member, so the gym keeps the history
+    // behind it (sessions, ratings, tickets) and the member can be restored.
+    window.archiveMember = id => {
         if (id === undefined || id === null || id === "") {
-            alert("No member selected to remove.");
+            alert("No member selected to archive.");
             return;
         }
 
-        const isRegistered = typeof id === "string" && id.indexOf("reg-") === 0;
-        const recordLabel = isRegistered ? "member and their login account" : "member record";
+        const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+        if (!member) {
+            alert("Member not found. It may have already been archived.");
+            return;
+        }
+        if (!confirm(`Archive ${member.name}? The record is kept as a past member and can be restored later.`)) return;
 
-        if (!confirm(`Remove this ${recordLabel}? This action cannot be undone.`)) return;
-
-        if (isRegistered) {
-            const username = id.slice(4);
-            const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
-            if (!customers.some(c => c.username === username)) {
-                alert("Member not found. It may have already been removed.");
-                return;
-            }
-            localStorage.setItem("crmCustomers", JSON.stringify(customers.filter(c => c.username !== username)));
-        } else {
-            const directory = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
-            if (!directory.some(d => String(d.id) === String(id))) {
-                alert("Member not found. It may have already been removed.");
-                return;
-            }
-            localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directory.filter(d => String(d.id) !== String(id))));
+        if (!archiveMemberById(id)) {
+            alert("Member not found. It may have already been archived.");
+            return;
         }
 
+        logActivity({
+            type: "membership",
+            title: `${member.name} was archived as a past member`,
+            meta: `${member.tier || "Membership"} • Joined ${member.joined || "—"} • Expires ${member.updatedExpirationDate || member.exp || "—"}`,
+            href: activityHref("members.html", member.name)
+        });
+
         renderCustomerDirectory();
+        renderArchivedMembers();
+        countExpiringMembers();
+        countActiveMembers();
+    };
+
+    // Restore Member: brings an archived record back into the active directory.
+    window.restoreMember = id => {
+        const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+        if (!member) {
+            alert("Member not found.");
+            return;
+        }
+        if (!confirm(`Restore ${member.name} to the active directory?`)) return;
+
+        if (!restoreMemberById(id)) {
+            alert("Member not found.");
+            return;
+        }
+
+        logActivity({
+            type: "membership",
+            title: `${member.name} was restored from the archive`,
+            meta: `${member.tier || "Membership"} • Archived ${member.archivedAt ? formatDateLogged(member.archivedAt) : "—"}`,
+            href: activityHref("members.html", member.name)
+        });
+
+        renderCustomerDirectory();
+        renderArchivedMembers();
         countExpiringMembers();
         countActiveMembers();
     };
@@ -149,6 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // the same tab.
     function refreshMembershipViews() {
         if (document.getElementById("customerTableBody")) renderCustomerDirectory();
+        if (document.getElementById("archivedTableBody")) renderArchivedMembers();
         if (document.getElementById("recentActivityList")) renderRecentActivity();
         if (document.getElementById("coachTableBody") && typeof renderCoachTracker === "function") renderCoachTracker();
         if (document.getElementById("chartMembersStatus")) renderDashboardCharts();
@@ -173,6 +201,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const today = todayStart();
         const name = member.name || "This member";
+
+        // Archived members are not up for renewal: restoring the record is the
+        // deliberate first step for a past member who wants to come back.
+        if (memberIsArchived(member)) {
+            alert(`${name} is an Archived (past) member. Restore the record from the Customer Directory before renewing.`);
+            return false;
+        }
 
         if (!membershipNeedsRenewal(member, today)) {
             alert(`${name}'s membership is not due for renewal yet (${renewalCountdownLabel(member, today)}).`);
@@ -621,13 +656,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
             const customer = customers.find(c => c.username === username && c.password === password);
-            if (customer) {
-                sessionStorage.setItem("crmRole", "customer");
-                sessionStorage.setItem("crmCurrentUser", username);
-                location.href = "customer.html";
-            } else {
+            if (!customer) {
                 errorEl.textContent = "Customer not found or invalid credentials.";
+                return;
             }
+
+            // Archiving retires the membership, so the archived account is
+            // refused here. Credentials are checked first so the message never
+            // reveals that an account exists. Restoring the record clears the
+            // flag and lets the member straight back in.
+            if (memberIsArchived(customer)) {
+                errorEl.textContent = "This account belongs to a past member and is archived. Please contact the front desk to restore your membership.";
+                return;
+            }
+
+            sessionStorage.setItem("crmRole", "customer");
+            sessionStorage.setItem("crmCurrentUser", username);
+            location.href = "customer.html";
         });
     }
 
@@ -755,6 +800,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // The login form already refuses an archived account, but a session
+        // opened before the member was archived has to be dropped too, or the
+        // portal would keep serving a past member until the tab is closed.
+        if (memberIsArchived(customer)) {
+            logoutCustomer();
+            return;
+        }
+
         document.getElementById("welcomeName").textContent = customer.name.split(" ")[0];
         document.getElementById("pName").textContent = customer.name;
         document.getElementById("pEmail").textContent = customer.email || "—";
@@ -783,7 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const today = todayStart();
             const member = customer;
             const status = getMemberStatus({ ...customer, exp: custExp }, today);
-            let cls = status === "Active" ? "active" : status === "Frozen" ? "warning" : (status === "Expired" ? "danger" : "warning");
+            let cls = status === "Active" ? "active" : status === "Frozen" ? "warning" : (status === "Expired" ? "danger" : (status === "Archived" ? "open" : "warning"));
             if (status === "Frozen") {
                 pStatusEl.innerHTML = "Frozen" + (customer.freezeEndDate ? "<br/>Frozen until " + customer.freezeEndDate : "");
                 pStatusEl.className = "badge " + cls;
@@ -1927,7 +1980,12 @@ function getDirectoryCustomers() {
                     freezeEndDate: c.freezeEndDate || null,
                     freezeMonths: c.freezeMonths || null,
                     originalExpirationDate: c.originalExpirationDate || c.exp || null,
-                    updatedExpirationDate: c.updatedExpirationDate || exp || null
+                    updatedExpirationDate: c.updatedExpirationDate || exp || null,
+                    // Archived is part of the projection: a registered account is
+                    // whitelisted field by field here, so leaving it out would
+                    // silently un-archive the member everywhere it is read.
+                    archived: Boolean(c.archived),
+                    archivedAt: c.archivedAt || null
                 };
         });
     return [...staff, ...registered];
@@ -1951,6 +2009,9 @@ function customerStatus(expDate, today) {
 function getMemberStatus(member, today = todayStart()) {
     if (!member) return "Active";
     const now = today || todayStart();
+    // Archiving outranks every membership rule: a past member stays a past
+    // member, and a freeze that lapses on an archived record does not revive it.
+    if (member.archived) return "Archived";
     if (member.status === "Frozen" && member.freezeEndDate) {
         const end = new Date(member.freezeEndDate + "T00:00:00");
         if (!isNaN(end.getTime()) && now >= end) {
@@ -1960,6 +2021,55 @@ function getMemberStatus(member, today = todayStart()) {
         return "Frozen";
     }
     return customerStatus(member.exp || member.expirationDate || member.updatedExpirationDate, now);
+}
+
+// Archiving is how the gym retires a membership: the record, and everything
+// hanging off it (sessions, ratings, tickets, activity), stays on file and the
+// member leaves the active directory. Nothing is deleted.
+function memberIsArchived(member) {
+    return Boolean(member && member.archived);
+}
+
+// Current members only. Historical views (session history, activity links) keep
+// using getDirectoryCustomers() so an archived member can still be read.
+function getActiveDirectoryCustomers() {
+    return getDirectoryCustomers().filter(c => !memberIsArchived(c));
+}
+
+function getArchivedDirectoryCustomers() {
+    return getDirectoryCustomers()
+        .filter(memberIsArchived)
+        .sort((a, b) => String(b.archivedAt || "").localeCompare(String(a.archivedAt || "")));
+}
+
+// Applies a change to whichever store owns the record: a registered account
+// (crmCustomers, keyed "reg-<username>") or a front desk directory entry
+// (crmDirectory). Returns false when no record matches.
+function mutateMemberRecord(id, mutate) {
+    const isRegistered = String(id).indexOf("reg-") === 0;
+    const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    const record = isRegistered
+        ? list.find(c => c.username === id.slice(4))
+        : list.find(d => String(d.id) === String(id));
+    if (!record) return false;
+    mutate(record);
+    localStorage.setItem(storeKey, JSON.stringify(list));
+    return true;
+}
+
+function archiveMemberById(id) {
+    return mutateMemberRecord(id, record => {
+        record.archived = true;
+        record.archivedAt = new Date().toISOString();
+    });
+}
+
+function restoreMemberById(id) {
+    return mutateMemberRecord(id, record => {
+        delete record.archived;
+        delete record.archivedAt;
+    });
 }
 
 function unfreezeMemberById(id) {
@@ -2067,6 +2177,10 @@ window.openFreezeModal = function(id) {
         alert("Cannot freeze an expired member.");
         return;
     }
+    if (mStatus === "Archived") {
+        alert("Cannot freeze an archived member. Restore the record first.");
+        return;
+    }
     const modal = document.getElementById("freezeModal");
     if (!modal) return;
     document.getElementById("freezeMemberId").value = member.id;
@@ -2156,7 +2270,9 @@ function renderCustomerDirectory() {
 
     const today = todayStart();
 
-    const rows = getDirectoryCustomers();
+    // Archived members are past members: they live in the archive table below
+    // this one, never in the active directory.
+    const rows = getActiveDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8">No customers found.</td></tr>';
@@ -2192,7 +2308,40 @@ function renderCustomerDirectory() {
                     ${renewBtn}
                     <button class="btn-view" onclick="openEditCustomer('${encodeURIComponent(c.id)}')">Edit</button>
                     ${freezeBtn}
-                    <button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button>
+                    <button class="btn-archive" onclick="archiveMember('${encodeURIComponent(c.id)}')">Archive</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Past members kept on file. Read-only apart from Restore, because the point of
+// the archive is the record: tiers, dates and history stay exactly as they were.
+function renderArchivedMembers() {
+    const tbody = document.getElementById("archivedTableBody");
+    if (!tbody) return;
+
+    const rows = getArchivedDirectoryCustomers();
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No archived members yet. Archiving a member keeps their record here.</td></tr>';
+        return;
+    }
+
+    rows.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.contact || "—")}</td>
+            <td>${escapeHtml(c.keyFob || "—")}</td>
+            <td>${escapeHtml(c.tier || "—")}</td>
+            <td>${escapeHtml(c.joined || "—")}</td>
+            <td>${escapeHtml(c.updatedExpirationDate || c.exp || "—")}</td>
+            <td>
+                <div class="row-actions">
+                    <span class="badge open">Archived</span>
+                    <button class="btn-restore" onclick="restoreMember('${encodeURIComponent(c.id)}')">Restore</button>
                 </div>
             </td>
         `;
@@ -2628,10 +2777,11 @@ function renderFunnelChart(containerId, items, options) {
 }
 
 // Members split by membership status and by tier, from the Customer Directory.
+// Archived members are left out: the charts describe the current membership.
 function memberChartData() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const rows = getDirectoryCustomers();
+    const rows = getActiveDirectoryCustomers();
 
     const statusCounts = { "Active": 0, "Expiring Soon": 0, "Expired": 0 };
     const tierCounts = {};
@@ -2792,7 +2942,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dashboard: the supporting line under each KPI card
     function renderKpiNotes() {
-        const rows = getDirectoryCustomers();
+        const rows = getActiveDirectoryCustomers();
         const today = todayStart();
 
         let active = 0;
@@ -2835,7 +2985,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!document.getElementById("memberStatTotal")) return;
 
         const today = todayStart();
-        const rows = getDirectoryCustomers();
+        const rows = getActiveDirectoryCustomers();
         const withStatus = (status) => rows.filter(c => getMemberStatus(c, today) === status).length;
 
         const expiring = withStatus("Expiring Soon");
@@ -2846,6 +2996,9 @@ document.addEventListener("DOMContentLoaded", () => {
         setText("memberStatActive", formatNumber(withStatus("Active")));
         if (document.getElementById("memberStatFrozen")) setText("memberStatFrozen", formatNumber(frozen));
         setText("memberStatExpiring", formatNumber(expiring));
+        if (document.getElementById("memberStatArchived")) {
+            setText("memberStatArchived", formatNumber(getArchivedDirectoryCustomers().length));
+        }
         setText("memberStatExpiringNote", [
             expiring ? `Renewals to collect within 30 days` : "No renewals due in the next 30 days",
             expired ? `${formatNumber(expired)} expired` : ""
@@ -3169,7 +3322,8 @@ function logLeadStaffAssigned(lead, staff) {
 function membershipExpiryActivities() {
     const today = todayStart();
 
-    return getDirectoryCustomers()
+    // Archived members are never nudged for a renewal: they are not renewing.
+    return getActiveDirectoryCustomers()
         .map(member => ({ member, days: daysUntilExpiration(member.exp, today) }))
         .filter(row => row.days !== null && row.days <= RENEWAL_WINDOW_DAYS)
         .sort((a, b) => a.days - b.days)
@@ -3285,7 +3439,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // A coaching module layered on top of the existing CRM instead of
 // beside it. It never introduces a second customer database: assigned
 // clients and membership state come from getDirectoryCustomers() /
-// customerStatus(), i.e. the same Customer Directory the rest of the
+// getMemberStatus(), i.e. the same Customer Directory the rest of the
 // portal uses, and every action is appended to the shared activity
 // feed through logActivity().
 //
@@ -3490,7 +3644,8 @@ function membershipBadge(status) {
     const cls = status === "Active" ? "active"
         : status === "Expiring Soon" ? "warning"
             : status === "Expired" ? "danger"
-                : status === "Frozen" ? "warning" : "open";
+                : status === "Frozen" ? "warning"
+                    : status === "Archived" ? "open" : "open";
     return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
 }
 
@@ -4171,7 +4326,9 @@ function renderUpcomingAppointments() {
 
 // ---- Client assignment ----
 function fillClientOptions(select, selectedId) {
-    const members = getDirectoryCustomers().slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    // Current members only: an archived member keeps their past sessions but
+    // cannot be booked or assigned again without being restored first.
+    const members = getActiveDirectoryCustomers().slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     select.innerHTML = members
         .map(member => {
             // Frozen members stay listed so existing records keep rendering, but
@@ -4218,8 +4375,9 @@ function renderAssignments() {
         const name = member ? member.name : (row.clientName || "Removed member");
         const status = member ? memberMembershipStatus(member, today) : "Inactive";
         // Clients whose membership is expiring or expired can be renewed from
-        // here as well, using the same action as the Customer Directory.
-        const renewBtn = member && membershipNeedsRenewal(member, today)
+        // here as well, using the same action as the Customer Directory. An
+        // archived member is a past member, so no renewal is offered.
+        const renewBtn = member && !memberIsArchived(member) && membershipNeedsRenewal(member, today)
             ? `<button class="btn-renew" onclick="renewMemberById('${encodeURIComponent(row.clientId)}')">Renew</button>`
             : "";
         const tr = document.createElement("tr");
@@ -4440,10 +4598,14 @@ function sessionConflictMessage(session, editingId) {
     if (!session.date) return "Please choose a session date.";
     if (isNaN(clockToMinutes(session.time))) return "Please choose a session time.";
 
-    // A frozen membership is on hold, so the member cannot book time with a
-    // coach until the freeze lapses or staff unfreeze the record.
+    // A frozen membership is on hold and an archived member is a past member,
+    // so neither can book time with a coach until the record is unfrozen or
+    // restored.
     const client = getDirectoryCustomers().find(c => String(c.id) === String(session.clientId));
     const clientName = client ? client.name : session.clientName;
+    if (client && getMemberStatus(client) === "Archived") {
+        return `Scheduling Conflict: ${clientName} is an Archived (past) member and cannot book sessions. Restore the membership first.`;
+    }
     if (client && getMemberStatus(client) === "Frozen") {
         const until = client.freezeEndDate ? ` until ${client.freezeEndDate}` : "";
         return `Scheduling Conflict: ${clientName}'s membership is Frozen${until} and cannot book sessions. Unfreeze the membership first.`;
@@ -4615,7 +4777,7 @@ function openClientDetails(encodedClientId) {
     // not have to go back to the Customer Directory to extend the term.
     const renewBtn = document.getElementById("renewClientBtn");
     if (renewBtn) {
-        const due = membershipNeedsRenewal(member, today);
+        const due = membershipNeedsRenewal(member, today) && !memberIsArchived(member);
         renewBtn.style.display = due ? "" : "none";
         const nextExp = renewalExpirationFor(member, today);
         renewBtn.textContent = due && nextExp ? `Renew Membership → ${nextExp}` : "Renew Membership";
