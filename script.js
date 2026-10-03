@@ -2045,6 +2045,15 @@ window.confirmFreeze = function() {
     }
     localStorage.setItem(storeKey, JSON.stringify(list));
     document.getElementById("freezeModal").style.display = "none";
+
+    const memberName = record.name || "A member";
+    logActivity({
+        type: "frozen",
+        title: `${memberName}'s membership was frozen for ${months} month${months === 1 ? "" : "s"}`,
+        meta: `${record.tier || "Membership"} • Frozen until ${endStr} • New expiration ${newExp}`,
+        href: activityHref("members.html", memberName)
+    });
+
     renderCustomerDirectory();
     countExpiringMembers();
     countActiveMembers();
@@ -2052,7 +2061,21 @@ window.confirmFreeze = function() {
 
 window.unfreezeMember = function(id) {
     if (!confirm("Are you sure you want to end this membership freeze early?")) return;
-    unfreezeMemberById(id);
+    // Read the name before the flags are dropped, and log here rather than in
+    // unfreezeMemberById: that helper also runs on its own when a freeze lapses
+    // during a repaint, which must stay out of the activity feed.
+    const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+    const frozenUntil = member ? member.freezeEndDate : "";
+    if (!unfreezeMemberById(id)) return;
+    if (member) {
+        const name = member.name || "A member";
+        logActivity({
+            type: "membership",
+            title: `${name}'s membership freeze was ended early`,
+            meta: `Was frozen until ${frozenUntil || "further notice"} • Expires ${member.updatedExpirationDate || member.exp || "—"}`,
+            href: activityHref("members.html", name)
+        });
+    }
     renderCustomerDirectory();
     countExpiringMembers();
     countActiveMembers();
@@ -2885,6 +2908,10 @@ const ACTIVITY_TYPES = {
         tone: "green",
         icon: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.2 6"/><path d="M20 6v5h-5"/></svg>'
     },
+    frozen: {
+        tone: "blue",
+        icon: '<svg viewBox="0 0 24 24"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/><path d="M12 7.2 9.8 5M12 7.2 14.2 5M12 16.8 9.8 19M12 16.8l2.2 2.2"/></svg>'
+    },
     renewal: {
         tone: "brand",
         icon: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.2 6"/><path d="M20 6v5h-5"/></svg>'
@@ -3386,13 +3413,14 @@ function sessionStatusBadge(status) {
 // without a tier is treated as inactive.
 function memberMembershipStatus(member, today) {
     if (!member || !member.tier) return "Inactive";
-    return customerStatus(member.exp, today);
+    return getMemberStatus(member, today);
 }
 
 function membershipBadge(status) {
     const cls = status === "Active" ? "active"
         : status === "Expiring Soon" ? "warning"
-            : status === "Expired" ? "danger" : "open";
+            : status === "Expired" ? "danger"
+                : status === "Frozen" ? "warning" : "open";
     return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
 }
 
@@ -4004,7 +4032,13 @@ function renderUpcomingAppointments() {
 function fillClientOptions(select, selectedId) {
     const members = getDirectoryCustomers().slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
     select.innerHTML = members
-        .map(member => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.name)}</option>`)
+        .map(member => {
+            // Frozen members stay listed so existing records keep rendering, but
+            // the label spells out why a session cannot be booked for them.
+            const frozen = getMemberStatus(member) === "Frozen";
+            const label = frozen ? `${member.name} (Frozen${member.freezeEndDate ? " until " + member.freezeEndDate : ""})` : member.name;
+            return `<option value="${escapeHtml(member.id)}">${escapeHtml(label)}</option>`;
+        })
         .join("");
 
     if (selectedId !== undefined && selectedId !== null) {
@@ -4264,6 +4298,15 @@ function sessionConflictMessage(session, editingId) {
     if (!session.clientId) return "Please select the client attending this session.";
     if (!session.date) return "Please choose a session date.";
     if (isNaN(clockToMinutes(session.time))) return "Please choose a session time.";
+
+    // A frozen membership is on hold, so the member cannot book time with a
+    // coach until the freeze lapses or staff unfreeze the record.
+    const client = getDirectoryCustomers().find(c => String(c.id) === String(session.clientId));
+    const clientName = client ? client.name : session.clientName;
+    if (client && getMemberStatus(client) === "Frozen") {
+        const until = client.freezeEndDate ? ` until ${client.freezeEndDate}` : "";
+        return `Scheduling Conflict: ${clientName}'s membership is Frozen${until} and cannot book sessions. Unfreeze the membership first.`;
+    }
 
     if (coach.status === "Inactive") {
         return `Scheduling Conflict: ${coach.name} is Inactive and cannot take sessions. Set the employment status to Active first.`;
