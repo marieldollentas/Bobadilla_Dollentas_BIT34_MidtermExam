@@ -154,6 +154,51 @@
         </div>
     </div>
 
+    <!-- Edit Membership Modal -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeCustomerModal">&times;</span>
+            <h2 id="customerModalTitle">Edit Membership</h2>
+            <form id="customerForm">
+                <input type="hidden" id="customerId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="customerName">Full Name</label>
+                        <input type="text" id="customerName" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerContact">Contact Info</label>
+                        <input type="text" id="customerContact" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerKeyFob">Key Fob Number</label>
+                        <input type="text" id="customerKeyFob" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerJoined">Date Joined</label>
+                        <input type="text" id="customerJoined" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerTier">Membership Tier</label>
+                        <select id="customerTier" class="search-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerExp">Expiration Date</label>
+                        <input type="text" id="customerExp" class="search-input readonly-mono" readonly>
+                        <p class="card-meta" id="customerExpNote" style="margin-top: 4px;"></p>
+                    </div>
+                </div>
+
+                <p class="error-msg" id="customerFormError"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelCustomerModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveCustomerBtn">Update Membership</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

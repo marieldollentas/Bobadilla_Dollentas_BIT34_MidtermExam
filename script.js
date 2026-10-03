@@ -133,6 +133,156 @@ document.addEventListener("DOMContentLoaded", () => {
         countActiveMembers();
     };
 
+    // A tier always carries a fixed term, so the expiration date is never typed
+    // in by hand: it is the member's join date plus the selected tier's term.
+    // Keeping the date read-only and recomputing it from the tier is what makes
+    // the two fields impossible to desynchronise, matching how register.html
+    // derives the expiration for a new sign-up.
+    function customerExpirationFor(tier, joined) {
+        const months = tierDurationMonths(tier);
+        if (!months) return "";
+        const base = new Date(`${joined}T00:00:00`);
+        if (isNaN(base.getTime())) return "";
+        return computeExpirationDate(months, base);
+    }
+
+    function buildCustomerTierOptions() {
+        const select = document.getElementById("customerTier");
+        if (!select) return;
+        select.innerHTML = PIPELINE_TIERS.map(tier =>
+            `<option value="${escapeHtml(tier.value)}">${escapeHtml(tier.label)}</option>`
+        ).join("");
+    }
+
+    // Repaint the locked expiration field so it always reflects the chosen tier
+    function syncCustomerExpiration() {
+        const tierEl = document.getElementById("customerTier");
+        const expEl = document.getElementById("customerExp");
+        const noteEl = document.getElementById("customerExpNote");
+        if (!tierEl || !expEl) return;
+
+        const months = tierDurationMonths(tierEl.value);
+        const exp = customerExpirationFor(tierEl.value, document.getElementById("customerJoined").value);
+        expEl.value = exp || "—";
+        if (!noteEl) return;
+        if (exp) {
+            noteEl.textContent = `Auto-computed: ${months}-month term from the date joined.`;
+        } else if (months) {
+            noteEl.textContent = "This member has no valid date joined, so the expiration date cannot be derived.";
+        } else {
+            noteEl.textContent = "Select a membership tier to set the expiration date.";
+        }
+    }
+
+    // Edit Membership: the member is looked up in the merged directory view, but
+    // the change is written back to whichever store actually owns the record.
+    window.openEditCustomer = (encodedId) => {
+        const id = decodeURIComponent(encodedId);
+        const modal = document.getElementById("customerModal");
+        if (!modal) return;
+
+        const customer = getDirectoryCustomers().find(c => String(c.id) === String(id));
+        if (!customer) {
+            alert("Member not found. It may have already been removed.");
+            return;
+        }
+
+        buildCustomerTierOptions();
+        document.getElementById("customerId").value = customer.id;
+        document.getElementById("customerName").value = customer.name || "";
+        document.getElementById("customerContact").value = customer.contact || "—";
+        document.getElementById("customerKeyFob").value = customer.keyFob || "—";
+        document.getElementById("customerJoined").value = customer.joined || "";
+
+        const tierEl = document.getElementById("customerTier");
+        tierEl.value = PIPELINE_TIERS.some(tier => tier.value === customer.tier)
+            ? customer.tier
+            : PIPELINE_TIERS[0].value;
+
+        document.getElementById("customerFormError").textContent = "";
+        document.getElementById("customerModalTitle").textContent = `Edit ${customer.name || "Member"}'s Membership`;
+        document.getElementById("saveCustomerBtn").textContent = "Update Membership";
+        syncCustomerExpiration();
+        modal.style.display = "flex";
+    };
+
+    // Save Membership: writes tier + derived expiration back to crmCustomers
+    // (registered accounts, keyed by "reg-<username>") or to crmDirectory
+    // (front desk records), so the member's own portal stays in step too.
+    window.saveCustomer = () => {
+        const id = document.getElementById("customerId").value;
+        const tier = document.getElementById("customerTier").value;
+        const joined = document.getElementById("customerJoined").value;
+        const errorEl = document.getElementById("customerFormError");
+
+        const fail = message => {
+            errorEl.textContent = message;
+            return false;
+        };
+
+        if (!id) return fail("No member selected to update.");
+        if (!tierDurationMonths(tier)) return fail("Please select a valid membership tier.");
+
+        const exp = customerExpirationFor(tier, joined);
+        if (!exp) return fail("This member has no valid date joined, so the expiration date cannot be derived.");
+
+        const isRegistered = String(id).indexOf("reg-") === 0;
+        let record;
+        let list;
+        let storeKey;
+
+        if (isRegistered) {
+            const username = id.slice(4);
+            storeKey = "crmCustomers";
+            list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+            record = list.find(c => c.username === username);
+        } else {
+            storeKey = DIRECTORY_KEY;
+            list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+            record = list.find(d => String(d.id) === String(id));
+        }
+        if (!record) return fail("Member not found. It may have already been removed.");
+
+        const previousTier = record.tier || "";
+        record.tier = tier;
+        record.exp = exp;
+        localStorage.setItem(storeKey, JSON.stringify(list));
+
+        const name = record.name || "";
+        const status = customerStatus(exp, new Date());
+        if (previousTier !== tier) {
+            logActivity({
+                type: "membership",
+                title: `${name || "A member"}'s membership was updated to ${tier}`,
+                meta: `Was ${previousTier || "no tier"} • Expires ${exp} • ${status}`,
+                href: activityHref("members.html", name)
+            });
+        }
+
+        document.getElementById("customerModal").style.display = "none";
+        renderCustomerDirectory();
+        countExpiringMembers();
+        countActiveMembers();
+    };
+
+    // Edit Membership dialog
+    const customerModal = document.getElementById("customerModal");
+    if (customerModal) {
+        buildCustomerTierOptions();
+        const closeCustomerBtn = document.getElementById("closeCustomerModal");
+        const cancelCustomerBtn = document.getElementById("cancelCustomerModal");
+        const customerForm = document.getElementById("customerForm");
+        const customerTierEl = document.getElementById("customerTier");
+
+        if (closeCustomerBtn) closeCustomerBtn.addEventListener("click", () => { customerModal.style.display = "none"; });
+        if (cancelCustomerBtn) cancelCustomerBtn.addEventListener("click", () => { customerModal.style.display = "none"; });
+        if (customerForm) customerForm.addEventListener("submit", event => { event.preventDefault(); window.saveCustomer(); });
+        if (customerTierEl) customerTierEl.addEventListener("change", syncCustomerExpiration);
+        customerModal.addEventListener("click", event => {
+            if (event.target === customerModal) customerModal.style.display = "none";
+        });
+    }
+
     // Real-Time Table Search Filter
     const searchInput = document.getElementById("searchCustomer");
     if (searchInput) {
@@ -1593,7 +1743,12 @@ function renderCustomerDirectory() {
             <td>${c.joined || "—"}</td>
             <td>${c.exp || "—"}</td>
             <td><span class="badge ${cls}">${status}</span></td>
-            <td><button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button></td>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-view" onclick="openEditCustomer('${encodeURIComponent(c.id)}')">Edit</button>
+                    <button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button>
+                </div>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -2306,6 +2461,13 @@ document.addEventListener("DOMContentLoaded", () => {
             new MutationObserver(() => renderTicketStats()).observe(tbody, { childList: true });
         }
     });
+
+    // And for the directory statistics, so an added, edited or removed member
+    // immediately refreshes the member count cards
+    const directoryTableBody = document.getElementById("customerTableBody");
+    if (directoryTableBody && typeof MutationObserver === "function") {
+        new MutationObserver(() => renderDirectoryStats()).observe(directoryTableBody, { childList: true });
+    }
 
     // Another tab writing to localStorage refreshes the derived totals too
     window.addEventListener("storage", () => {

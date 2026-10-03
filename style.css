@@ -1006,6 +1006,14 @@ letter-spacing: .3px;
     background: #d64b64;
 }
 
+/* Keeps the edit / delete pair in a table cell from sitting flush together */
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 /* ---------- 15. Forms & filters ---------- */
 .form-group {
     margin-bottom: 15px;
