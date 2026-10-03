@@ -46,15 +46,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const expiringEl = document.getElementById("statExpiring");
         const ticketsEl = document.getElementById("statOpenTickets");
         const activeEl = document.getElementById("statActive");
+        const frozenEl = document.getElementById("statFrozen");
+        const totalEl = document.getElementById("statTotal");
         if (expiringEl) expiringEl.textContent = localStorage.getItem(EXPIRE_KEY) || "0";
         if (ticketsEl) ticketsEl.textContent = localStorage.getItem(TICKETS_KEY) || "0";
         if (activeEl) activeEl.textContent = localStorage.getItem(ACTIVE_KEY) || "0";
+        if (frozenEl) {
+            const rows = getDirectoryCustomers();
+            const today = todayStart();
+            const frozen = rows.filter(r => getMemberStatus(r, today) === "Frozen").length;
+            frozenEl.textContent = frozen;
+        }
+        if (totalEl) {
+            totalEl.textContent = getDirectoryCustomers().length;
+        }
     }
 
     function countActiveMembers() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const count = getDirectoryCustomers().filter(c => customerStatus(c.exp, today) === "Active").length;
+        const count = getDirectoryCustomers().filter(c => getMemberStatus(c, today) === "Active").length;
         localStorage.setItem(ACTIVE_KEY, count);
         return count;
     }
@@ -377,6 +388,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         customerModal.addEventListener("click", event => {
             if (event.target === customerModal) customerModal.style.display = "none";
+        });
+    }
+
+    const freezeModal = document.getElementById("freezeModal");
+    if (freezeModal) {
+        const closeFreezeBtn = document.getElementById("closeFreezeModal");
+        const cancelFreezeBtn = document.getElementById("cancelFreezeModal");
+        if (closeFreezeBtn) closeFreezeBtn.addEventListener("click", () => { freezeModal.style.display = "none"; });
+        if (cancelFreezeBtn) cancelFreezeBtn.addEventListener("click", () => { freezeModal.style.display = "none"; });
+        freezeModal.addEventListener("click", event => {
+            if (event.target === freezeModal) freezeModal.style.display = "none";
         });
     }
 
@@ -743,16 +765,32 @@ document.addEventListener("DOMContentLoaded", () => {
         if (document.getElementById("pFob")) document.getElementById("pFob").textContent = customer.keyFob || customer.username || "—";
 
         const months = tierDurationMonths(customer.tier);
-        const custExp = customer.exp || (months && customer.joined ? computeExpirationDate(months, new Date(customer.joined + "T00:00:00")) : "");
+        const custExp = customer.updatedExpirationDate || customer.exp || (months && customer.joined ? computeExpirationDate(months, new Date(customer.joined + "T00:00:00")) : "");
         if (document.getElementById("pExp")) document.getElementById("pExp").textContent = custExp || "—";
+        if (document.getElementById("pFrozenUntil")) {
+            if (customer.status === "Frozen" && customer.freezeEndDate) {
+                document.getElementById("pFrozenUntil").textContent = customer.freezeEndDate;
+            } else {
+                document.getElementById("pFrozenUntil").textContent = "—";
+            }
+        }
+        if (document.getElementById("pOrigExp")) {
+            document.getElementById("pOrigExp").textContent = customer.originalExpirationDate || "—";
+        }
 
         const pStatusEl = document.getElementById("pStatus");
         if (pStatusEl) {
             const today = todayStart();
-            const status = customerStatus(custExp, today);
-            const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
-            pStatusEl.textContent = status;
-            pStatusEl.className = "badge " + cls;
+            const member = customer;
+            const status = getMemberStatus({ ...customer, exp: custExp }, today);
+            let cls = status === "Active" ? "active" : status === "Frozen" ? "warning" : (status === "Expired" ? "danger" : "warning");
+            if (status === "Frozen") {
+                pStatusEl.innerHTML = "Frozen" + (customer.freezeEndDate ? "<br/>Frozen until " + customer.freezeEndDate : "");
+                pStatusEl.className = "badge " + cls;
+            } else {
+                pStatusEl.textContent = status;
+                pStatusEl.className = "badge " + cls;
+            }
         }
 
         // Renewal panel + button, shown only while the term is expiring or expired
@@ -1087,14 +1125,14 @@ document.addEventListener("DOMContentLoaded", () => {
         countExpiringMembers();
         countActiveMembers();
     }
-    if (document.querySelector("#statExpiring") || document.querySelector("#statOpenTickets") || document.querySelector("#statActive")) {
-        // Recompute from the shared data so the dashboard always matches the modules
-        countOpenTickets();
-        countExpiringMembers();
-        countActiveMembers();
-        syncDashboard();
-        window.addEventListener("storage", syncDashboard);
-    }
+        if (document.querySelector("#statExpiring") || document.querySelector("#statOpenTickets") || document.querySelector("#statActive") || document.querySelector("#statFrozen") || document.querySelector("#statTotal")) {
+            // Recompute from the shared data so the dashboard always matches the modules
+            countOpenTickets();
+            countExpiringMembers();
+            countActiveMembers();
+            syncDashboard();
+            window.addEventListener("storage", syncDashboard);
+        }
 
     if (document.getElementById("chartMembersStatus")) {
         renderDashboardCharts();
@@ -1807,16 +1845,21 @@ function getDirectoryCustomers() {
         .map(c => {
             const months = tierDurationMonths(c.tier);
             const exp = c.exp || (months && c.joined ? computeExpirationDate(months, new Date(c.joined + "T00:00:00")) : "");
-            return {
-                id: "reg-" + c.username,
-                name: c.name,
-                contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
-                keyFob: c.keyFob || c.username,
-                tier: c.tier,
-                joined: c.joined || "—",
-                exp,
-                status: "Active"
-            };
+                return {
+                    id: "reg-" + c.username,
+                    name: c.name,
+                    contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
+                    keyFob: c.keyFob || c.username,
+                    tier: c.tier,
+                    joined: c.joined || "—",
+                    exp,
+                    status: c.status || "Active",
+                    freezeStartDate: c.freezeStartDate || null,
+                    freezeEndDate: c.freezeEndDate || null,
+                    freezeMonths: c.freezeMonths || null,
+                    originalExpirationDate: c.originalExpirationDate || c.exp || null,
+                    updatedExpirationDate: c.updatedExpirationDate || exp || null
+                };
         });
     return [...staff, ...registered];
 }
@@ -1833,6 +1876,37 @@ function customerStatus(expDate, today) {
     if (diffDays < 0) return "Expired";
     if (diffDays <= RENEWAL_WINDOW_DAYS) return "Expiring Soon";
     return "Active";
+}
+
+// Add freeze-aware status helper
+function getMemberStatus(member, today = todayStart()) {
+    if (!member) return "Active";
+    const now = today || todayStart();
+    if (member.status === "Frozen" && member.freezeEndDate) {
+        const end = new Date(member.freezeEndDate + "T00:00:00");
+        if (!isNaN(end.getTime()) && now >= end) {
+            unfreezeMemberById(member.id);
+            return "Active";
+        }
+        return "Frozen";
+    }
+    return customerStatus(member.exp || member.expirationDate || member.updatedExpirationDate, now);
+}
+
+function unfreezeMemberById(id) {
+    const isRegistered = String(id).indexOf("reg-") === 0;
+    const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    const record = isRegistered
+        ? list.find(c => c.username === id.slice(4))
+        : list.find(d => String(d.id) === String(id));
+    if (!record) return false;
+    record.status = "Active";
+    delete record.freezeStartDate;
+    delete record.freezeEndDate;
+    delete record.freezeMonths;
+    localStorage.setItem(storeKey, JSON.stringify(list));
+    return true;
 }
 
 function todayStart() {
@@ -1883,6 +1957,17 @@ function renewalExpirationFor(member, today) {
 // Renewals only move the expiration date, so the change is written back to
 // whichever store already owns the record: a registered account (crmCustomers,
 // keyed "reg-<username>") or a front desk directory entry (crmDirectory).
+function addMonthsSafe(dateStr, months) {
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return "";
+    const originalDay = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() < originalDay) {
+        d.setDate(0);
+    }
+    return d.toISOString().split("T")[0];
+}
+
 function updateDirectoryExpiration(id, exp) {
     const isRegistered = String(id).indexOf("reg-") === 0;
     const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
@@ -1893,9 +1978,85 @@ function updateDirectoryExpiration(id, exp) {
     if (!record) return false;
 
     record.exp = exp;
+    record.updatedExpirationDate = exp;
     localStorage.setItem(storeKey, JSON.stringify(list));
     return true;
 }
+
+window.openFreezeModal = function(id) {
+    const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+    if (!member) {
+        alert("Member not found. It may have already been removed.");
+        return;
+    }
+    const mStatus = getMemberStatus(member);
+    if (mStatus === "Frozen" && member.freezeEndDate) {
+        alert(`Membership is already frozen until ${member.freezeEndDate}.`);
+        return;
+    }
+    if (mStatus === "Expired") {
+        alert("Cannot freeze an expired member.");
+        return;
+    }
+    const modal = document.getElementById("freezeModal");
+    if (!modal) return;
+    document.getElementById("freezeMemberId").value = member.id;
+    document.getElementById("freezeMemberName").value = member.name || "";
+    document.getElementById("freezeMemberTier").value = member.tier || "";
+    document.getElementById("freezeMemberExp").value = member.updatedExpirationDate || member.exp || "";
+    document.getElementById("freezeMonths").value = "";
+    document.getElementById("freezeFormError").textContent = "";
+    modal.style.display = "flex";
+};
+
+window.confirmFreeze = function() {
+    const id = document.getElementById("freezeMemberId").value;
+    const months = parseInt(document.getElementById("freezeMonths").value);
+    const errorEl = document.getElementById("freezeFormError");
+    if (!months || months < 1 || months > 6) {
+        errorEl.textContent = "Please select freeze duration (1-6 months).";
+        return;
+    }
+    const isRegistered = String(id).indexOf("reg-") === 0;
+    const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    const record = isRegistered
+        ? list.find(c => c.username === id.slice(4))
+        : list.find(d => String(d.id) === String(id));
+    if (!record) {
+        errorEl.textContent = "Member not found.";
+        return;
+    }
+    const today = new Date();
+    const startStr = today.toISOString().split("T")[0];
+    const endStr = addMonthsSafe(startStr, months);
+    const currentExp = record.updatedExpirationDate || record.exp || "";
+    const newExp = addMonthsSafe(currentExp || startStr, months);
+    record.status = "Frozen";
+    record.freezeStartDate = startStr;
+    record.freezeEndDate = endStr;
+    record.freezeMonths = months;
+    record.originalExpirationDate = record.originalExpirationDate || currentExp || null;
+    record.updatedExpirationDate = newExp;
+    if (!isRegistered) {
+        record.exp = newExp;
+    } else {
+        record.exp = newExp;
+    }
+    localStorage.setItem(storeKey, JSON.stringify(list));
+    document.getElementById("freezeModal").style.display = "none";
+    renderCustomerDirectory();
+    countExpiringMembers();
+    countActiveMembers();
+};
+
+window.unfreezeMember = function(id) {
+    if (!confirm("Are you sure you want to end this membership freeze early?")) return;
+    unfreezeMemberById(id);
+    renderCustomerDirectory();
+    countExpiringMembers();
+    countActiveMembers();
+};
 
 function renderCustomerDirectory() {
     const tbody = document.getElementById("customerTableBody");
@@ -1911,26 +2072,34 @@ function renderCustomerDirectory() {
     }
 
     rows.forEach(c => {
-        const status = customerStatus(c.exp, today);
-        const cls = status === "Active" ? "active" : status === "Expiring Soon" ? "warning" : "danger";
-        // Only members inside the renewal window carry the button, so the
-        // action column stays quiet for the healthy part of the directory.
-        const renewBtn = membershipNeedsRenewal(c, today)
+        const memberStatus = getMemberStatus(c, today);
+        const cls = memberStatus === "Active" ? "active" : memberStatus === "Frozen" ? "warning" : (memberStatus === "Expired" ? "danger" : (memberStatus === "Expiring Soon" ? "warning" : "active"));
+        const renewBtn = memberStatus !== "Frozen" && membershipNeedsRenewal(c, today)
             ? `<button class="btn-renew" onclick="renewMemberById('${encodeURIComponent(c.id)}')">Renew</button>`
             : "";
+        let freezeBtn = `<button class="btn-freeze" onclick="openFreezeModal('${c.id}')">Freeze</button>`;
+        if (memberStatus === "Frozen") {
+            freezeBtn = `<button class="btn-unfreeze" onclick="unfreezeMember('${c.id}')">Unfreeze</button>`;
+        }
+        const expDisplay = c.updatedExpirationDate || c.exp || "—";
+        let statusHtml = `<span class="badge ${cls}">${memberStatus}</span>`;
+        if (memberStatus === "Frozen" && c.freezeEndDate) {
+            statusHtml = `<span class="badge ${cls}">● Frozen<br/>Until ${c.freezeEndDate}</span>`;
+        }
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${c.name}</td>
-            <td>${c.contact || "—"}</td>
-            <td>${c.keyFob || "—"}</td>
-            <td>${c.tier}</td>
-            <td>${c.joined || "—"}</td>
-            <td>${c.exp || "—"}</td>
-            <td><span class="badge ${cls}">${status}</span></td>
+            <td>${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.contact || "—")}</td>
+            <td>${escapeHtml(c.keyFob || "—")}</td>
+            <td>${escapeHtml(c.tier)}</td>
+            <td>${escapeHtml(c.joined || "—")}</td>
+            <td>${escapeHtml(expDisplay)}</td>
+            <td>${statusHtml}</td>
             <td>
                 <div class="row-actions">
                     ${renewBtn}
                     <button class="btn-view" onclick="openEditCustomer('${encodeURIComponent(c.id)}')">Edit</button>
+                    ${freezeBtn}
                     <button class="btn-delete" onclick="removeDirectoryCustomer('${c.id}')">Remove</button>
                 </div>
             </td>
@@ -2537,9 +2706,11 @@ document.addEventListener("DOMContentLoaded", () => {
         let active = 0;
         let expiring = 0;
         let expired = 0;
+        let frozen = 0;
         rows.forEach(c => {
-            const status = customerStatus(c.exp, today);
+            const status = getMemberStatus(c, today);
             if (status === "Active") active++;
+            if (status === "Frozen") frozen++;
             if (status === "Expiring Soon") expiring++;
             if (status === "Expired") expired++;
         });
@@ -2547,7 +2718,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const open = ticketsByStatus("open");
         const progress = ticketsByStatus("in progress");
 
+        if (document.getElementById("statTotal")) setText("statTotal", formatNumber(rows.length));
         setText("statActiveNote", `${formatNumber(active)} of ${formatNumber(rows.length)} member record${rows.length === 1 ? "" : "s"} active`);
+        if (document.getElementById("statFrozen")) setText("statFrozen", formatNumber(frozen));
         // Expired memberships are renewable too, so the renewal workload is
         // spelled out instead of leaving lapsed terms off the card.
         setText("statExpiringNote", [
@@ -2571,13 +2744,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const today = todayStart();
         const rows = getDirectoryCustomers();
-        const withStatus = (status) => rows.filter(c => customerStatus(c.exp, today) === status).length;
+        const withStatus = (status) => rows.filter(c => getMemberStatus(c, today) === status).length;
 
         const expiring = withStatus("Expiring Soon");
         const expired = withStatus("Expired");
+        const frozen = withStatus("Frozen");
 
         setText("memberStatTotal", formatNumber(rows.length));
         setText("memberStatActive", formatNumber(withStatus("Active")));
+        if (document.getElementById("memberStatFrozen")) setText("memberStatFrozen", formatNumber(frozen));
         setText("memberStatExpiring", formatNumber(expiring));
         setText("memberStatExpiringNote", [
             expiring ? `Renewals to collect within 30 days` : "No renewals due in the next 30 days",

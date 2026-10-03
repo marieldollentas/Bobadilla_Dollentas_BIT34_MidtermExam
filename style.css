@@ -2512,6 +2512,31 @@ a.activity-item:focus-visible .activity-title {
     letter-spacing: 2px;
 }
 
+.btn-freeze {
+    border: 1px solid var(--border);
+    background: #fff4de;
+    color: var(--warning-ink);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+.btn-freeze:hover { background: #ffe9c5; }
+.btn-unfreeze {
+    border: 1px solid var(--border);
+    background: #e9f9ef;
+    color: var(--success-ink);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+.btn-unfreeze:hover { background: #d6f3e2; }
+
 @media (max-width: 900px) {
     .select-compact { min-width: 0; width: 100%; }
     .date-compact { width: 100%; }

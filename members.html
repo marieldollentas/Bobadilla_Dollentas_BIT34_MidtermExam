@@ -112,6 +112,17 @@
 
                     <article class="stat-card">
                         <div class="stat-top">
+                            <span class="stat-label">Frozen Members</span>
+                            <span class="stat-icon amber" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 4v16M4 12h16"/></svg>
+                            </span>
+                        </div>
+                        <p class="stat-number warning" id="memberStatFrozen">0</p>
+                        <p class="stat-note">Currently frozen memberships</p>
+                    </article>
+
+                    <article class="stat-card">
+                        <div class="stat-top">
                             <span class="stat-label">Expiring Soon</span>
                             <span class="stat-icon amber" aria-hidden="true">
                                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
@@ -195,6 +206,48 @@
                     <button type="button" class="btn-renew btn-renew-solid" id="renewCustomerBtn" style="display: none;">Renew Membership</button>
                     <button type="button" class="btn-secondary" id="cancelCustomerModal">Cancel</button>
                     <button type="submit" class="btn-primary" id="saveCustomerBtn">Update Membership</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Freeze Membership Modal -->
+    <div id="freezeModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeFreezeModal">&times;</span>
+            <h2 id="freezeModalTitle">Freeze Membership</h2>
+            <form id="freezeForm" onsubmit="event.preventDefault(); confirmFreeze();">
+                <input type="hidden" id="freezeMemberId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label>Member</label>
+                        <input type="text" id="freezeMemberName" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Membership</label>
+                        <input type="text" id="freezeMemberTier" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Expiration</label>
+                        <input type="text" id="freezeMemberExp" class="search-input readonly-mono" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="freezeMonths">Freeze Duration</label>
+                        <select id="freezeMonths" class="search-input">
+                            <option value="">Select months...</option>
+                            <option value="1">1 Month</option>
+                            <option value="2">2 Months</option>
+                            <option value="3">3 Months</option>
+                            <option value="4">4 Months</option>
+                            <option value="5">5 Months</option>
+                            <option value="6">6 Months</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="error-msg" id="freezeFormError"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelFreezeModal">Cancel</button>
+                    <button type="submit" class="btn-primary">Confirm Freeze</button>
                 </div>
             </form>
         </div>
