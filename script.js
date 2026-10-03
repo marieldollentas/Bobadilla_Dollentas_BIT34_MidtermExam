@@ -872,6 +872,75 @@ document.addEventListener("DOMContentLoaded", () => {
         renderPortalCoachSection(customer);
         renderMyInquiries();
 
+        // Ratings come from the member side only: the handler is scoped to this
+        // page so the coach directory has no way to submit one, and it refuses a
+        // second rating from the same member for the same coach.
+        window.rateCoach = coachId => {
+            const coach = coachById(coachId || window.portalCoachId);
+            const select = document.getElementById("portalCoachRating");
+            const input = document.getElementById("portalCoachFeedbackInput");
+            const msg = document.getElementById("portalRatingMsg");
+            if (!coach || !select || !input || !msg) return;
+
+            const stars = Number(select.value) || 0;
+            const comment = input.value.trim();
+            if (stars < 1 || stars > 5) {
+                msg.className = "error-msg";
+                msg.textContent = "Please choose a rating between 1 and 5.";
+                return;
+            }
+            if (!comment) {
+                msg.className = "error-msg";
+                msg.textContent = "Please tell us a little about your coach.";
+                return;
+            }
+
+            const coaches = getCoaches();
+            const target = coaches.find(item => String(item.id) === String(coach.id));
+            if (!target) {
+                msg.className = "error-msg";
+                msg.textContent = "Your coach profile is no longer available. Please contact the front desk.";
+                return;
+            }
+
+            const clientId = "reg-" + (customer.username || "");
+            const ratings = Array.isArray(target.ratings) ? target.ratings : [];
+            if (ratings.some(row => String(row.clientId) === clientId)) {
+                msg.className = "error-msg";
+                msg.textContent = `You have already rated ${target.name}. Each member can rate their coach once.`;
+                return;
+            }
+
+            ratings.push({
+                id: `rating-${Date.now().toString(36)}`,
+                stars,
+                comment,
+                at: new Date().toISOString(),
+                clientId,
+                clientName: customer.name
+            });
+            target.ratings = ratings.slice(-COACH_FEEDBACK_LIMIT);
+            target.ratingSum = (Number(target.ratingSum) || 0) + stars;
+            target.ratingCount = (Number(target.ratingCount) || 0) + 1;
+            saveCoaches(coaches);
+
+            logActivity({
+                type: "coach",
+                title: `${target.name} received a ${stars}-star rating from ${customer.name}`,
+                meta: `${shortenLabel(comment, 68)} • ${coachRatingAverage(target).toFixed(1)}/5 based on ${target.ratingCount} rating${Number(target.ratingCount) === 1 ? "" : "s"}`,
+                href: "coach.html"
+            });
+
+            // Repaint first: the form is replaced by the submitted review, then
+            // the confirmation is written underneath it.
+            renderPortalCoachSection(customer);
+            const done = document.getElementById("portalRatingMsg");
+            if (done) {
+                done.className = "success-msg";
+                done.textContent = "Thank you! Your rating and feedback were submitted.";
+            }
+        };
+
         window.submitInquiry = () => {
             const message = document.getElementById("inqMessage").value.trim();
             const priority = document.getElementById("inqPriority").value;
@@ -3326,6 +3395,7 @@ function seedCoaches() {
         id: `coach-${index + 1}-${Date.now().toString(36)}`,
         ratingSum: 0,
         ratingCount: 0,
+        ratings: [],
         ...preset
     })));
 }
@@ -3488,6 +3558,29 @@ function coachRatingAverage(coach) {
 function ratingStarsHtml(average) {
     const rounded = Math.round(Number(average) || 0);
     return "★★★★★".slice(0, rounded) + "☆☆☆☆☆".slice(0, 5 - rounded);
+}
+
+// Newest written reviews kept per coach. ratingSum / ratingCount stay the tally
+// so the average keeps working on records created before feedback existed.
+const COACH_FEEDBACK_LIMIT = 20;
+
+function coachFeedbackList(coach) {
+    const rows = Array.isArray(coach && coach.ratings) ? coach.ratings : [];
+    return rows.slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+
+function coachFeedbackHtml(coach, emptyText) {
+    const rows = coachFeedbackList(coach);
+    if (rows.length === 0) return `<div class="card-sub">${escapeHtml(emptyText)}</div>`;
+    return `<div class="feedback-list">${rows.map(row => `
+        <div class="feedback-item">
+            <div class="feedback-head">
+                <span class="stars">${ratingStarsHtml(row.stars)}</span>
+                <span class="card-meta">${escapeHtml(row.clientName || "Member")} • ${escapeHtml(formatDateLogged(row.at))}</span>
+            </div>
+            <p class="feedback-text">${escapeHtml(row.comment || "")}</p>
+        </div>
+    `).join("")}</div>`;
 }
 
 // ---- KPI summaries ----
@@ -3673,6 +3766,7 @@ function renderPortalCoachSection(customer) {
             : "You haven't been assigned a coach yet. The front desk will assign one soon.";
         empty.style.display = "block";
         card.style.display = "none";
+        renderPortalCoachRating(null, customer);
         return;
     }
 
@@ -3697,6 +3791,50 @@ function renderPortalCoachSection(customer) {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
     });
+
+    renderPortalCoachRating(coach, customer);
+}
+
+// Rating is the one part of the coach profile a member owns: the form lives in
+// the portal and is replaced by the submitted review once a member has rated,
+// so a single member can never stack ratings on their own coach.
+function renderPortalCoachRating(coach, customer) {
+    const box = document.getElementById("portalRatingBox");
+    const done = document.getElementById("portalRatingDone");
+    const list = document.getElementById("portalCoachFeedbackList");
+    const feedbackInput = document.getElementById("portalCoachFeedbackInput");
+    const feedbackBox = document.getElementById("portalFeedbackBox");
+    if (!box || !done || !list) return;
+
+    const msg = document.getElementById("portalRatingMsg");
+    if (msg) msg.textContent = "";
+
+    window.portalCoachId = coach ? coach.id : null;
+    feedbackInput.value = "";
+
+    if (!coach) {
+        box.style.display = "none";
+        done.style.display = "none";
+        list.innerHTML = "";
+        if (feedbackBox) feedbackBox.style.display = "none";
+        return;
+    }
+
+    if (feedbackBox) feedbackBox.style.display = "block";
+
+    const clientId = "reg-" + ((customer && customer.username) || "");
+    const mine = coachFeedbackList(coach).find(row => String(row.clientId) === clientId);
+
+    if (mine) {
+        done.innerHTML = `You rated ${escapeHtml(coach.name)} ${ratingStarsHtml(mine.stars)}. <em>${escapeHtml(mine.comment || "")}</em> — submitted ${escapeHtml(formatDateLogged(mine.at))}.`;
+        done.style.display = "block";
+        box.style.display = "none";
+    } else {
+        done.style.display = "none";
+        box.style.display = "block";
+    }
+
+    list.innerHTML = coachFeedbackHtml(coach, "No member feedback written yet.");
 }
 
 function renderPortalSessions(customer) {
@@ -3838,6 +3976,9 @@ function openCoachDetails(encodedId) {
     document.getElementById("coachDetailsRating").textContent = average === null
         ? "No client ratings yet"
         : `${average.toFixed(1)}/5 • Based on ${coach.ratingCount} rating${Number(coach.ratingCount) === 1 ? "" : "s"}`;
+
+    const feedback = document.getElementById("coachDetailsFeedback");
+    if (feedback) feedback.innerHTML = coachFeedbackHtml(coach, "No member feedback written yet.");
 
     // Assigned clients, straight from the Customer Directory
     const clientList = document.getElementById("coachDetailsClientList");
@@ -4595,36 +4736,6 @@ function renderPerformance() {
     });
 }
 
-// Client feedback is a simple frontend tally kept on the coach record,
-// so no extra storage key or backend is needed.
-function rateCoach(coachId) {
-    const coach = coachById(coachId);
-    const select = document.getElementById("coachRatingInput");
-    if (!coach || !select) return;
-
-    const stars = Number(select.value) || 0;
-    if (stars < 1 || stars > 5) {
-        alert("Please choose a rating between 1 and 5.");
-        return;
-    }
-
-    const coaches = getCoaches();
-    const target = coaches.find(item => String(item.id) === String(coach.id));
-    target.ratingSum = (Number(target.ratingSum) || 0) + stars;
-    target.ratingCount = (Number(target.ratingCount) || 0) + 1;
-    saveCoaches(coaches);
-
-    logActivity({
-        type: "coach",
-        title: `${target.name} received a ${stars}-star client rating`,
-        meta: `${coachRatingAverage(target).toFixed(1)}/5 • Based on ${target.ratingCount} ratings`,
-        href: "coach.html"
-    });
-
-    openCoachDetails(encodeURIComponent(coach.id));
-    renderPerformance();
-}
-
 // ---- Add / edit coach ----
 function buildCoachFormFields() {
     const dayGrid = document.getElementById("coachDayGrid");
@@ -4746,7 +4857,7 @@ function saveCoach() {
     if (previous) {
         Object.assign(previous, data);
     } else {
-        coaches.push({ id: `coach-${Date.now().toString(36)}`, ratingSum: 0, ratingCount: 0, ...data });
+        coaches.push({ id: `coach-${Date.now().toString(36)}`, ratingSum: 0, ratingCount: 0, ratings: [], ...data });
     }
     saveCoaches(coaches);
 

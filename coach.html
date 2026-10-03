@@ -438,15 +438,11 @@
                 <span id="coachDetailsRating">No ratings yet</span>
             </div>
 
-            <div class="head-actions" style="margin-top:12px;">
-                <select id="coachRatingInput" class="search-input select-compact" aria-label="Add a client rating">
-                    <option value="5">5 - Excellent</option>
-                    <option value="4">4 - Good</option>
-                    <option value="3" selected>3 - Average</option>
-                    <option value="2">2 - Poor</option>
-                    <option value="1">1 - Very Poor</option>
-                </select>
-                <button class="btn-secondary" onclick="rateCoach(window.pendingCoachId)">Add Client Rating</button>
+            <!-- Ratings are submitted by members in the member portal, so staff
+                 only ever read them here. -->
+            <div class="form-group" style="margin-top:16px;">
+                <label>Member Feedback</label>
+                <div id="coachDetailsFeedback"></div>
             </div>
 
             <div class="form-group" style="margin-top:20px;">

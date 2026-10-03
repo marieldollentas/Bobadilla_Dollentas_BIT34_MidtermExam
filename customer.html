@@ -95,6 +95,33 @@
                     <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
                     <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
                 </div>
+
+                <!-- Rating is member-owned: script.js hides this form and shows
+                     the submitted review once the member has rated. -->
+                <div id="portalRatingDone" class="rating-row" style="display:none;"></div>
+                <div id="portalRatingBox" style="display:none; margin-top:16px;">
+                    <div class="form-group">
+                        <label for="portalCoachRating">Rate your coach</label>
+                        <select id="portalCoachRating" class="search-input">
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Good</option>
+                            <option value="3" selected>3 - Average</option>
+                            <option value="2">2 - Poor</option>
+                            <option value="1">1 - Very Poor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="portalCoachFeedbackInput">Your feedback</label>
+                        <textarea id="portalCoachFeedbackInput" class="inquiry-input" rows="3" placeholder="How has your coach been doing?"></textarea>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="rateCoach(window.portalCoachId)">Submit Rating</button>
+                    <p id="portalRatingMsg" class="success-msg"></p>
+                </div>
+
+                <div class="form-group" id="portalFeedbackBox" style="display:none; margin-top:16px;">
+                    <label>What members said</label>
+                    <div id="portalCoachFeedbackList"></div>
+                </div>
             </section>
 
             <section class="content-section span-7">
