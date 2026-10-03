@@ -125,119 +125,158 @@
                     </article>
                 </section>
 
-                <!-- Performance Analytics Charts (inline SVG, no external library).
-                     Every cell is a span-4 so all six cards share one equal 3-column grid. -->
+                <!-- Performance Analytics (inline SVG, no external library).
+                     Grouped into labelled sections so related graphs read together,
+                     and each section keeps its own 12-column grid so the cards inside
+                     still line up two-per-row. -->
                 <section class="dashboard-grid">
-                    <article class="card chart-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Members by Status</h3>
-                                <p class="card-sub">Directory split by membership state</p>
-                            </div>
-                            <span class="card-chip">Live</span>
-                        </div>
-                        <div class="chart" id="chartMembersStatus"></div>
-                    </article>
 
-                    <article class="card chart-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Members by Membership Tier</h3>
-                                <p class="card-sub">6, 12 and 18-month plans</p>
-                            </div>
-                            <span class="card-chip">Live</span>
-                        </div>
-                        <div class="chart" id="chartMembersTier"></div>
-                    </article>
+                    <!-- Section 1: the member base -->
+                    <section class="chart-section span-12">
+                        <header class="chart-section-head">
+                            <h2>Membership Overview</h2>
+                            <p>How healthy the member base is and which plans people hold.</p>
+                        </header>
+                        <div class="dashboard-grid">
+                            <article class="card chart-card span-6">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Members by Status</h3>
+                                        <p class="card-sub">Share of the directory in each state</p>
+                                    </div>
+                                    <span class="card-chip">Live</span>
+                                </div>
+                                <div class="chart" id="chartMembersStatus"></div>
+                            </article>
 
-                    <article class="card chart-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Tickets Logged per Month</h3>
-                                <p class="card-sub">Walk-in + portal, last 6 months</p>
-                            </div>
-                            <span class="card-chip">6 months</span>
+                            <article class="card chart-card span-6">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Members by Membership Tier</h3>
+                                        <p class="card-sub">6, 12 and 18-month plans</p>
+                                    </div>
+                                    <span class="card-chip">Live</span>
+                                </div>
+                                <div class="chart" id="chartMembersTier"></div>
+                            </article>
                         </div>
-                        <div class="chart" id="chartTicketVolume"></div>
-                    </article>
+                    </section>
 
-                    <article class="card chart-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Tickets by Priority</h3>
-                                <p class="card-sub">How urgent incoming requests are</p>
-                            </div>
-                            <span class="card-chip">Live</span>
+                    <!-- Section 2: front desk load -->
+                    <section class="chart-section span-12">
+                        <header class="chart-section-head">
+                            <h2>Support &amp; Ticket Load</h2>
+                            <p>How ticket volume is trending and how urgent the work is.</p>
+                        </header>
+                        <div class="dashboard-grid">
+                            <article class="card chart-card span-6">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Tickets Logged per Month</h3>
+                                        <p class="card-sub">Walk-in + portal, last 6 months</p>
+                                    </div>
+                                    <span class="card-chip">6 months</span>
+                                </div>
+                                <div class="chart" id="chartTicketVolume"></div>
+                            </article>
+
+                            <article class="card chart-card span-6">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Tickets by Priority</h3>
+                                        <p class="card-sub">How urgent incoming requests are</p>
+                                    </div>
+                                    <span class="card-chip">Live</span>
+                                </div>
+                                <div class="chart" id="chartTicketPriority"></div>
+                            </article>
                         </div>
-                        <div class="chart" id="chartTicketPriority"></div>
-                    </article>
+                    </section>
 
-                    <article class="card chart-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Pipeline Leads by Stage</h3>
-                                <p class="card-sub">Prospecting clients across the funnel</p>
-                            </div>
-                            <span class="card-chip">Live</span>
+                    <!-- Section 3: prospecting -->
+                    <section class="chart-section span-12">
+                        <header class="chart-section-head">
+                            <h2>Sales Pipeline</h2>
+                            <p>Where every prospecting client currently sits in the funnel.</p>
+                        </header>
+                        <div class="dashboard-grid">
+                            <article class="card chart-card span-12">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Pipeline Leads by Stage</h3>
+                                        <p class="card-sub">Stage volume and drop-off from the previous stage</p>
+                                    </div>
+                                    <span class="card-chip">Live</span>
+                                </div>
+                                <div class="chart" id="chartPipelineStages"></div>
+                            </article>
                         </div>
-                        <div class="chart" id="chartPipelineStages"></div>
-                    </article>
+                    </section>
 
+                    <!-- Section 4: everything that is not a graph -->
+                    <section class="chart-section span-12">
+                        <header class="chart-section-head">
+                            <h2>Front Desk Activity</h2>
+                            <p>Marketing campaigns, recent actions and coach coverage.</p>
+                        </header>
+                        <div class="dashboard-grid">
                     <!-- Marketing Campaigns Section with Social Media Integration -->
-                    <article class="card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Active Social Media Marketing Campaigns</h3>
-                                <p class="card-sub">Reach and click performance per campaign</p>
-                            </div>
-                            <button id="openCampaignModal" class="btn-primary">+ Add Campaign</button>
-                        </div>
-                        <div id="campaignCards" class="campaign-cards"></div>
-                        <div class="campaign-summary">
-                            <div>
-                                <span>Total Reach</span>
-                                <strong id="campaignStatReach">0</strong>
-                            </div>
-                            <div>
-                                <span>Total Clicks</span>
-                                <strong id="campaignStatClicks">0</strong>
-                            </div>
-                            <div>
-                                <span>Running Now</span>
-                                <strong id="campaignStatRunning">0</strong>
-                            </div>
-                        </div>
-                    </article>
+                            <article class="card span-4">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Active Social Media Marketing Campaigns</h3>
+                                        <p class="card-sub">Reach and click performance per campaign</p>
+                                    </div>
+                                    <button id="openCampaignModal" class="btn-primary">+ Add Campaign</button>
+                                </div>
+                                <div id="campaignCards" class="campaign-cards"></div>
+                                <div class="campaign-summary">
+                                    <div>
+                                        <span>Total Reach</span>
+                                        <strong id="campaignStatReach">0</strong>
+                                    </div>
+                                    <div>
+                                        <span>Total Clicks</span>
+                                        <strong id="campaignStatClicks">0</strong>
+                                    </div>
+                                    <div>
+                                        <span>Running Now</span>
+                                        <strong id="campaignStatRunning">0</strong>
+                                    </div>
+                                </div>
+                            </article>
 
-                    <!-- Recent Activity: additive feed built from the existing
-                         CRM records and from the actions logged by script.js -->
-                    <article class="card activity-card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Recent Activity</h3>
-                                <p class="card-sub">Latest actions across the CRM</p>
-                            </div>
-                            <button type="button" id="activityViewAll" class="activity-view-all" aria-expanded="false" hidden>View All →</button>
-                        </div>
-                        <div id="recentActivityList" class="activity-list"></div>
-                    </article>
+                            <!-- Recent Activity: additive feed built from the existing
+                                 CRM records and from the actions logged by script.js -->
+                            <article class="card activity-card span-4">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Recent Activity</h3>
+                                        <p class="card-sub">Latest actions across the CRM</p>
+                                    </div>
+                                    <button type="button" id="activityViewAll" class="activity-view-all" aria-expanded="false" hidden>View All →</button>
+                                </div>
+                                <div id="recentActivityList" class="activity-list"></div>
+                            </article>
 
-                    <!-- Coach Tracker: one summary card linking to coach.html -->
-                    <article class="card span-4">
-                        <div class="card-head">
-                            <div>
-                                <h3>Coach Tracker</h3>
-                                <p class="card-sub">Coaching staff, availability and today's sessions</p>
-                            </div>
-                            <a class="btn-view" href="coach.html">View Coaches →</a>
+                            <!-- Coach Tracker: one summary card linking to coach.html -->
+                            <article class="card span-4">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Coach Tracker</h3>
+                                        <p class="card-sub">Coaching staff, availability and today's sessions</p>
+                                    </div>
+                                    <a class="btn-view" href="coach.html">View Coaches →</a>
+                                </div>
+                                <div class="kpi-strip">
+                                    <div><span>Total Coaches</span><strong id="coachStatTotal">0</strong></div>
+                                    <div><span>Active Coaches</span><strong id="coachStatActive">0</strong></div>
+                                    <div><span>Available Now</span><strong id="coachStatAvailable">0</strong></div>
+                                    <div><span>Sessions Today</span><strong id="coachStatSessions">0</strong></div>
+                                </div>
+                            </article>
                         </div>
-                        <div class="kpi-strip">
-                            <div><span>Total Coaches</span><strong id="coachStatTotal">0</strong></div>
-                            <div><span>Active Coaches</span><strong id="coachStatActive">0</strong></div>
-                            <div><span>Available Now</span><strong id="coachStatAvailable">0</strong></div>
-                            <div><span>Sessions Today</span><strong id="coachStatSessions">0</strong></div>
-                        </div>
-                    </article>
+                    </section>
                 </section>
             </main>
         </div>

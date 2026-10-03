@@ -602,6 +602,38 @@ letter-spacing: .3px;
 }
 
 /* ---------- 10. Chart cards ---------- */
+/* Chart sections group related graphs under one heading. Each section spans the
+   full 12-column grid and nests its own dashboard grid inside, so cards within
+   a section line up two-per-row while the sections stay visually separate. */
+.chart-section {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    min-width: 0;
+}
+
+.chart-section-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+    padding-left: 2px;
+}
+
+.chart-section-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    color: var(--text-primary);
+}
+
+.chart-section-head p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
 /* Compact, evenly sized dashboard charts: cards stretch to a shared row height,
    the plot area takes a fixed compact height, and the SVG is capped so a chart
    never grows taller or wider than its neighbours. */
@@ -652,23 +684,93 @@ letter-spacing: .3px;
     fill: var(--primary);
 }
 
+/* Headline total sitting in the hole of a donut */
+.chart .chart-value-lg {
+    font-size: 21px;
+    letter-spacing: -.5px;
+}
+
+.chart .chart-value-sm {
+    font-size: 9.5px;
+}
+
 .chart .chart-label {
     font-family: var(--font);
     font-size: 9px;
     fill: #8b8ba3;
 }
 
+/* Category names are the readable anchor of every chart, so they carry more
+   weight than the annotations around them. */
+.chart .chart-label-strong {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: var(--text-primary);
+}
+
+/* Column headers above a chart */
+.chart .chart-caption {
+    font-family: var(--font);
+    font-size: 8.5px;
+    font-weight: 600;
+    letter-spacing: .6px;
+    fill: #a3a1b8;
+}
+
+/* Percentages and rates: present but clearly secondary to the counts */
+.chart .chart-share {
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    fill: var(--text-secondary);
+}
+
+/* Label printed on top of a coloured mix-bar segment */
+.chart .chart-inbar {
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 700;
+    fill: #ffffff;
+}
+
+/* Ghost bars behind ranked and funnel rows keep every row on one scale. The
+   donut's empty ring needs fill:none, so it gets its own class instead. */
+.chart .chart-track {
+    fill: #f4f2fc;
+}
+
+.chart .chart-track-ring {
+    fill: none;
+    stroke: #f2effb;
+}
+
+.chart .chart-dot {
+    stroke: #ffffff;
+    stroke-width: 1.8;
+}
+
+/* Funnel bands sit flush against each other to form one continuous taper */
+.chart .chart-band {
+    stroke: #ffffff;
+    stroke-width: 1.5;
+}
+
+.chart .chart-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.2;
+}
+
 .chart line {
     stroke: #eeedf7;
 }
 
-/* Retint the SVG series to the SaaS palette (keeps chart.js logic untouched) */
-.chart rect[fill="#5c068c"] { fill: #5b4bc4; }
-.chart rect[fill="#8e44ad"] { fill: #8b7bf0; }
-.chart rect[fill="#3498db"] { fill: #4f8df7; }
-.chart rect[fill="#27ae60"] { fill: #55c878; }
-.chart rect[fill="#f39c12"] { fill: #f5b942; }
-.chart rect[fill="#e74c3c"] { fill: #e85d75; }
+/* Class selectors outrank the bare `line` rule above, keeping gridlines lighter
+   than the axis line. */
+.chart .chart-grid { stroke: #f1eefa; }
+.chart .chart-axis { stroke: #dfdaf3; }
+
 .chart rect { rx: 5; }
 
 /* ---------- 11. Campaign summary strip ---------- */
