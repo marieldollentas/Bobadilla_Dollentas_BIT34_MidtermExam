@@ -1304,13 +1304,19 @@ function staffSelectHtml(lead) {
 
 // Reassigns a lead's staff without touching any other field, then re-renders so
 // the card text, the staff filter and the Edit form stay consistent.
+// Re-picking the staff the lead already has is a no-op: nothing is written and
+// no activity row is added, so browsing the dropdown cannot pile up feed rows.
 function updateLeadStaff(id, staff) {
     const leads = getPipelineLeads();
     const idx = leads.findIndex(l => String(l.id) === String(id));
     if (idx === -1) return;
-    leads[idx] = { ...leads[idx], staff: normalizePipelineStaff(staff) };
+
+    const nextStaff = normalizePipelineStaff(staff);
+    if (normalizePipelineStaff(leads[idx].staff) === nextStaff) return;
+
+    leads[idx] = { ...leads[idx], staff: nextStaff };
     savePipelineLeads(leads);
-    logLeadStaffAssigned(leads[idx], leads[idx].staff);
+    logLeadStaffAssigned(leads[idx], nextStaff);
     renderPipelineBoard();
 }
 
@@ -2450,6 +2456,17 @@ function logActivity(entry) {
     } catch (e) { /* the activity feed must never block a CRM action */ }
 }
 
+// Like logActivity, but first drops the existing rows for the same record so the
+// feed carries one current row instead of a duplicate per interaction. `href`
+// identifies the record, because it is built from that record's own name.
+function replaceActivityForLead(entry, href) {
+    try {
+        const kept = getActivities().filter(row => !(row.type === entry.type && row.href === href));
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(kept));
+        logActivity(entry);
+    } catch (e) { /* the activity feed must never block a CRM action */ }
+}
+
 // Lead lifecycle: a new lead, a stage move, the follow-up it carries and the
 // staff who owns it. `previous` is the stored lead before the edit, or null
 // when the lead is new.
@@ -2485,22 +2502,26 @@ function logLeadActivity(previous, lead, isNew) {
     }
 
     if (isNew || (previous && normalizePipelineStaff(previous.staff) !== staff)) {
-        logActivity({
+        replaceActivityForLead({
             type: "assignment",
             title: `${staff} was assigned to ${isNew ? "a new lead" : "a lead"}`,
             meta: `${lead.name} • ${stageTitle}`,
             href
-        });
+        }, href);
     }
 }
 
+// An assignment is a current fact about a lead, not a history of clicks, so the
+// lead's earlier assignment row is replaced instead of stacked underneath. That
+// is what stops reassigning one client from listing them repeatedly in the feed.
 function logLeadStaffAssigned(lead, staff) {
-    logActivity({
+    const href = activityHref("pipeline.html", lead.name);
+    replaceActivityForLead({
         type: "assignment",
         title: `${staff} was assigned to a lead`,
         meta: `${lead.name} • ${activityStageTitle(lead.stage)}`,
-        href: activityHref("pipeline.html", lead.name)
-    });
+        href
+    }, href);
 }
 
 // Renewals are not a separate event, so the nearest expiring memberships are
@@ -3339,6 +3360,11 @@ function renderAssignments() {
     }
 
     const rows = coachAssignmentsFor(coach.id);
+
+    // The coach dropdown is a pure filter, so the table is always rebuilt from
+    // scratch. Without this the new coach's rows land under the previous coach's
+    // rows and the same client looks assigned to both coaches at once.
+    tbody.innerHTML = "";
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5">No clients assigned to ${escapeHtml(coach.name)} yet.</td></tr>`;
         return;
