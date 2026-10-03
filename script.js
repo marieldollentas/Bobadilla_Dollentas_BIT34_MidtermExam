@@ -815,6 +815,16 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("pAddress").textContent = customer.address || "—";
         document.getElementById("pTier").textContent = customer.tier;
         document.getElementById("pJoined").textContent = customer.joined;
+        // The inquiry form shows the contact details already on file instead of
+        // taking them from the member, so an inquiry can never quote details the
+        // rest of the portal disagrees with.
+        if (document.getElementById("inqContact")) {
+            document.getElementById("inqContact").textContent = [
+                customer.email,
+                customer.phone,
+                customer.address
+            ].filter(Boolean).join(" • ") || "No contact details on file — the front desk can still reach you at the counter.";
+        }
         if (document.getElementById("pFob")) document.getElementById("pFob").textContent = customer.keyFob || customer.username || "—";
 
         const months = tierDurationMonths(customer.tier);
@@ -857,14 +867,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (renderMyInquiries) renderMyInquiries();
             renderPortalRenewal(customer, custExp);
         };
-
-        // Prefill inquiry box with customer details
-        const inquireEmail = document.getElementById("inqEmail");
-        const inquirePhone = document.getElementById("inqPhone");
-        const inquireAddress = document.getElementById("inqAddress");
-        if (inquireEmail) inquireEmail.value = customer.email || "";
-        if (inquirePhone) inquirePhone.value = customer.phone || "";
-        if (inquireAddress) inquireAddress.value = customer.address || "";
 
         renderMyInquiries = () => {
             const container = document.getElementById("myInquiriesList");
@@ -994,12 +996,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        window.submitInquiry = () => {
+        // A portal inquiry arrives untriaged: the member neither chooses a priority nor
+// supplies contact details. Priority stays "Not Defined" until support staff
+// rank it from the ticket details dialog, so the queue shows honestly what has
+// not been looked at yet.
+window.submitInquiry = () => {
             const message = document.getElementById("inqMessage").value.trim();
-            const priority = document.getElementById("inqPriority").value;
-            const email = document.getElementById("inqEmail").value.trim();
-            const phone = document.getElementById("inqPhone").value.trim();
-            const address = document.getElementById("inqAddress").value.trim();
             const statusEl = document.getElementById("inqStatus");
 
             if (!message) {
@@ -1014,12 +1016,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 id: Date.now(),
                 username: currentUser,
                 name: customer.name,
-                email,
-                phone,
-                address,
+                email: customer.email || "",
+                phone: customer.phone || "",
+                address: customer.address || "",
                 date: dateTimeStr,
                 message,
-                priority,
+                priority: PRIORITY_NOT_DEFINED,
                 status: "Open",
                 reply: "",
                 comments: [{
@@ -1034,7 +1036,7 @@ document.addEventListener("DOMContentLoaded", () => {
             logActivity({
                 type: "ticket",
                 title: `${customer.name} submitted a new inquiry`,
-                meta: `${priority} priority • ${activityTopic(message) || "Portal inquiry"}`,
+                meta: `Awaiting staff triage • ${activityTopic(message) || "Portal inquiry"}`,
                 href: activityHref("tickets.html", customer.name)
             });
             getOpenTicketsCount();
@@ -1273,9 +1275,16 @@ function statusClass(status) {
     return "open";
 }
 
+// A portal inquiry arrives untriaged: the member neither chooses a priority nor
+// supplies contact details. Priority stays "Not Defined" until support staff
+// rank it from the ticket details dialog, so the queue shows honestly what has
+// not been looked at yet.
+const PRIORITY_NOT_DEFINED = "Not Defined";
+
 function priorityClass(priority) {
     if (priority === "High") return "danger";
     if (priority === "Low") return "active";
+    if (priority === PRIORITY_NOT_DEFINED) return "open";
     return "warning";
 }
 
@@ -1450,7 +1459,7 @@ function openTicketDetails(id, source, buttonElement) {
     document.getElementById("detailsName").textContent = item.name;
     document.getElementById("detailsContact").textContent = item.contact || [item.email, item.phone, item.address].filter(Boolean).join(" | ") || "—";
     document.getElementById("detailsDate").textContent = formatDateLogged(item.date);
-    document.getElementById("detailsPriority").textContent = item.priority;
+    document.getElementById("detailsPriority").value = item.priority || PRIORITY_NOT_DEFINED;
     document.getElementById("detailsStatus").value = item.status || "Open";
     document.getElementById("detailsIssue").textContent = item.issue || item.message;
 
@@ -1490,6 +1499,10 @@ function saveTicketUpdate() {
     if (!item) return;
 
     const newStatus = document.getElementById("detailsStatus").value;
+    // Priority is a staff-only field: portal inquiries arrive untriaged and are
+    // ranked here, from this dialog alone.
+    const previousPriority = item.priority;
+    const newPriority = document.getElementById("detailsPriority").value || PRIORITY_NOT_DEFINED;
     const staffName = (document.getElementById("detailsStaffName") || {}).value || "";
     const comment = document.getElementById("detailsComment").value.trim();
 
@@ -1510,11 +1523,22 @@ function saveTicketUpdate() {
 
     const previousStatus = item.status;
     item.status = newStatus;
+    item.priority = newPriority;
     item.reply = comment; // keep legacy field in sync
 
     saveTicketStorage(source, list);
 
     const staffLabel = staffName.trim() || "Support Staff";
+    // A priority change is reported on its own: it is the staff triage decision,
+    // not a status move.
+    if (previousPriority !== newPriority) {
+        logActivity({
+            type: "ticket",
+            title: `${staffLabel} set ${item.name}'s ticket to ${newPriority} priority`,
+            meta: `Ticket ${activityTicketRef(item.id)} • Was ${previousPriority || PRIORITY_NOT_DEFINED}`,
+            href: activityHref("tickets.html", item.name)
+        });
+    }
     logActivity(previousStatus !== newStatus && newStatus === "Resolved"
         ? {
             type: "resolved",
@@ -2849,9 +2873,13 @@ function ticketChartData(monthsBack) {
         if (bucket) bucket.value++;
     });
 
-    const byPriority = ["High", "Medium", "Low"].map(priority => {
+    // Untriaged portal inquiries get their own slice so the queue never hides the
+// work that has not been ranked yet.
+const byPriority = [PRIORITY_NOT_DEFINED, "High", "Medium", "Low"].map(priority => {
         const cls = priorityClass(priority);
-        const color = cls === "danger" ? CHART_COLORS.danger : cls === "active" ? CHART_COLORS.active : CHART_COLORS.warning;
+        const color = priority === PRIORITY_NOT_DEFINED ? CHART_COLORS.info
+            : cls === "danger" ? CHART_COLORS.danger
+                : cls === "active" ? CHART_COLORS.active : CHART_COLORS.warning;
         return {
             label: priority,
             value: tickets.filter(t => String(t.priority || "").toLowerCase() === priority.toLowerCase()).length,

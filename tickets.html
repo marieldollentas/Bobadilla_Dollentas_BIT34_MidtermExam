@@ -133,6 +133,7 @@
                         <input type="text" id="ticketSearch" class="search-input" placeholder="Search by name, contact, or issue...">
                         <select id="filterPriority" class="search-input">
                             <option value="all">All Priorities</option>
+                            <option value="Not Defined">Not Defined</option>
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
@@ -268,8 +269,13 @@
                     <p id="detailsDate" class="dialog-preview"></p>
                 </div>
                 <div class="form-group">
-                    <label>Priority</label>
-                    <p id="detailsPriority" class="dialog-preview"></p>
+                    <label for="detailsPriority">Priority</label>
+                    <select id="detailsPriority" class="search-input">
+                        <option value="Not Defined">Not Defined</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="detailsStatus">Status</label>
