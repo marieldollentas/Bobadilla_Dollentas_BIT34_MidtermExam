@@ -408,7 +408,7 @@ function recentMonthBuckets(count) {
 // js-split:file=dashboard.js part=16of30
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function ticketChartData(monthsBack) {
-    const tickets = allTickets();
+    const tickets = allTickets().filter(t => !t.archived);
     const buckets = recentMonthBuckets(monthsBack || 6);
     buckets.forEach(bucket => { bucket.value = 0; });
 

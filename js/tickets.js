@@ -5,7 +5,7 @@ let pendingTicket = null;
 
 // js-split:file=tickets.js part=2of10
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-let pendingDelete = null;
+let pendingArchive = null;
 
 
 
@@ -17,6 +17,7 @@ function renderStaffTickets() {
 
     const filters = tableFilters();
     const tickets = getTicketStorage("staff")
+        .filter(t => !t.archived)
         .filter(t => matchesFilters(t, filters, "Staff", t.contact))
         .sort((a, b) => String(b.id) - String(a.id));
     tbody.innerHTML = "";
@@ -37,7 +38,7 @@ function renderStaffTickets() {
             <td><span class="badge status-badge ${statusClass(t.status)}">${t.status}</span></td>
             <td>
                 <button class="btn-view" onclick="openTicketDetails(${t.id}, 'staff', this)">View / Comment</button>
-                ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${t.id}, 'staff')">Delete</button>` : ""}
+                ${resolved ? `<button class="btn-archive" onclick="requestArchiveTicket(${t.id}, 'staff')">Archive</button>` : ""}
             </td>
         `;
         tbody.appendChild(tr);
@@ -54,6 +55,7 @@ function renderCustomerInquiries() {
 
     const filters = tableFilters();
     const inquiries = getTicketStorage("customer")
+        .filter(i => !i.archived)
         .filter(i => matchesFilters(i, filters, "Portal", [i.email, i.phone, i.address].filter(Boolean).join(" ")))
         .sort((a, b) => String(b.id) - String(a.id));
     tbody.innerHTML = "";
@@ -80,7 +82,7 @@ function renderCustomerInquiries() {
             <td><span class="badge status-badge ${statusClass(inq.status)}">${inq.status}</span></td>
             <td>
                 <button class="btn-view" onclick="openTicketDetails(${inq.id}, 'customer', this)">View / Reply</button>
-                ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${inq.id}, 'customer')">Delete</button>` : ""}
+                ${resolved ? `<button class="btn-archive" onclick="requestArchiveTicket(${inq.id}, 'customer')">Archive</button>` : ""}
             </td>
         `;
         tbody.appendChild(tr);
@@ -217,38 +219,134 @@ function saveTicketUpdate() {
 
 // js-split:file=tickets.js part=7of10
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function requestDeleteTicket(id, source) {
+// Open the archive confirmation dialog (admin only: customers never archive)
+function requestArchiveTicket(id, source) {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can archive tickets.");
+        return;
+    }
     const modal = document.getElementById("deleteConfirmModal");
     if (!modal) return;
 
-    pendingDelete = { source, id };
+    pendingArchive = { source, id };
     document.getElementById("deleteConfirmMessage").textContent =
-        "Are you sure you want to permanently delete this ticket? This action cannot be undone.";
+        "Archive this resolved ticket? It leaves the active queue but stays on file in the Archive page.";
     modal.style.display = "flex";
+}
+
+function confirmArchiveTicket() {
+    if (!pendingArchive) return;
+    const { source, id } = pendingArchive;
+
+    const list = getTicketStorage(source);
+    const item = list.find(x => String(x.id) === String(id));
+    if (!item) return;
+    item.archived = true;
+    item.archivedAt = new Date().toISOString();
+    saveTicketStorage(source, list);
+
+    logActivity({
+        type: "ticket",
+        title: `${item.name}'s ticket was archived`,
+        meta: `Ticket ${activityTicketRef(item.id)} • ${item.status || "Resolved"}`,
+        href: activityHref("tickets.html", item.name)
+    });
+
+    pendingArchive = null;
+    document.getElementById("deleteConfirmModal").style.display = "none";
+
+    renderStaffTickets();
+    renderCustomerInquiries();
+    renderArchivedTickets();
+    getOpenTicketsCount();
+}
+
+function restoreTicket(id, source) {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can restore tickets.");
+        return;
+    }
+    const list = getTicketStorage(source);
+    const item = list.find(x => String(x.id) === String(id));
+    if (!item) return;
+    if (!confirm(`Restore ${item.name}'s ticket back to the active queue?`)) return;
+    delete item.archived;
+    delete item.archivedAt;
+    saveTicketStorage(source, list);
+
+    logActivity({
+        type: "ticket",
+        title: `${item.name}'s ticket was restored from the archive`,
+        meta: `Ticket ${activityTicketRef(item.id)}`,
+        href: activityHref("tickets.html", item.name)
+    });
+
+    renderStaffTickets();
+    renderCustomerInquiries();
+    renderArchivedTickets();
+    getOpenTicketsCount();
+}
+
+function permanentlyDeleteTicket(id, source) {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can permanently delete tickets.");
+        return;
+    }
+    if (!confirm("Permanently delete this archived ticket? This cannot be undone.")) return;
+
+    saveTicketStorage(source, getTicketStorage(source).filter(x => String(x.id) !== String(id)));
+
+    renderStaffTickets();
+    renderCustomerInquiries();
+    renderArchivedTickets();
+    getOpenTicketsCount();
+}
+
+function renderArchivedTickets() {
+    const renderInto = (tbodyId, source, getText) => {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        const rows = getTicketStorage(source)
+            .filter(t => t.archived)
+            .sort((a, b) => String(b.id) - String(a.id));
+        tbody.innerHTML = "";
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7">No archived tickets yet.</td></tr>';
+            return;
+        }
+        rows.forEach(t => {
+            const contact = source === "staff"
+                ? (t.contact || "—")
+                : ([t.email, t.phone, t.address].filter(Boolean).join(" | ") || "—");
+            const renewalBadge = t.kind === RENEWAL_REQUEST_KIND
+                ? '<span class="badge renewal">Renewal</span>'
+                : "";
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${formatDateLogged(t.date)}</td>
+                <td>${escapeHtml(t.name)}</td>
+                <td>${escapeHtml(contact)}</td>
+                <td>${escapeHtml(getText(t))}${commentsSummary(t)}</td>
+                <td><span class="badge ${priorityClass(t.priority)}">${t.priority}</span>${renewalBadge}</td>
+                <td><span class="badge open">Archived</span></td>
+                <td>
+                    <div class="row-actions">
+                        <button class="btn-restore" onclick="restoreTicket(${t.id}, '${source}')">Restore</button>
+                        <button class="btn-delete" onclick="permanentlyDeleteTicket(${t.id}, '${source}')">Delete Permanently</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+    renderInto("archivedStaffTicketsBody", "staff", t => t.issue || "");
+    renderInto("archivedCustomerInquiriesBody", "customer", t => t.message || "");
 }
 
 
 
 // js-split:file=tickets.js part=8of10
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function confirmDeleteTicket() {
-    if (!pendingDelete) return;
-    const { source, id } = pendingDelete;
-
-    const list = getTicketStorage(source).filter(x => String(x.id) !== String(id));
-    saveTicketStorage(source, list);
-
-    pendingDelete = null;
-    document.getElementById("deleteConfirmModal").style.display = "none";
-
-    renderStaffTickets();
-    renderCustomerInquiries();
-    if (typeof renderMyInquiries === "function") renderMyInquiries();
-    getOpenTicketsCount();
-}
-
-
-
 // js-split:file=tickets.js part=9of10
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function getOpenTicketsCount() {
@@ -257,6 +355,7 @@ function getOpenTicketsCount() {
         ...JSON.parse(localStorage.getItem("crmInquiries") || "[]")
     ];
     const count = all.filter(t => {
+        if (t.archived) return false;
         const s = String(t.status || "").toLowerCase();
         return s === "open" || s === "in progress";
     }).length;
