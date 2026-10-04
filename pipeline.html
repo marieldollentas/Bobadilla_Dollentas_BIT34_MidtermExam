@@ -161,7 +161,11 @@
                     </div>
                     <div class="form-group">
                         <label for="leadPhone">Phone</label>
-                        <input type="text" id="leadPhone" class="search-input" placeholder="e.g. 555-1234">
+                        <input type="text" id="leadPhone" class="search-input" placeholder="e.g. 09123456789" pattern="\d{11}" title="Phone number must be exactly 11 digits" maxlength="11">
+                    </div>
+                    <div class="form-group">
+                        <label for="leadEmail">Email</label>
+                        <input type="email" id="leadEmail" class="search-input" placeholder="e.g. john@example.com">
                     </div>
                     <div class="form-group">
                         <label for="leadTier">Target Tier</label>

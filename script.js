@@ -465,6 +465,29 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStaffOptions(pipelineStaffFilter, true);
     renderStaffOptions(document.getElementById("leadStaff"), false);
 
+    const leadPhoneInput = document.getElementById("leadPhone");
+    if (leadPhoneInput) {
+        leadPhoneInput.addEventListener("input", function() {
+            this.value = this.value.replace(/\D/g, "");
+            if (this.value.length > 11) this.value = this.value.slice(0, 11);
+        });
+    }
+
+    const leadEmailInput = document.getElementById("leadEmail");
+    if (leadEmailInput) {
+        leadEmailInput.addEventListener("input", function() {
+            this.setCustomValidity("");
+        });
+        leadEmailInput.addEventListener("change", function() {
+            const val = this.value.trim();
+            if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                this.setCustomValidity("Please enter a valid email address.");
+            } else {
+                this.setCustomValidity("");
+            }
+        });
+    }
+
     if (document.getElementById("pipelineBoard")) renderPipelineBoard();
 
     if (openPipelineModalBtn) {
@@ -505,10 +528,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            const phoneVal = document.getElementById("leadPhone").value.trim();
+            if (phoneVal && !/^\d{11}$/.test(phoneVal)) {
+                alert("Phone number must be exactly 11 digits.");
+                return;
+            }
+
+            const emailVal = (document.getElementById("leadEmail") || { value: "" }).value.trim();
+            if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+                alert("Please enter a valid email address.");
+                return;
+            }
+
             const leads = getPipelineLeads();
             const data = {
                 name,
-                phone: document.getElementById("leadPhone").value.trim(),
+                phone: phoneVal,
+                email: emailVal,
                 tier: document.getElementById("leadTier").value,
                 staff: document.getElementById("leadStaff").value,
                 heat: document.getElementById("leadHeat").value,
@@ -1860,9 +1896,10 @@ function buildLeadCard(lead) {
     const tierText = tierPrice ? `${lead.tier} ($${tierPrice}/mo)` : lead.tier;
     const valueSuffix = lead.stage === "won" && value > 0 ? ` | $${value}/mo` : "";
 
+    const contactLine = [lead.phone ? `📞 ${escapeHtml(lead.phone)}` : null, lead.email ? `✉️ ${escapeHtml(lead.email)}` : null].filter(Boolean).join(" | ");
     div.innerHTML = `
         <strong>${escapeHtml(lead.name)}</strong> ${leadHeatBadge(lead.heat)}
-        <p class="card-meta">📞 ${escapeHtml(lead.phone || "—")} | Target: ${escapeHtml(tierText)}${valueSuffix}</p>
+        <p class="card-meta">${contactLine || "—"} | Target: ${escapeHtml(tierText)}${valueSuffix}</p>
         <p class="card-meta">${meta2}</p>
         ${staffSelectHtml(lead)}
         <div class="kanban-card-actions">
@@ -1898,7 +1935,7 @@ function renderPipelineBoard() {
             const matchesStaff = filters.staff === "all" || lead.staff === filters.staff;
             const matchesTier = filters.tier === "all" || lead.tier === filters.tier;
             const tierLabel = serviceTierLabel(lead.tier);
-            const searchText = [lead.name, lead.phone, lead.tier, tierLabel, lead.staff, lead.reason].filter(Boolean).join(" ").toLowerCase();
+            const searchText = [lead.name, lead.phone, lead.email, lead.tier, tierLabel, lead.staff, lead.reason].filter(Boolean).join(" ").toLowerCase();
             const matchesSearch = !filters.search || searchText.includes(filters.search);
             return matchesStaff && matchesTier && matchesSearch;
         });
@@ -1923,6 +1960,7 @@ function openEditPipelineLead(id) {
     document.getElementById("leadId").value = lead.id;
     document.getElementById("leadName").value = lead.name;
     document.getElementById("leadPhone").value = lead.phone || "";
+    (document.getElementById("leadEmail") || {}).value = lead.email || "";
     document.getElementById("leadTier").value = lead.tier;
     document.getElementById("leadStaff").value = lead.staff;
     document.getElementById("leadHeat").value = lead.heat || "Warm";
