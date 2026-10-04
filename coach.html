@@ -142,7 +142,7 @@
                 <section class="filter-section">
                     <h3>Search &amp; Filter Coaches</h3>
                     <div class="ticket-filter-bar">
-                        <input type="text" id="coachSearch" class="search-input" placeholder="Search by name, email, phone or specialty...">
+                        <input type="text" id="coachSearch" class="search-input" placeholder="Search by name, email, phone or specialization...">
                         <select id="filterCoachStatus" class="search-input">
                             <option value="all">All Statuses</option>
                             <option value="Active">Active</option>
@@ -159,7 +159,7 @@
                     <div class="card-head">
                         <div>
                             <h2>Coach Directory</h2>
-                            <p class="card-sub">Every registered coach with contact details, specialization and workload</p>
+                            <p class="card-sub">Every registered coach with contact details, specializations and workload</p>
                         </div>
                         <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
                     </div>
@@ -169,7 +169,7 @@
                                 <tr>
                                     <th>Coach</th>
                                     <th>Contact Information</th>
-                                    <th>Specialization</th>
+                                    <th>Specializations</th>
                                     <th>Status</th>
                                     <th>Clients</th>
                                     <th>Actions</th>
@@ -347,10 +347,6 @@
                         <input type="text" id="coachPhone" class="search-input" placeholder="e.g. 0917 555 0142" required>
                     </div>
                     <div class="form-group">
-                        <label for="coachSpecialization">Specialization</label>
-                        <select id="coachSpecialization" class="search-input"></select>
-                    </div>
-                    <div class="form-group">
                         <label for="coachStatus">Employment Status</label>
                         <select id="coachStatus" class="search-input">
                             <option value="Active">Active</option>
@@ -358,6 +354,11 @@
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Specializations</label>
+                    <div class="day-grid" id="coachSpecializationGrid"></div>
                 </div>
 
                 <div class="form-group">
@@ -511,6 +512,7 @@
                     <div class="form-group">
                         <label for="sessionType">Training Type</label>
                         <select id="sessionType" class="search-input"></select>
+                        <p class="info-note hint" id="sessionTypeNote"></p>
                     </div>
                     <div class="form-group">
                         <label for="sessionStatus">Session Status</label>

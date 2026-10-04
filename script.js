@@ -3904,7 +3904,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // feed through logActivity().
 //
 // Three additive localStorage keys hold the coaching data:
-//   crmCoaches           coach records (contact, specialization, status,
+//   crmCoaches           coach records (contact, specializations, status,
 //                        working days + hours, client rating total)
 //   crmCoachAssignments  coachId <-> customerId links with a date
 //   crmCoachSessions     training sessions (date, time, type, status,
@@ -3917,6 +3917,8 @@ const COACH_KEY = "crmCoaches";
 const COACH_ASSIGNMENT_KEY = "crmCoachAssignments";
 const COACH_SESSION_KEY = "crmCoachSessions";
 
+// A coach can hold more than one specialization, so the record keeps a
+// list. The picker is a fixed catalogue to keep filtering predictable.
 const COACH_SPECIALIZATIONS = [
     "Strength Training",
     "Weight Loss",
@@ -3951,7 +3953,7 @@ const COACH_SLOT_END = 20;
 const COACH_SESSION_MINUTES = 60;
 
 function getCoaches() {
-    return JSON.parse(localStorage.getItem(COACH_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(COACH_KEY) || "[]").map(normalizeCoach);
 }
 
 function saveCoaches(list) {
@@ -3974,6 +3976,22 @@ function saveCoachSessions(list) {
     localStorage.setItem(COACH_SESSION_KEY, JSON.stringify(list));
 }
 
+// Records saved before coaches could hold several specializations carry a
+// single `specialization` string, so every read goes through here and the
+// list is rebuilt from whichever shape is in storage.
+function normalizeCoach(coach) {
+    if (!coach || typeof coach !== "object") return coach;
+
+    const list = Array.isArray(coach.specializations)
+        ? coach.specializations
+        : (coach.specialization ? [coach.specialization] : []);
+
+    return {
+        ...coach,
+        specializations: list.map(value => String(value).trim()).filter(Boolean)
+    };
+}
+
 // The coaching team is seeded once with the staff names the Sales
 // Pipeline already uses, so both modules refer to the same people.
 // Only the coach records are seeded: assignments and sessions stay
@@ -3987,7 +4005,7 @@ function seedCoaches() {
             name: PIPELINE_STAFF[0],
             email: "joeff@anytimefitness.com",
             phone: "0917 555 0142",
-            specialization: "Strength Training",
+            specializations: ["Strength Training", "Muscle Building"],
             status: "Active",
             days: [1, 2, 3, 4, 5],
             shiftStart: 6,
@@ -3997,7 +4015,7 @@ function seedCoaches() {
             name: PIPELINE_STAFF[1],
             email: "mariel@anytimefitness.com",
             phone: "0917 555 0188",
-            specialization: "Weight Loss",
+            specializations: ["Weight Loss", "HIIT", "Cardio"],
             status: "Active",
             days: [1, 2, 3, 4, 5, 6],
             shiftStart: 14,
@@ -4077,6 +4095,31 @@ function sessionDayLabel(dateISO) {
 function sessionSortValue(session) {
     const minutes = clockToMinutes(session.time);
     return `${session.date || ""} ${isNaN(minutes) ? 0 : String(minutes).padStart(4, "0")}`;
+}
+
+// Every place that reads a coach's specializations goes through these, so
+// the list is formatted the same way in the table, dialogs and activity feed.
+function coachSpecializations(coach) {
+    return Array.isArray(coach && coach.specializations) ? coach.specializations : [];
+}
+
+function coachSpecializationLabel(coach) {
+    const list = coachSpecializations(coach);
+    return list.length ? list.join(", ") : "Coach";
+}
+
+function coachHasSpecialization(coach, value) {
+    return coachSpecializations(coach).some(entry => entry === value);
+}
+
+// Coaches can hold several specializations, so the directory lists them as
+// chips instead of a single comma-joined string.
+function coachSpecializationsHtml(coach, emptyText) {
+    const list = coachSpecializations(coach);
+    if (list.length === 0) return escapeHtml(emptyText || "—");
+    return `<span class="spec-list">${list
+        .map(value => `<span class="spec-chip">${escapeHtml(value)}</span>`)
+        .join("")}</span>`;
 }
 
 function coachStatusBadge(status) {
@@ -4391,7 +4434,7 @@ function renderPortalCoachSection(customer) {
     const average = coachRatingAverage(coach);
     const values = {
         cCoachName: coach.name,
-        cCoachSpec: coach.specialization || "Coach",
+        cCoachSpec: coachSpecializationLabel(coach),
         cCoachPhone: coach.phone || "—",
         cCoachEmail: coach.email || "—",
         cCoachShift: coachShiftLabel(coach),
@@ -4515,9 +4558,9 @@ function renderCoachDirectory() {
     const filters = coachDirectoryFilters();
     const coaches = getCoaches().filter(coach => {
         if (filters.status !== "all" && coach.status !== filters.status) return false;
-        if (filters.specialization !== "all" && coach.specialization !== filters.specialization) return false;
+        if (filters.specialization !== "all" && !coachHasSpecialization(coach, filters.specialization)) return false;
         if (filters.search) {
-            const haystack = [coach.name, coach.email, coach.phone, coach.specialization, coach.status]
+            const haystack = [coach.name, coach.email, coach.phone, ...coachSpecializations(coach), coach.status]
                 .filter(Boolean).join(" ").toLowerCase();
             if (!haystack.includes(filters.search)) return false;
         }
@@ -4545,7 +4588,7 @@ function renderCoachDirectory() {
                 ${escapeHtml(coach.phone || "—")}
                 <small>${escapeHtml(coach.email || "—")}</small>
             </td>
-            <td>${escapeHtml(coach.specialization || "—")}</td>
+            <td>${coachSpecializationsHtml(coach)}</td>
             <td>${coachStatusBadge(coach.status)}</td>
             <td>${coachClientCount(coach.id)}</td>
             <td>
@@ -4572,8 +4615,8 @@ function openCoachDetails(encodedId) {
     const upcoming = sessions.filter(session => session.status === "Scheduled" && session.date >= todayISO());
 
     document.getElementById("coachDetailsName").textContent = coach.name;
-    document.getElementById("coachDetailsSpecialty").textContent =
-        `${coach.specialization || "Coach"} • Working ${coachWorkingDayLabels(coach)} • ${coachShiftLabel(coach)}`;
+    document.getElementById("coachDetailsSpecialty").innerHTML =
+        `${coachSpecializationsHtml(coach)}<span class="card-meta"> Working ${escapeHtml(coachWorkingDayLabels(coach))} • ${escapeHtml(coachShiftLabel(coach))}</span>`;
     document.getElementById("coachDetailsStatus").innerHTML = coachStatusBadge(coach.status);
     document.getElementById("coachDetailsEmail").textContent = coach.email || "—";
     document.getElementById("coachDetailsPhone").textContent = coach.phone || "—";
@@ -4977,7 +5020,7 @@ function saveAssignment() {
         title: existingRow
             ? `${member.name} was reassigned to ${coach.name}`
             : `${member.name} was assigned to ${coach.name}`,
-        meta: `${member.tier || "Membership"} • ${coach.specialization || "Coach"}`,
+        meta: `${member.tier || "Membership"} • ${coachSpecializationLabel(coach)}`,
         href: activityHref("coach.html", member.name)
     });
 
@@ -5075,6 +5118,16 @@ function sessionConflictMessage(session, editingId) {
         return `Scheduling Conflict: ${coach.name} is Inactive and cannot take sessions. Set the employment status to Active first.`;
     }
 
+    // Coaches only take sessions in the training types they specialize in,
+    // so a client cannot be booked onto a discipline the coach does not hold.
+    const owned = coachSpecializations(coach);
+    if (owned.length === 0) {
+        return `Scheduling Conflict: ${coach.name} has no specialization on record and cannot take sessions. Add one to the coach record first.`;
+    }
+    if (!owned.includes(session.type)) {
+        return `Scheduling Conflict: ${coach.name} is not specialized in ${session.type || "that training type"}. Specializations: ${owned.join(", ")}.`;
+    }
+
     const date = new Date(session.date + "T00:00:00");
     if (isNaN(date.getTime())) return "Please choose a valid session date.";
 
@@ -5123,6 +5176,37 @@ function overlapsClock(otherTime, startMinutes) {
     return startMinutes < otherStart + COACH_SESSION_MINUTES && otherStart < startMinutes + COACH_SESSION_MINUTES;
 }
 
+// A coach can only be booked for the training types they actually hold, so
+// the picker offers that coach's specializations and nothing else. A stored
+// type outside the list is still offered (flagged) so editing an older
+// session shows what is on file instead of silently swapping it.
+function fillSessionTypeOptions(coach, currentType) {
+    const select = document.getElementById("sessionType");
+    if (!select) return;
+
+    const owned = coachSpecializations(coach);
+    const options = owned.map(value => ({ value, label: value }));
+
+    const stray = String(currentType || "").trim();
+    if (stray && !options.some(option => option.value === stray)) {
+        options.push({ value: stray, label: `${stray} (outside ${coach ? coach.name : "coach"}'s specializations)` });
+    }
+
+    select.innerHTML = options.length
+        ? options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")
+        : '<option value="">No specializations on this coach record</option>';
+    select.disabled = options.length === 0;
+
+    if (stray && options.some(option => option.value === stray)) select.value = stray;
+
+    const note = document.getElementById("sessionTypeNote");
+    if (note) {
+        note.textContent = owned.length
+            ? `Limited to ${coach.name}'s specializations: ${owned.join(", ")}.`
+            : `${coach ? coach.name : "This coach"} has no specialization on record yet.`;
+    }
+}
+
 function openSessionModal(encodedId) {
     const modal = document.getElementById("sessionModal");
     if (!modal) return;
@@ -5133,10 +5217,8 @@ function openSessionModal(encodedId) {
     document.getElementById("sessionId").value = session ? session.id : "";
     fillCoachSelect("sessionCoach", false, session ? session.coachId : (selectedScheduleCoach() || {}).id);
     fillClientOptions(document.getElementById("sessionClient"), session ? session.clientId : null);
-    document.getElementById("sessionType").innerHTML = COACH_SPECIALIZATIONS
-        .map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-        .join("");
-    document.getElementById("sessionType").value = session ? session.type : COACH_SPECIALIZATIONS[0];
+    // With no stored type the picker falls back to the coach's first one.
+    fillSessionTypeOptions(coachById(document.getElementById("sessionCoach").value), session ? session.type : null);
     document.getElementById("sessionStatus").value = session ? session.status : "Scheduled";
     document.getElementById("sessionDate").value = session ? session.date : todayISO();
     document.getElementById("sessionTime").value = session ? session.time : "10:00";
@@ -5334,7 +5416,7 @@ function renderPerformance() {
             <div class="card-head">
                 <div>
                     <h3>${escapeHtml(coach.name)}</h3>
-                    <p class="card-sub">${escapeHtml(coach.specialization || "Coach")} • ${escapeHtml(coachShiftLabel(coach))}</p>
+                    <p class="card-sub">${escapeHtml(coachSpecializationLabel(coach))} • ${escapeHtml(coachShiftLabel(coach))}</p>
                 </div>
                 ${coachStatusBadge(coach.status)}
             </div>
@@ -5383,13 +5465,34 @@ function buildCoachFormFields() {
         select.dataset.filled = "1";
     });
 
-    const specialization = document.getElementById("coachSpecialization");
-    if (specialization && !specialization.dataset.filled) {
-        specialization.innerHTML = COACH_SPECIALIZATIONS
-            .map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-            .join("");
-        specialization.dataset.filled = "1";
+    const specializationGrid = document.getElementById("coachSpecializationGrid");
+    if (specializationGrid && !specializationGrid.dataset.filled) {
+        specializationGrid.innerHTML = COACH_SPECIALIZATIONS
+            .map(value => `
+                <label class="day-chip">
+                    <input type="checkbox" name="coachSpecialization" value="${escapeHtml(value)}">
+                    ${escapeHtml(value)}
+                </label>
+            `).join("");
+        specializationGrid.dataset.filled = "1";
     }
+}
+
+// Specialization picker behaves like the working-day picker: every chip can
+// be toggled, and saving reads back whichever ones are checked.
+function coachSpecializationSelection() {
+    const grid = document.getElementById("coachSpecializationGrid");
+    if (!grid) return [];
+    return Array.from(grid.querySelectorAll('input[name="coachSpecialization"]:checked'))
+        .map(box => box.value)
+        .filter(value => COACH_SPECIALIZATIONS.includes(value));
+}
+
+function setCoachSpecializationSelection(values) {
+    const grid = document.getElementById("coachSpecializationGrid");
+    if (!grid) return;
+    grid.querySelectorAll('input[name="coachSpecialization"]')
+        .forEach(box => { box.checked = values.includes(box.value); });
 }
 
 function openAddCoach() {
@@ -5400,7 +5503,7 @@ function openAddCoach() {
     form.reset();
     buildCoachFormFields();
     document.getElementById("coachId").value = "";
-    document.getElementById("coachSpecialization").value = COACH_SPECIALIZATIONS[0];
+    setCoachSpecializationSelection([COACH_SPECIALIZATIONS[0]]);
     document.getElementById("coachStatus").value = "Active";
     document.getElementById("coachShiftStart").value = 6;
     document.getElementById("coachShiftEnd").value = 14;
@@ -5424,9 +5527,10 @@ function openEditCoach(encodedId) {
     document.getElementById("coachName").value = coach.name || "";
     document.getElementById("coachEmail").value = coach.email || "";
     document.getElementById("coachPhone").value = coach.phone || "";
-    document.getElementById("coachSpecialization").value = COACH_SPECIALIZATIONS.includes(coach.specialization)
-        ? coach.specialization
-        : COACH_SPECIALIZATIONS[0];
+    // Only catalogue entries have a chip, so a stale value on an old record
+    // is dropped in favour of the default rather than shown unchecked.
+    const known = coachSpecializations(coach).filter(value => COACH_SPECIALIZATIONS.includes(value));
+    setCoachSpecializationSelection(known.length ? known : [COACH_SPECIALIZATIONS[0]]);
     document.getElementById("coachStatus").value = COACH_STATUSES.includes(coach.status) ? coach.status : "Active";
     document.getElementById("coachShiftStart").value = Number(coach.shiftStart) || 6;
     document.getElementById("coachShiftEnd").value = Number(coach.shiftEnd) || 14;
@@ -5447,7 +5551,7 @@ function saveCoach() {
     const name = document.getElementById("coachName").value.trim();
     const email = document.getElementById("coachEmail").value.trim();
     const phone = document.getElementById("coachPhone").value.trim();
-    const specialization = document.getElementById("coachSpecialization").value;
+    const specializations = coachSpecializationSelection();
     const status = document.getElementById("coachStatus").value;
     const shiftStart = Number(document.getElementById("coachShiftStart").value);
     const shiftEnd = Number(document.getElementById("coachShiftEnd").value);
@@ -5463,6 +5567,7 @@ function saveCoach() {
     if (!name) return fail("Please enter the coach's full name.");
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Please enter a valid email address.");
     if (!phone) return fail("Please enter a contact number.");
+    if (!specializations.length) return fail("Please select at least one specialization.");
     if (!days.length) return fail("Please select at least one working day.");
     if (!(shiftStart < shiftEnd)) return fail("Working hours must end after they start.");
 
@@ -5473,11 +5578,13 @@ function saveCoach() {
     );
     if (duplicate) return fail(`${name} already exists in the coach directory.`);
 
-    const data = { name, email, phone, specialization, status, days, shiftStart, shiftEnd };
+    const data = { name, email, phone, specializations, status, days, shiftStart, shiftEnd };
     const previous = id ? coaches.find(coach => String(coach.id) === String(id)) : null;
 
     if (previous) {
         Object.assign(previous, data);
+        // Drop the single-value field so the list is the only source of truth.
+        delete previous.specialization;
     } else {
         coaches.push({ id: `coach-${Date.now().toString(36)}`, ratingSum: 0, ratingCount: 0, ratings: [], ...data });
     }
@@ -5486,7 +5593,7 @@ function saveCoach() {
     logActivity({
         type: "coach",
         title: previous ? `${name}'s coach record was updated` : `${name} was added to the coach directory`,
-        meta: `${specialization} • ${status} • ${coachWorkingDayLabels({ days })} ${formatHourLabel(shiftStart)} – ${formatHourLabel(shiftEnd)}`,
+        meta: `${specializations.join(", ")} • ${status} • ${coachWorkingDayLabels({ days })} ${formatHourLabel(shiftStart)} – ${formatHourLabel(shiftEnd)}`,
         href: "coach.html"
     });
 
@@ -5585,6 +5692,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (closeSessionBtn) closeSessionBtn.addEventListener("click", () => { sessionModal.style.display = "none"; });
     if (cancelSessionBtn) cancelSessionBtn.addEventListener("click", () => { sessionModal.style.display = "none"; });
     if (sessionForm) sessionForm.addEventListener("submit", event => { event.preventDefault(); saveSession(); });
+
+    // Switching coach narrows the training types to that coach's
+    // specializations, so the picker is rebuilt on every change.
+    const sessionCoachSelect = document.getElementById("sessionCoach");
+    if (sessionCoachSelect) {
+        sessionCoachSelect.addEventListener("change", () => {
+            fillSessionTypeOptions(coachById(sessionCoachSelect.value), null);
+        });
+    }
 
     // Client details dialog
     const clientModal = document.getElementById("clientDetailsModal");
