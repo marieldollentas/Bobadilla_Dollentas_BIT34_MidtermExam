@@ -1273,7 +1273,7 @@ window.submitInquiry = () => {
     const detailsModal = document.getElementById("ticketDetailsModal");
     const closeDetailsModal = document.getElementById("closeDetailsModal");
     const confirmDetailsUpdateBtn = document.getElementById("confirmDetailsUpdate");
-    const deleteFromDetailsBtn = document.getElementById("archiveFromDetails");
+    const archiveFromDetailsBtn = document.getElementById("archiveFromDetails");
 
     if (closeDetailsModal && detailsModal) {
         closeDetailsModal.addEventListener("click", () => {
@@ -1290,8 +1290,8 @@ window.submitInquiry = () => {
         confirmDetailsUpdateBtn.addEventListener("click", saveTicketUpdate);
     }
 
-    if (deleteFromDetailsBtn) {
-        deleteFromDetailsBtn.addEventListener("click", () => {
+    if (archiveFromDetailsBtn) {
+        archiveFromDetailsBtn.addEventListener("click", () => {
             if (!pendingTicket) return;
             requestArchiveTicket(pendingTicket.id, pendingTicket.source);
             detailsModal.style.display = "none";
@@ -1299,30 +1299,30 @@ window.submitInquiry = () => {
     }
 
     // Tickets page: Archive confirmation dialog
-    const deleteModal = document.getElementById("archiveConfirmModal");
-    const closeDeleteModal = document.getElementById("closeArchiveModal");
-    const cancelDeleteBtn = document.getElementById("cancelArchiveBtn");
-    const confirmDeleteBtn = document.getElementById("confirmArchiveBtn");
+    const archiveModal = document.getElementById("archiveConfirmModal");
+    const closeArchiveModal = document.getElementById("closeArchiveModal");
+    const cancelArchiveBtn = document.getElementById("cancelArchiveBtn");
+    const confirmArchiveBtn = document.getElementById("confirmArchiveBtn");
 
-    if (closeDeleteModal && deleteModal) {
-        closeDeleteModal.addEventListener("click", () => {
-            deleteModal.style.display = "none";
+    if (closeArchiveModal && archiveModal) {
+        closeArchiveModal.addEventListener("click", () => {
+            archiveModal.style.display = "none";
         });
         window.addEventListener("click", (e) => {
-            if (e.target === deleteModal) {
-                deleteModal.style.display = "none";
+            if (e.target === archiveModal) {
+                archiveModal.style.display = "none";
             }
         });
     }
 
-    if (cancelDeleteBtn) {
-        cancelDeleteBtn.addEventListener("click", () => {
-            deleteModal.style.display = "none";
+    if (cancelArchiveBtn) {
+        cancelArchiveBtn.addEventListener("click", () => {
+            archiveModal.style.display = "none";
         });
     }
 
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener("click", confirmArchiveTicket);
+    if (confirmArchiveBtn) {
+        confirmArchiveBtn.addEventListener("click", confirmArchiveTicket);
     }
 
     // Tickets page: Search & Filter listeners
