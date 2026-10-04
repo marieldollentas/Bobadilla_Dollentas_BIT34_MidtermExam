@@ -5475,19 +5475,17 @@ function openClientDetails(encodedClientId) {
 }
 
 // ---- Performance overview ----
+// A calendar period (week, month) runs to the end of the span it names rather
+// than to today. Truncating at today dropped any session dated later in the
+// chosen period out of the report, so marking one Completed removed it from
+// the overview entirely instead of counting it. The trailing windows (last 30
+// / 90 days) still end today, because that is what the label promises.
 function performanceRange() {
     const now = new Date();
-    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    let from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
+    const endOfDay = date => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
     const period = (document.getElementById("performancePeriod") || {}).value || "month";
-    if (period === "week") {
-        from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
-    } else if (period === "last30") {
-        from.setDate(from.getDate() - 29);
-    } else if (period === "last90") {
-        from.setDate(from.getDate() - 89);
-    } else if (period === "custom") {
+
+    if (period === "custom") {
         const fromEl = document.getElementById("performanceFrom");
         const toEl = document.getElementById("performanceTo");
         const startValue = fromEl ? fromEl.value : "";
@@ -5496,11 +5494,23 @@ function performanceRange() {
         const start = new Date(startValue + "T00:00:00");
         const end = new Date(endValue + "T00:00:00");
         if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return null;
-        from = start;
-        return { from, to: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999) };
+        return { from: start, to: endOfDay(end) };
     }
 
-    return { from, to };
+    if (period === "week") {
+        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+        const sunday = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6);
+        return { from, to: endOfDay(sunday) };
+    }
+
+    if (period === "last30" || period === "last90") {
+        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (period === "last30" ? 29 : 89));
+        return { from, to: endOfDay(now) };
+    }
+
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: firstOfMonth, to: endOfDay(lastOfMonth) };
 }
 
 function coachPerformance(coach) {
@@ -5512,15 +5522,19 @@ function coachPerformance(coach) {
         return !isNaN(date.getTime()) && date >= range.from && date <= range.to;
     }) : [];
 
+    // Every status is read off the same period, so the four tiles always add
+    // up to `total` and both rates share that one denominator. Reading any
+    // status from a different window is what previously let an edit pull a
+    // session out of one figure without it appearing in any other.
+    const scheduled = inPeriod.filter(session => session.status === "Scheduled").length;
     const completed = inPeriod.filter(session => session.status === "Completed").length;
     const missed = inPeriod.filter(session => session.status === "Missed").length;
     const cancelled = inPeriod.filter(session => session.status === "Cancelled").length;
-    const upcoming = sessions.filter(session => session.status === "Scheduled" && session.date >= todayISO()).length;
     const attended = completed + missed;
 
     return {
         clients: coachClientCount(coach.id),
-        upcoming,
+        scheduled,
         completed,
         missed,
         cancelled,
@@ -5568,7 +5582,8 @@ function renderPerformance() {
             </div>
             <div class="perf-grid">
                 <div class="perf-metric"><span>Assigned Clients</span><strong>${stats.clients}</strong></div>
-                <div class="perf-metric"><span>Upcoming</span><strong>${stats.upcoming}</strong></div>
+                <div class="perf-metric"><span>Sessions in Period</span><strong>${stats.total}</strong></div>
+                <div class="perf-metric"><span>Scheduled</span><strong>${stats.scheduled}</strong></div>
                 <div class="perf-metric"><span>Completed</span><strong>${stats.completed}</strong></div>
                 <div class="perf-metric"><span>Missed</span><strong>${stats.missed}</strong></div>
                 <div class="perf-metric"><span>Cancelled</span><strong>${stats.cancelled}</strong></div>
