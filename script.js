@@ -465,6 +465,17 @@ document.addEventListener("DOMContentLoaded", () => {
     renderStaffOptions(pipelineStaffFilter, true);
     renderStaffOptions(document.getElementById("leadStaff"), false);
 
+    const leadTierSelect = document.getElementById("leadTier");
+    const leadValueInput = document.getElementById("leadValue");
+    function syncLeadValue() {
+        if (!leadTierSelect || !leadValueInput) return;
+        const t = PIPELINE_TIERS.find(x => x.value === leadTierSelect.value);
+        leadValueInput.value = t ? t.price : 0;
+    }
+    if (leadTierSelect) {
+        leadTierSelect.addEventListener("change", syncLeadValue);
+    }
+
     const leadPhoneInput = document.getElementById("leadPhone");
     if (leadPhoneInput) {
         leadPhoneInput.addEventListener("input", function() {
@@ -498,6 +509,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("lostReasonGroup").style.display = "none";
             document.getElementById("pipelineModalTitle").textContent = "Add Prospecting Client";
             document.getElementById("pipelineForm").querySelector('button[type="submit"]').textContent = "Save Client";
+            if (typeof syncLeadValue === "function") syncLeadValue();
             pipelineModal.style.display = "flex";
         });
     }
@@ -550,7 +562,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 heat: document.getElementById("leadHeat").value,
                 stage: document.getElementById("leadStage").value,
                 followUp: document.getElementById("leadFollowUp").value,
-                monthlyValue: document.getElementById("leadValue").value || 0,
+                monthlyValue: (function() {
+                    const t = PIPELINE_TIERS.find(x => x.value === document.getElementById("leadTier").value);
+                    return t ? t.price : (document.getElementById("leadValue").value || 0);
+                })(),
                 reason: document.getElementById("leadLostReason").value.trim()
             };
 
@@ -1966,7 +1981,7 @@ function openEditPipelineLead(id) {
     document.getElementById("leadHeat").value = lead.heat || "Warm";
     document.getElementById("leadStage").value = lead.stage;
     document.getElementById("leadFollowUp").value = lead.followUp || "";
-    document.getElementById("leadValue").value = lead.monthlyValue ? Number(lead.monthlyValue) : "";
+    if (typeof syncLeadValue === "function") syncLeadValue();
     document.getElementById("leadLostReason").value = lead.reason || "";
 
     const group = document.getElementById("lostReasonGroup");
