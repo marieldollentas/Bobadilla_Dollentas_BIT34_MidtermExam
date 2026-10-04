@@ -527,6 +527,14 @@ function getCoaches() {
     return JSON.parse(localStorage.getItem(COACH_KEY) || "[]").map(normalizeCoach);
 }
 
+function getActiveCoaches() {
+    return getCoaches().filter(coach => !coach.archived);
+}
+
+function getArchivedCoaches() {
+    return getCoaches().filter(coach => coach.archived);
+}
+
 
 
 // js-split:file=data.js part=52of59
