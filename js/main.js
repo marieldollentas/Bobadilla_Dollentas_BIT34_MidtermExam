@@ -740,7 +740,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const isAdmin = role === "admin";
             tabAdmin.classList.toggle("active", isAdmin);
             tabCustomer.classList.toggle("active", !isAdmin);
-            document.getElementById("adminHint").style.display = isAdmin ? "block" : "none";
             document.getElementById("customerHint").style.display = isAdmin ? "none" : "block";
         };
         tabAdmin.addEventListener("click", () => switchTab("admin"));
