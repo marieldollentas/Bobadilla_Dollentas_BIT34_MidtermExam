@@ -40,175 +40,253 @@
                 <p>Check your membership details and send an inquiry to the front desk at any time.</p>
             </section>
 
-            <section class="content-section membership-hero span-12">
-                <div>
-                    <h2>Membership Status</h2>
-                    <p class="card-sub">Your plan, renewal date and current standing at the branch.</p>
-                </div>
-                <span id="pStatus" class="badge active">Active</span>
-            </section>
+            <!-- The portal is split into numbered groups so every card sits under a
+                 heading that says what it is for. Each group owns its own 12-column
+                 grid, so the .span-* widths below keep working unchanged. -->
 
-            <!-- Renewal panel: rendered by script.js only while the membership is
-                 expiring or expired, so an active term shows nothing here. -->
-            <section class="renewal-panel span-12" id="portalRenewalPanel" style="display: none;">
-                <div class="renewal-copy">
-                    <h3 id="portalRenewalTitle">Membership expiring soon</h3>
-                    <p class="renewal-note" id="portalRenewalNote"></p>
-                    <p class="renewal-msg" id="portalRenewalMsg"></p>
-                </div>
-                <div class="renewal-actions">
-                    <button type="button" class="btn-renew btn-renew-solid" id="portalRenewalBtn" onclick="requestPortalRenewal()">Renew Membership</button>
-                </div>
-            </section>
-
-            <section class="content-section span-7">
-                <div class="card-head">
-                    <div>
-                        <h2>Personal Information</h2>
-                        <p class="card-sub">Details the front desk uses to reach you</p>
+            <!-- 01 — Overview -->
+            <section class="portal-group" aria-labelledby="groupOverviewTitle">
+                <header class="portal-group-head">
+                    <span class="portal-group-step">01</span>
+                    <div class="portal-group-heading">
+                        <h2 id="groupOverviewTitle">Membership Overview</h2>
+                        <p>Where your plan stands today and what needs your attention</p>
                     </div>
-                </div>
-                <div class="profile-grid" style="margin-top: 16px;">
-                    <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
-                    <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
-                    <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
-                    <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
-                    <div class="profile-item"><label>Key Fob Number</label><span id="pFob"></span></div>
-                </div>
-            </section>
+                </header>
 
-            <section class="content-section span-5">
-                <div class="card-head">
-                    <div>
-                        <h2>My Coach</h2>
-                        <p class="card-sub">Your assigned coach and contact details</p>
-                    </div>
-                </div>
-                <div id="customerCoachEmpty" class="card-sub" style="margin-top:16px; display:none;">You haven't been assigned a coach yet. The front desk will assign one soon.</div>
-                <div id="customerCoachCard" class="profile-grid" style="margin-top:16px; display:none;">
-                    <div class="profile-item"><label>Coach Name</label><span id="cCoachName"></span></div>
-                    <div class="profile-item"><label>Specialization</label><span id="cCoachSpec"></span></div>
-                    <div class="profile-item"><label>Contact Number</label><span id="cCoachPhone"></span></div>
-                    <div class="profile-item"><label>Email</label><span id="cCoachEmail"></span></div>
-                    <div class="profile-item"><label>Shift Schedule</label><span id="cCoachShift"></span></div>
-                    <div class="profile-item"><label>Working Days</label><span id="cCoachDays"></span></div>
-                    <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
-                    <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
-                </div>
+                <div class="portal-group-grid">
+                    <section class="content-section membership-hero span-12">
+                        <div>
+                            <h3>Membership Status</h3>
+                            <p class="card-sub">Your plan, renewal date and current standing at the branch.</p>
+                        </div>
+                        <span id="pStatus" class="badge active">Active</span>
+                    </section>
 
-                <!-- Rating is member-owned: script.js hides this form and shows
-                     the submitted review once the member has rated. -->
-                <div id="portalRatingDone" class="rating-row" style="display:none;"></div>
-                <div id="portalRatingBox" style="display:none; margin-top:16px;">
-                    <div class="form-group">
-                        <label for="portalCoachRating">Rate your coach</label>
-                        <select id="portalCoachRating" class="search-input">
-                            <option value="5">5 - Excellent</option>
-                            <option value="4">4 - Good</option>
-                            <option value="3" selected>3 - Average</option>
-                            <option value="2">2 - Poor</option>
-                            <option value="1">1 - Very Poor</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="portalCoachFeedbackInput">Your feedback</label>
-                        <textarea id="portalCoachFeedbackInput" class="inquiry-input" rows="3" placeholder="How has your coach been doing?"></textarea>
-                    </div>
-                    <button type="button" class="btn-primary" onclick="rateCoach(window.portalCoachId)">Submit Rating</button>
-                    <p id="portalRatingMsg" class="success-msg"></p>
-                </div>
-
-                <div class="form-group" id="portalFeedbackBox" style="display:none; margin-top:16px;">
-                    <label>What members said</label>
-                    <div id="portalCoachFeedbackList"></div>
+                    <!-- Renewal panel: rendered by script.js only while the membership is
+                         expiring or expired, so an active term shows nothing here. -->
+                    <section class="renewal-panel span-12" id="portalRenewalPanel" style="display: none;">
+                        <div class="renewal-copy">
+                            <h3 id="portalRenewalTitle">Membership expiring soon</h3>
+                            <p class="renewal-note" id="portalRenewalNote"></p>
+                            <p class="renewal-msg" id="portalRenewalMsg"></p>
+                        </div>
+                        <div class="renewal-actions">
+                            <button type="button" class="btn-renew btn-renew-solid" id="portalRenewalBtn" onclick="requestPortalRenewal()">Renew Membership</button>
+                        </div>
+                    </section>
                 </div>
             </section>
 
-            <section class="content-section span-7">
-                <div class="card-head">
-                    <div>
-                        <h2>My Training Sessions</h2>
-                        <p class="card-sub">Upcoming and past sessions with your coach</p>
+            <!-- 02 — Profile -->
+            <section class="portal-group" aria-labelledby="groupProfileTitle">
+                <header class="portal-group-head">
+                    <span class="portal-group-step">02</span>
+                    <div class="portal-group-heading">
+                        <h2 id="groupProfileTitle">My Profile</h2>
+                        <p>How the front desk reaches you, and the plan they have on file</p>
                     </div>
-                </div>
-                <div id="customerSessionsEmpty" class="card-sub" style="margin-top:16px;">No training sessions scheduled yet.</div>
-                <div class="table-wrap" style="margin-top:16px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Coach</th>
-                                <th>Session Type</th>
-                                <th>Status</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customerSessionsBody"></tbody>
-                    </table>
+                </header>
+
+                <div class="portal-group-grid">
+                    <section class="content-section span-7">
+                        <div class="card-head">
+                            <div>
+                                <h3>Personal Information</h3>
+                                <p class="card-sub">Details the front desk uses to reach you</p>
+                            </div>
+                        </div>
+                        <div class="profile-grid" style="margin-top: 16px;">
+                            <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
+                            <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
+                            <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
+                            <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
+                            <div class="profile-item"><label>Key Fob Number</label><span id="pFob"></span></div>
+                        </div>
+                    </section>
+
+                    <section class="content-section span-5">
+                        <div class="card-head">
+                            <div>
+                                <h3>Membership Information</h3>
+                                <p class="card-sub">Plan length and expiration</p>
+                            </div>
+                        </div>
+                        <div class="profile-grid" style="margin-top: 16px;">
+                            <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
+                            <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
+                            <div class="profile-item"><label>Membership Expiration</label><span id="pExp"></span></div>
+                            <div class="profile-item"><label>Frozen Until</label><span id="pFrozenUntil">—</span></div>
+                            <div class="profile-item"><label>Original Expiration</label><span id="pOrigExp">—</span></div>
+                        </div>
+                    </section>
                 </div>
             </section>
 
-            <section class="content-section span-5">
-                <div class="card-head">
-                    <div>
-                        <h2>Membership Information</h2>
-                        <p class="card-sub">Plan length and expiration</p>
+            <!-- 03 — Coach -->
+            <section class="portal-group" aria-labelledby="groupCoachTitle">
+                <header class="portal-group-head">
+                    <span class="portal-group-step">03</span>
+                    <div class="portal-group-heading">
+                        <h2 id="groupCoachTitle">My Coach</h2>
+                        <p>Your assigned coach, your rating, and feedback from other members</p>
                     </div>
-                </div>
-                <div class="profile-grid" style="margin-top: 16px;">
-                    <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
-                    <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
-                    <div class="profile-item"><label>Membership Expiration</label><span id="pExp"></span></div>
-                    <div class="profile-item"><label>Frozen Until</label><span id="pFrozenUntil">—</span></div>
-                    <div class="profile-item"><label>Original Expiration</label><span id="pOrigExp">—</span></div>
+                </header>
+
+                <div class="portal-group-grid">
+                    <section class="content-section span-7">
+                        <div class="card-head">
+                            <div>
+                                <h3>Coach Details</h3>
+                                <p class="card-sub">Your assigned coach and contact details</p>
+                            </div>
+                        </div>
+                        <div id="customerCoachEmpty" class="card-sub" style="margin-top:16px; display:none;">You haven't been assigned a coach yet. The front desk will assign one soon.</div>
+                        <div id="customerCoachCard" class="profile-grid" style="margin-top:16px; display:none;">
+                            <div class="profile-item"><label>Coach Name</label><span id="cCoachName"></span></div>
+                            <div class="profile-item"><label>Specialization</label><span id="cCoachSpec"></span></div>
+                            <div class="profile-item"><label>Contact Number</label><span id="cCoachPhone"></span></div>
+                            <div class="profile-item"><label>Email</label><span id="cCoachEmail"></span></div>
+                            <div class="profile-item"><label>Shift Schedule</label><span id="cCoachShift"></span></div>
+                            <div class="profile-item"><label>Working Days</label><span id="cCoachDays"></span></div>
+                            <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
+                            <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
+                        </div>
+                    </section>
+
+                    <section class="content-section span-5">
+                        <div class="card-head">
+                            <div>
+                                <h3>Ratings &amp; Reviews</h3>
+                                <p class="card-sub">Rate your coach and read what members said</p>
+                            </div>
+                        </div>
+
+                        <!-- Rating is member-owned: script.js hides this form and shows
+                             the submitted review once the member has rated. -->
+                        <div id="portalRatingDone" class="rating-row" style="display:none;"></div>
+                        <div id="portalRatingBox" style="display:none; margin-top:16px;">
+                            <div class="form-group">
+                                <label for="portalCoachRating">Rate your coach</label>
+                                <select id="portalCoachRating" class="search-input">
+                                    <option value="5">5 - Excellent</option>
+                                    <option value="4">4 - Good</option>
+                                    <option value="3" selected>3 - Average</option>
+                                    <option value="2">2 - Poor</option>
+                                    <option value="1">1 - Very Poor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="portalCoachFeedbackInput">Your feedback</label>
+                                <textarea id="portalCoachFeedbackInput" class="inquiry-input" rows="3" placeholder="How has your coach been doing?"></textarea>
+                            </div>
+                            <button type="button" class="btn-primary" onclick="rateCoach(window.portalCoachId)">Submit Rating</button>
+                            <p id="portalRatingMsg" class="success-msg"></p>
+                        </div>
+
+                        <div class="form-group" id="portalFeedbackBox" style="display:none; margin-top:16px;">
+                            <label>What members said</label>
+                            <div id="portalCoachFeedbackList"></div>
+                        </div>
+                    </section>
                 </div>
             </section>
 
-            <section class="content-section span-5">
-                <div class="card-head">
-                    <div>
-                        <h2>Send an Inquiry</h2>
-                        <p class="card-sub">Questions, feedback or a change request</p>
+            <!-- 04 — Training -->
+            <section class="portal-group" aria-labelledby="groupTrainingTitle">
+                <header class="portal-group-head">
+                    <span class="portal-group-step">04</span>
+                    <div class="portal-group-heading">
+                        <h2 id="groupTrainingTitle">My Training</h2>
+                        <p>Every session booked with your coach</p>
                     </div>
+                </header>
+
+                <div class="portal-group-grid">
+                    <section class="content-section span-12">
+                        <div class="card-head">
+                            <div>
+                                <h3>My Training Sessions</h3>
+                                <p class="card-sub">Upcoming and past sessions with your coach</p>
+                            </div>
+                        </div>
+                        <div id="customerSessionsEmpty" class="card-sub" style="margin-top:16px;">No training sessions scheduled yet.</div>
+                        <div class="table-wrap" style="margin-top:16px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Coach</th>
+                                        <th>Session Type</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerSessionsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
                 </div>
-                <!-- Contact details and priority are not the member's to set:
-                     contact comes from their membership record (front desk keeps
-                     it) and priority is triaged by staff. -->
-                <div class="form-group" style="margin-top: 16px;">
-                    <label>Contact Details On File</label>
-                    <p id="inqContact" class="dialog-preview">—</p>
-                    <p class="card-meta">Taken from your membership record so everyone at the desk reaches you on the same details. Ask the front desk to update them.</p>
-                </div>
-                <div class="form-group">
-                    <label for="inqMessage">Your Inquiry</label>
-                    <textarea id="inqMessage" class="inquiry-input" rows="4" placeholder="Type your question, feedback, or request here..."></textarea>
-                </div>
-                <button type="button" class="btn-primary" onclick="submitInquiry()">Submit Inquiry</button>
-                <p class="card-meta" style="margin-top:8px;">Priority is set by our support team when they pick the inquiry up.</p>
-                <p id="inqStatus" class="success-msg"></p>
             </section>
 
-            <section class="content-section span-7">
-                <div class="card-head">
-                    <div>
-                        <h2>My Support Tickets</h2>
-                        <p class="card-sub">Click View / Hide Details to see the full conversation, including admin comments and replies.</p>
+            <!-- 05 — Support -->
+            <section class="portal-group" aria-labelledby="groupSupportTitle">
+                <header class="portal-group-head">
+                    <span class="portal-group-step">05</span>
+                    <div class="portal-group-heading">
+                        <h2 id="groupSupportTitle">Support</h2>
+                        <p>Send the front desk a message and follow the conversation</p>
                     </div>
+                </header>
+
+                <div class="portal-group-grid">
+                    <section class="content-section span-5">
+                        <div class="card-head">
+                            <div>
+                                <h3>Send an Inquiry</h3>
+                                <p class="card-sub">Questions, feedback or a change request</p>
+                            </div>
+                        </div>
+                        <!-- Contact details and priority are not the member's to set:
+                             contact comes from their membership record (front desk keeps
+                             it) and priority is triaged by staff. -->
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label>Contact Details On File</label>
+                            <p id="inqContact" class="dialog-preview">—</p>
+                            <p class="card-meta">Taken from your membership record so everyone at the desk reaches you on the same details. Ask the front desk to update them.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="inqMessage">Your Inquiry</label>
+                            <textarea id="inqMessage" class="inquiry-input" rows="4" placeholder="Type your question, feedback, or request here..."></textarea>
+                        </div>
+                        <button type="button" class="btn-primary" onclick="submitInquiry()">Submit Inquiry</button>
+                        <p class="card-meta" style="margin-top:8px;">Priority is set by our support team when they pick the inquiry up.</p>
+                        <p id="inqStatus" class="success-msg"></p>
+                    </section>
+
+                    <section class="content-section span-7">
+                        <div class="card-head">
+                            <div>
+                                <h3>My Support Tickets</h3>
+                                <p class="card-sub">Click View / Hide Details to see the full conversation, including admin comments and replies.</p>
+                            </div>
+                        </div>
+                        <div class="ticket-filter-bar" style="margin-top:16px;">
+                            <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
+                            <select id="portalStatusFilter" class="search-input">
+                                <option value="all">All Statuses</option>
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                            <label class="filter-checkbox">
+                                <input type="checkbox" id="portalHideResolved"> Hide Resolved Tickets
+                            </label>
+                        </div>
+                        <div id="myInquiriesList" class="ticket-list"></div>
+                    </section>
                 </div>
-                <div class="ticket-filter-bar" style="margin-top:16px;">
-                    <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
-                    <select id="portalStatusFilter" class="search-input">
-                        <option value="all">All Statuses</option>
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                    </select>
-                    <label class="filter-checkbox">
-                        <input type="checkbox" id="portalHideResolved"> Hide Resolved Tickets
-                    </label>
-                </div>
-                <div id="myInquiriesList" class="ticket-list"></div>
             </section>
         </div>
     </div>

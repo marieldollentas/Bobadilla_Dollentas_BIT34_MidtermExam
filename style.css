@@ -1882,6 +1882,69 @@ select.search-input {
     margin-bottom: 0;
 }
 
+/* ---------- Portal groups ----------
+   customer.html wraps its cards in numbered groups (overview, profile, coach,
+   training, support). Each group is a full-width block with its own heading and
+   its own 12-column grid, so related cards sit together under one title instead
+   of being paired off arbitrarily by the page grid. A divider line plus padding
+   separates one group from the next. */
+.portal-group {
+    grid-column: span 12;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.portal-group + .portal-group {
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.portal-group-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.portal-group-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: var(--primary-50);
+    border: 1px solid var(--primary-200);
+    color: var(--primary);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.portal-group-heading {
+    min-width: 0;
+}
+
+.portal-group-heading h2 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+}
+
+.portal-group-heading p {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.portal-group-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--gap);
+    align-items: start;
+}
+
 .profile-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -1927,7 +1990,8 @@ select.search-input {
     color: rgba(255, 255, 255, .88);
 }
 
-.membership-hero h2 {
+.membership-hero h2,
+.membership-hero h3 {
     font-size: 20px;
     font-weight: 700;
     letter-spacing: -.3px;
