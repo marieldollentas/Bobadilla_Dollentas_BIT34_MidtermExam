@@ -518,8 +518,8 @@ function renderMixBar(containerId, items, options) {
 
     const width = CHART_WIDTH;
     const height = CHART_HEIGHT;
-    const barY = 44;
-    const barH = 44;
+    const barY = 32;
+    const barH = 34;
     const clipId = `chart-clip-${containerId}`;
 
     const svg = newChartSvg(width, height, opts.title);
@@ -531,7 +531,7 @@ function renderMixBar(containerId, items, options) {
     defs.appendChild(clip);
     svg.appendChild(defs);
 
-    svg.appendChild(chartText(0, 24, `${total.toLocaleString("en-US")} ${opts.unit || "in total"}`, "chart-caption"));
+    svg.appendChild(chartText(0, 18, `${total.toLocaleString("en-US")} ${opts.unit || "in total"}`, "chart-caption"));
 
     const segments = svgNode("g", { "clip-path": `url(#${clipId})` });
     let cursor = 0;
@@ -550,13 +550,15 @@ function renderMixBar(containerId, items, options) {
     });
     svg.appendChild(segments);
 
-    // Legend rows carry the exact counts the bar itself can only round to
-    const rowH = 28;
-    const firstRow = barY + barH + 20;
+    // Legend rows carry the exact counts the bar itself can only round to. The
+    // row pitch is capped by the space left under the bar, so a fourth category
+    // (the fourth priority) stays inside the chart instead of falling below it.
+    const firstRow = barY + barH + 18;
+    const rowH = Math.min(28, (height - firstRow - 10) / Math.max(1, data.length));
     data.forEach((item, index) => {
         const value = Number(item.value) || 0;
-        const y = firstRow + index * rowH;
-        svg.appendChild(svgNode("rect", { x: 0, y: y - 8, width: 10, height: 10, fill: item.color || opts.color }));
+        const y = firstRow + index * rowH + rowH / 2;
+        svg.appendChild(svgNode("rect", { x: 0, y: y - 5, width: 10, height: 10, fill: item.color || opts.color }));
         svg.appendChild(chartText(18, y + 1, shortenLabel(item.label, 26), "chart-label chart-label-strong"));
         svg.appendChild(chartText(width - 78, y + 1, value.toLocaleString("en-US"), "chart-value", "end"));
         svg.appendChild(chartText(width - 2, y + 1, chartPercent(value, total), "chart-share", "end"));
