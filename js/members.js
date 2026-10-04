@@ -35,6 +35,19 @@ function restoreMemberById(id) {
     });
 }
 
+function permanentlyDeleteMemberById(id) {
+    const isRegistered = String(id).indexOf("reg-") === 0;
+    const storeKey = isRegistered ? "crmCustomers" : DIRECTORY_KEY;
+    const list = JSON.parse(localStorage.getItem(storeKey) || "[]");
+    const before = list.length;
+    const kept = isRegistered
+        ? list.filter(c => c.username !== id.slice(4))
+        : list.filter(d => String(d.id) !== String(id));
+    if (kept.length === before) return false;
+    localStorage.setItem(storeKey, JSON.stringify(kept));
+    return true;
+}
+
 
 
 // js-split:file=members.js part=4of14
@@ -318,6 +331,7 @@ function renderArchivedMembers() {
                 <div class="row-actions">
                     <span class="badge open">Archived</span>
                     <button class="btn-restore" onclick="restoreMember('${encodeURIComponent(c.id)}')">Restore</button>
+                    <button class="btn-delete" onclick="permanentlyDeleteMember('${encodeURIComponent(c.id)}')">Delete Permanently</button>
                 </div>
             </td>
         `;
