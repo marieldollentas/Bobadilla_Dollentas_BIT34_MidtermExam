@@ -214,7 +214,7 @@ function saveTicketUpdate() {
     getOpenTicketsCount();
 }
 
-// Open the delete confirmation dialog
+// Open the archive confirmation dialog (admin only: customers never archive)
 
 
 // js-split:file=tickets.js part=7of10
