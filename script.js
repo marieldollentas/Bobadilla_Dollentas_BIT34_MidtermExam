@@ -3932,6 +3932,11 @@ const COACH_SPECIALIZATIONS = [
 // both non-Active cases are barred from taking sessions.
 const COACH_STATUSES = ["Active", "On Leave"];
 
+// Shared by the live check while typing and the check on save, so the two
+// can never disagree about what counts as an address.
+const COACH_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COACH_PHONE_DIGITS = 11;
+
 const COACH_SESSION_STATUSES = ["Scheduled", "Completed", "Missed", "Cancelled"];
 
 // JS getDay(): 0 = Sunday. Kept as numbers so a coach record stays small.
@@ -3982,7 +3987,8 @@ function saveCoachSessions(list) {
 // single `specialization` string, so every read goes through here and the
 // list is rebuilt from whichever shape is in storage. The employment status
 // is migrated the same way: "Inactive" is gone, and a coach who was not
-// working is now recorded as On Leave.
+// working is now recorded as On Leave. Phone numbers are stored the way the
+// form accepts them, so an older spaced number stays editable.
 function normalizeCoach(coach) {
     if (!coach || typeof coach !== "object") return coach;
 
@@ -3993,7 +3999,8 @@ function normalizeCoach(coach) {
     return {
         ...coach,
         specializations: list.map(value => String(value).trim()).filter(Boolean),
-        status: coach.status === "Inactive" ? "On Leave" : coach.status
+        status: coach.status === "Inactive" ? "On Leave" : coach.status,
+        phone: coach.phone ? String(coach.phone).replace(/\D/g, "").slice(0, COACH_PHONE_DIGITS) : coach.phone
     };
 }
 
@@ -4009,7 +4016,7 @@ function seedCoaches() {
         {
             name: PIPELINE_STAFF[0],
             email: "joeff@anytimefitness.com",
-            phone: "0917 555 0142",
+            phone: "09175550142",
             specializations: ["Strength Training", "Muscle Building"],
             status: "Active",
             days: [1, 2, 3, 4, 5],
@@ -4019,7 +4026,7 @@ function seedCoaches() {
         {
             name: PIPELINE_STAFF[1],
             email: "mariel@anytimefitness.com",
-            phone: "0917 555 0188",
+            phone: "09175550188",
             specializations: ["Weight Loss", "HIIT", "Cardio"],
             status: "Active",
             days: [1, 2, 3, 4, 5, 6],
@@ -5556,6 +5563,62 @@ function setCoachSpecializationSelection(values) {
         .forEach(box => { box.checked = values.includes(box.value); });
 }
 
+// Keeps the coach form's contact fields to what they can actually store:
+// the phone number is 11 bare digits, and the email has to look like an
+// address. Both checks run while typing, so a bad value is caught before
+// the form is submitted.
+function bindCoachContactFields() {
+    const phone = document.getElementById("coachPhone");
+    const email = document.getElementById("coachEmail");
+    const errorEl = document.getElementById("coachFormError");
+
+    // Letters, spaces and dashes are dropped as they are typed or pasted, and
+    // the length cap in the markup stops an extra digit at the source.
+    if (phone) {
+        phone.addEventListener("input", () => {
+            const digits = phone.value.replace(/\D/g, "").slice(0, COACH_PHONE_DIGITS);
+            if (digits !== phone.value) phone.value = digits;
+            clearFieldError(errorEl, "phone");
+        });
+    }
+
+    // An address can hold almost every character, so nothing is blocked while
+    // typing; whitespace can never be part of one and is dropped, and anything
+    // that is not an address is reported instead of silently accepted.
+    if (email && errorEl) {
+        const checkEmail = () => {
+            const value = email.value.trim();
+            if (value && !COACH_EMAIL_PATTERN.test(value)) {
+                errorEl.textContent = "Please enter a valid email address.";
+                errorEl.dataset.field = "email";
+            } else {
+                clearFieldError(errorEl, "email");
+            }
+        };
+
+        email.addEventListener("input", () => {
+            if (/\s/.test(email.value)) email.value = email.value.replace(/\s/g, "");
+            checkEmail();
+        });
+        email.addEventListener("blur", checkEmail);
+    }
+}
+
+// Only clears the shared error line when it is still showing this field's
+// message, so a submit error about something else is left alone.
+function clearFieldError(errorEl, field) {
+    if (!errorEl || errorEl.dataset.field !== field) return;
+    errorEl.textContent = "";
+    delete errorEl.dataset.field;
+}
+
+function resetCoachFormError() {
+    const errorEl = document.getElementById("coachFormError");
+    if (!errorEl) return;
+    errorEl.textContent = "";
+    delete errorEl.dataset.field;
+}
+
 function openAddCoach() {
     const modal = document.getElementById("coachModal");
     const form = document.getElementById("coachForm");
@@ -5571,7 +5634,7 @@ function openAddCoach() {
     document.getElementById("coachDayGrid")
         .querySelectorAll('input[name="coachDay"]')
         .forEach(box => { box.checked = box.value !== "0"; });
-    document.getElementById("coachFormError").textContent = "";
+    resetCoachFormError();
     document.getElementById("coachModalTitle").textContent = "Add Coach";
     document.getElementById("saveCoachBtn").textContent = "Save Coach";
     modal.style.display = "flex";
@@ -5601,7 +5664,7 @@ function openEditCoach(encodedId) {
         .querySelectorAll('input[name="coachDay"]')
         .forEach(box => { box.checked = days.includes(Number(box.value)); });
 
-    document.getElementById("coachFormError").textContent = "";
+    resetCoachFormError();
     document.getElementById("coachModalTitle").textContent = "Edit Coach";
     document.getElementById("saveCoachBtn").textContent = "Update Coach";
     modal.style.display = "flex";
@@ -5620,14 +5683,19 @@ function saveCoach() {
         .map(box => Number(box.value));
     const errorEl = document.getElementById("coachFormError");
 
-    const fail = message => {
+    // The field name records which input the message belongs to, so the live
+    // checks can clear their own message without wiping a submit error.
+    const fail = (message, field) => {
         errorEl.textContent = message;
+        if (field) errorEl.dataset.field = field;
+        else delete errorEl.dataset.field;
         return false;
     };
 
     if (!name) return fail("Please enter the coach's full name.");
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Please enter a valid email address.");
-    if (!phone) return fail("Please enter a contact number.");
+    if (!email || !COACH_EMAIL_PATTERN.test(email)) return fail("Please enter a valid email address.", "email");
+    if (!phone) return fail("Please enter a contact number.", "phone");
+    if (phone.length !== COACH_PHONE_DIGITS) return fail(`Phone number must be exactly ${COACH_PHONE_DIGITS} digits.`, "phone");
     if (!specializations.length) return fail("Please select at least one specialization.");
     if (!days.length) return fail("Please select at least one working day.");
     if (!(shiftStart < shiftEnd)) return fail("Working hours must end after they start.");
@@ -5711,6 +5779,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (closeCoachBtn) closeCoachBtn.addEventListener("click", () => { coachModal.style.display = "none"; });
     if (cancelCoachBtn) cancelCoachBtn.addEventListener("click", () => { coachModal.style.display = "none"; });
     if (coachForm) coachForm.addEventListener("submit", event => { event.preventDefault(); saveCoach(); });
+
+    bindCoachContactFields();
 
     // Coach details dialog
     const detailsModal = document.getElementById("coachDetailsModal");
