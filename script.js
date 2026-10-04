@@ -566,6 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const t = PIPELINE_TIERS.find(x => x.value === document.getElementById("leadTier").value);
                     return t ? t.price : (document.getElementById("leadValue").value || 0);
                 })(),
+                notes: (document.getElementById("leadNotes") || { value: "" }).value.trim(),
                 reason: document.getElementById("leadLostReason").value.trim()
             };
 
@@ -1916,6 +1917,7 @@ function buildLeadCard(lead) {
         <strong>${escapeHtml(lead.name)}</strong> ${leadHeatBadge(lead.heat)}
         <p class="card-meta">${contactLine || "—"} | Target: ${escapeHtml(tierText)}${valueSuffix}</p>
         <p class="card-meta">${meta2}</p>
+        ${lead.notes ? `<p class="card-meta">📝 ${escapeHtml(lead.notes)}</p>` : ""}
         ${staffSelectHtml(lead)}
         <div class="kanban-card-actions">
             <button class="btn-view" onclick="openEditPipelineLead(${lead.id})">Edit</button>
@@ -1950,7 +1952,7 @@ function renderPipelineBoard() {
             const matchesStaff = filters.staff === "all" || lead.staff === filters.staff;
             const matchesTier = filters.tier === "all" || lead.tier === filters.tier;
             const tierLabel = serviceTierLabel(lead.tier);
-            const searchText = [lead.name, lead.phone, lead.email, lead.tier, tierLabel, lead.staff, lead.reason].filter(Boolean).join(" ").toLowerCase();
+            const searchText = [lead.name, lead.phone, lead.email, lead.tier, tierLabel, lead.staff, lead.reason, lead.notes].filter(Boolean).join(" ").toLowerCase();
             const matchesSearch = !filters.search || searchText.includes(filters.search);
             return matchesStaff && matchesTier && matchesSearch;
         });
@@ -1981,6 +1983,7 @@ function openEditPipelineLead(id) {
     document.getElementById("leadHeat").value = lead.heat || "Warm";
     document.getElementById("leadStage").value = lead.stage;
     document.getElementById("leadFollowUp").value = lead.followUp || "";
+    (document.getElementById("leadNotes") || {}).value = lead.notes || "";
     if (typeof syncLeadValue === "function") syncLeadValue();
     document.getElementById("leadLostReason").value = lead.reason || "";
 
