@@ -724,6 +724,14 @@ document.addEventListener("DOMContentLoaded", () => {
             saveCampaigns(campaigns);
             campaignModal.style.display = "none";
             renderCampaigns();
+            if (!id) {
+                logActivity({
+                    type: "campaign",
+                    title: `New social media marketing campaign added: ${title}`,
+                    meta: `${data.platform} — ${data.status || "Scheduled"}`,
+                    href: activityHref("index.html", title)
+                });
+            }
         });
     }
 
@@ -2461,8 +2469,18 @@ function openEditCampaign(id) {
 
 function requestDeleteCampaign(id) {
     if (!confirm("Delete this marketing campaign? This cannot be undone.")) return;
-    saveCampaigns(getCampaigns().filter(c => String(c.id) !== String(id)));
+    const campaigns = getCampaigns();
+    const campaign = campaigns.find(c => String(c.id) === String(id));
+    saveCampaigns(campaigns.filter(c => String(c.id) !== String(id)));
     renderCampaigns();
+    if (campaign) {
+        logActivity({
+            type: "campaign",
+            title: `Social media marketing campaign deleted: ${campaign.title}`,
+            meta: `${campaign.platform || ""}`,
+            href: activityHref("index.html", campaign.title)
+        });
+    }
 }
 
 // ---- Customer Directory ----
@@ -3679,12 +3697,16 @@ const ACTIVITY_TYPES = {
         icon: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>'
     },
     lead: {
+        tone: "brand",
+        icon: '<svg viewBox="0 0 24 24"><path d="M6.5 19v-1.5a3.5 3.5 0 0 1 3.5-3.5h3a3.5 3.5 0 0 1 3.5 3.5V19"/><circle cx="12" cy="8" r="3.5"/></svg>'
+    },
+    campaign: {
         tone: "blue",
-        icon: '<svg viewBox="0 0 24 24"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5"/><path d="M15.5 6.5H21V12"/></svg>'
+        icon: '<svg viewBox="0 0 24 24"><path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4Z"/></svg>'
     },
     coach: {
         tone: "brand",
-        icon: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/><path d="M12 13.5h.01"/></svg>'
+        icon: '<svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>'
     }
 };
 
