@@ -589,9 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setText("memberStatActive", formatNumber(withStatus("Active")));
         if (document.getElementById("memberStatFrozen")) setText("memberStatFrozen", formatNumber(frozen));
         setText("memberStatExpiring", formatNumber(expiring));
-        if (document.getElementById("memberStatArchived")) {
-            setText("memberStatArchived", formatNumber(getArchivedDirectoryCustomers().length));
-        }
+        setText("memberStatExpired", formatNumber(expired));
         setText("memberStatExpiringNote", [
             expiring ? `Renewals to collect within 30 days` : "No renewals due in the next 30 days",
             expired ? `${formatNumber(expired)} expired` : ""
