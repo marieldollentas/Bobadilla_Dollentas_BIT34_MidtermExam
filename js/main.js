@@ -1402,6 +1402,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderArchivedMembers();
+    renderArchivedCoaches();
     renderArchivedTickets();
     renderArchivedLeads();
     renderArchivedSessions();
