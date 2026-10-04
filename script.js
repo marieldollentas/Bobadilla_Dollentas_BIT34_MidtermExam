@@ -3928,7 +3928,9 @@ const COACH_SPECIALIZATIONS = [
     "General Fitness"
 ];
 
-const COACH_STATUSES = ["Active", "On Leave", "Inactive"];
+// A coach either works the floor or is away: there is no third state, and
+// both non-Active cases are barred from taking sessions.
+const COACH_STATUSES = ["Active", "On Leave"];
 
 const COACH_SESSION_STATUSES = ["Scheduled", "Completed", "Missed", "Cancelled"];
 
@@ -3978,7 +3980,9 @@ function saveCoachSessions(list) {
 
 // Records saved before coaches could hold several specializations carry a
 // single `specialization` string, so every read goes through here and the
-// list is rebuilt from whichever shape is in storage.
+// list is rebuilt from whichever shape is in storage. The employment status
+// is migrated the same way: "Inactive" is gone, and a coach who was not
+// working is now recorded as On Leave.
 function normalizeCoach(coach) {
     if (!coach || typeof coach !== "object") return coach;
 
@@ -3988,7 +3992,8 @@ function normalizeCoach(coach) {
 
     return {
         ...coach,
-        specializations: list.map(value => String(value).trim()).filter(Boolean)
+        specializations: list.map(value => String(value).trim()).filter(Boolean),
+        status: coach.status === "Inactive" ? "On Leave" : coach.status
     };
 }
 
@@ -4128,7 +4133,7 @@ function coachSpecializationsHtml(coach, emptyText) {
 }
 
 function coachStatusBadge(status) {
-    const cls = status === "Active" ? "active" : status === "On Leave" ? "warning" : "open";
+    const cls = status === "Active" ? "active" : "warning";
     return `<span class="badge ${cls}">${escapeHtml(status || "—")}</span>`;
 }
 
@@ -5168,8 +5173,9 @@ function sessionConflictMessage(session, editingId) {
         return `Scheduling Conflict: ${clientName} is not assigned to ${coach.name}. Assign the client to this coach first.`;
     }
 
-    if (coach.status === "Inactive") {
-        return `Scheduling Conflict: ${coach.name} is Inactive and cannot take sessions. Set the employment status to Active first.`;
+    // A coach who is away does not take sessions, whoever the client is.
+    if (coach.status !== "Active") {
+        return `Scheduling Conflict: ${coach.name} is ${coach.status || "not Active"} and cannot take sessions. Set the employment status to Active first.`;
     }
 
     // Coaches only take sessions in the training types they specialize in,
