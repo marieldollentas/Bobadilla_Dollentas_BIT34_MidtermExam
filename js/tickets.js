@@ -135,7 +135,7 @@ function openTicketDetails(id, source, buttonElement) {
     }
     if (staffNameEl) staffNameEl.value = localStorage.getItem("crmStaffName") || "";
     document.getElementById("detailsComment").value = "";
-    document.getElementById("deleteFromDetails").style.display = String(item.status || "").toLowerCase() === "resolved" ? "inline-block" : "none";
+    document.getElementById("archiveFromDetails").style.display = String(item.status || "").toLowerCase() === "resolved" ? "inline-block" : "none";
     modal.style.display = "flex";
 }
 
@@ -225,11 +225,11 @@ function requestArchiveTicket(id, source) {
         alert("Only staff can archive tickets.");
         return;
     }
-    const modal = document.getElementById("deleteConfirmModal");
+    const modal = document.getElementById("archiveConfirmModal");
     if (!modal) return;
 
     pendingArchive = { source, id };
-    document.getElementById("deleteConfirmMessage").textContent =
+    document.getElementById("archiveConfirmMessage").textContent =
         "Archive this resolved ticket? It leaves the active queue but stays on file in the Archive page.";
     modal.style.display = "flex";
 }
@@ -253,7 +253,7 @@ function confirmArchiveTicket() {
     });
 
     pendingArchive = null;
-    document.getElementById("deleteConfirmModal").style.display = "none";
+    document.getElementById("archiveConfirmModal").style.display = "none";
 
     renderStaffTickets();
     renderCustomerInquiries();

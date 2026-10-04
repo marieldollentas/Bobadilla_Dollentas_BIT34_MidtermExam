@@ -135,7 +135,37 @@ document.addEventListener("DOMContentLoaded", () => {
         countActiveMembers();
     };
 
-    // Repaints every view that shows membership state, so a renewal taken on
+    // Permanent Delete: removes an archived record for good. Only reachable
+    // from the Archive page, which itself is staff-only.
+    window.permanentlyDeleteMember = id => {
+        if (sessionStorage.getItem("crmRole") !== "admin") {
+            alert("Only staff can permanently delete members.");
+            return;
+        }
+        const member = getDirectoryCustomers().find(c => String(c.id) === String(id));
+        if (!member) {
+            alert("Member not found. It may have already been deleted.");
+            return;
+        }
+        if (!confirm(`Permanently delete ${member.name || "this member"}'s archived record? This cannot be undone.`)) return;
+
+        if (!permanentlyDeleteMemberById(id)) {
+            alert("Member not found. It may have already been deleted.");
+            return;
+        }
+
+        logActivity({
+            type: "membership",
+            title: `${member.name || "A member"}'s archived record was permanently deleted`,
+            meta: `${member.tier || "Membership"} • Joined ${member.joined || "—"}`,
+            href: activityHref("archive.html", member.name || "")
+        });
+
+        renderCustomerDirectory();
+        renderArchivedMembers();
+        countExpiringMembers();
+        countActiveMembers();
+    };
     // one page never leaves a stale badge or button behind on another view of
     // the same tab.
     function refreshMembershipViews() {
@@ -994,7 +1024,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             inquiries.forEach(inq => {
-                const resolved = String(inq.status || "").toLowerCase() === "resolved";
                 const card = document.createElement("div");
                 card.className = "ticket-card";
                 card.innerHTML = `
@@ -1008,7 +1037,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <p class="ticket-message">${inq.message}</p>
                     <button class="btn-view" onclick="toggleTicketDetails(${inq.id})">View / Hide Details</button>
-                    ${resolved ? `<button class="btn-delete" onclick="requestDeleteTicket(${inq.id}, 'customer')">Delete</button>` : ""}
                     <div class="ticket-details" id="ticket-details-${inq.id}" style="display:none;">
                         <div class="ticket-thread">${commentsHTML(inq)}</div>
                         <div class="portal-reply-box">
@@ -1245,7 +1273,7 @@ window.submitInquiry = () => {
     const detailsModal = document.getElementById("ticketDetailsModal");
     const closeDetailsModal = document.getElementById("closeDetailsModal");
     const confirmDetailsUpdateBtn = document.getElementById("confirmDetailsUpdate");
-    const deleteFromDetailsBtn = document.getElementById("deleteFromDetails");
+    const deleteFromDetailsBtn = document.getElementById("archiveFromDetails");
 
     if (closeDetailsModal && detailsModal) {
         closeDetailsModal.addEventListener("click", () => {
@@ -1265,16 +1293,16 @@ window.submitInquiry = () => {
     if (deleteFromDetailsBtn) {
         deleteFromDetailsBtn.addEventListener("click", () => {
             if (!pendingTicket) return;
-            requestDeleteTicket(pendingTicket.id, pendingTicket.source);
+            requestArchiveTicket(pendingTicket.id, pendingTicket.source);
             detailsModal.style.display = "none";
         });
     }
 
-    // Tickets page: Delete confirmation dialog
-    const deleteModal = document.getElementById("deleteConfirmModal");
-    const closeDeleteModal = document.getElementById("closeDeleteModal");
-    const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
-    const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+    // Tickets page: Archive confirmation dialog
+    const deleteModal = document.getElementById("archiveConfirmModal");
+    const closeDeleteModal = document.getElementById("closeArchiveModal");
+    const cancelDeleteBtn = document.getElementById("cancelArchiveBtn");
+    const confirmDeleteBtn = document.getElementById("confirmArchiveBtn");
 
     if (closeDeleteModal && deleteModal) {
         closeDeleteModal.addEventListener("click", () => {
@@ -1294,7 +1322,7 @@ window.submitInquiry = () => {
     }
 
     if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener("click", confirmDeleteTicket);
+        confirmDeleteBtn.addEventListener("click", confirmArchiveTicket);
     }
 
     // Tickets page: Search & Filter listeners
@@ -1361,4 +1389,20 @@ window.submitInquiry = () => {
         // Another tab writing to localStorage (e.g. removing a member) refreshes the charts
         window.addEventListener("storage", renderDashboardCharts);
     }
+});
+
+// Archive page (archive.html): staff-only overview of everything filed away.
+// Each renderer guards on its own table body, so this listener is a no-op
+// everywhere else.
+document.addEventListener("DOMContentLoaded", () => {
+    if (!document.getElementById("archivePage")) return;
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        location.href = "login.html";
+        return;
+    }
+
+    renderArchivedMembers();
+    renderArchivedTickets();
+    renderArchivedLeads();
+    renderArchivedSessions();
 });
