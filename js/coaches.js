@@ -280,7 +280,7 @@ function coachTodaySessions() {
 // js-split:file=coaches.js part=24of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function renderCoachSummaryStats() {
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     const values = {
         coachStatTotal: coaches.length,
         coachStatActive: coaches.filter(coach => coach.status === "Active").length,
@@ -618,7 +618,7 @@ function renderCoachDirectory() {
     if (!tbody) return;
 
     const filters = coachDirectoryFilters();
-    const coaches = getCoaches().filter(coach => {
+    const coaches = getActiveCoaches().filter(coach => {
         if (filters.status !== "all" && coach.status !== filters.status) return false;
         if (filters.specialization !== "all" && !coachHasSpecialization(coach, filters.specialization)) return false;
         if (filters.search) {
@@ -631,7 +631,7 @@ function renderCoachDirectory() {
 
     const counter = document.getElementById("coachDirectoryCount");
     if (counter) {
-        const total = getCoaches().length;
+        const total = getActiveCoaches().length;
         counter.textContent = `${coaches.length} of ${total} coach${total === 1 ? "" : "es"}`;
     }
 
@@ -656,6 +656,156 @@ function renderCoachDirectory() {
             <td>
                 <button class="btn-view" onclick="openCoachDetails('${id}')">View Details</button>
                 <button class="btn-view" onclick="openEditCoach('${id}')">Edit Coach</button>
+                <button class="btn-archive" onclick="archiveCoach('${id}')">Archive</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Archive a coach: they leave the directory, schedule pickers and reports,
+// but every record behind them (assignments, sessions, ratings) stays on
+// file and the coach can be restored.
+function archiveCoachById(id) {
+    const list = getCoaches();
+    const coach = list.find(c => String(c.id) === String(id));
+    if (!coach) return false;
+    coach.archived = true;
+    coach.archivedAt = new Date().toISOString();
+    saveCoaches(list);
+    return true;
+}
+
+function restoreCoachById(id) {
+    const list = getCoaches();
+    const coach = list.find(c => String(c.id) === String(id));
+    if (!coach) return false;
+    delete coach.archived;
+    delete coach.archivedAt;
+    saveCoaches(list);
+    return true;
+}
+
+function permanentlyDeleteCoachById(id) {
+    const list = getCoaches();
+    const kept = list.filter(c => String(c.id) !== String(id));
+    if (kept.length === list.length) return false;
+    saveCoaches(kept);
+    return true;
+}
+
+function refreshCoachViews() {
+    if (document.getElementById("coachTableBody")) renderCoachTracker();
+    renderArchivedCoaches();
+}
+
+window.archiveCoach = (encodedId) => {
+    const id = decodeURIComponent(encodedId || "");
+    const coach = coachById(id);
+    if (!coach) {
+        alert("Coach not found. They may have already been archived.");
+        return;
+    }
+    const clients = coachClientCount(id);
+    const extra = clients ? ` They still have ${clients} assigned client${clients === 1 ? "" : "s"}, whose history stays on file.` : "";
+    if (!confirm(`Archive ${coach.name}? They leave the directory and schedule but stay on file and can be restored later.${extra}`)) return;
+
+    if (!archiveCoachById(id)) {
+        alert("Coach not found. They may have already been archived.");
+        return;
+    }
+
+    logActivity({
+        type: "coach",
+        title: `${coach.name} was archived`,
+        meta: `${coachSpecializationLabel(coach)} • ${coach.status || "Active"}`,
+        href: activityHref("coach.html", coach.name)
+    });
+
+    refreshCoachViews();
+};
+
+window.restoreCoach = (encodedId) => {
+    const id = decodeURIComponent(encodedId || "");
+    const coach = coachById(id);
+    if (!coach) {
+        alert("Coach not found.");
+        return;
+    }
+    if (!confirm(`Restore ${coach.name} back to the coach directory?`)) return;
+
+    if (!restoreCoachById(id)) {
+        alert("Coach not found.");
+        return;
+    }
+
+    logActivity({
+        type: "coach",
+        title: `${coach.name} was restored from the archive`,
+        meta: coachSpecializationLabel(coach),
+        href: activityHref("coach.html", coach.name)
+    });
+
+    refreshCoachViews();
+};
+
+window.permanentlyDeleteCoach = (encodedId) => {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can permanently delete coaches.");
+        return;
+    }
+    const id = decodeURIComponent(encodedId || "");
+    const coach = coachById(id);
+    if (!coach) {
+        alert("Coach not found. They may have already been deleted.");
+        return;
+    }
+    if (!confirm(`Permanently delete ${coach.name}'s archived record? This cannot be undone.`)) return;
+
+    if (!permanentlyDeleteCoachById(id)) {
+        alert("Coach not found. They may have already been deleted.");
+        return;
+    }
+
+    logActivity({
+        type: "coach",
+        title: `${coach.name}'s archived record was permanently deleted`,
+        meta: coachSpecializationLabel(coach),
+        href: "archive.html"
+    });
+
+    refreshCoachViews();
+};
+
+function renderArchivedCoaches() {
+    const tbody = document.getElementById("archivedCoachesBody");
+    if (!tbody) return;
+    const rows = getArchivedCoaches()
+        .slice()
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No archived coaches yet.</td></tr>';
+        return;
+    }
+    rows.forEach(coach => {
+        const id = encodeURIComponent(coach.id);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><strong>${escapeHtml(coach.name)}</strong><small>${escapeHtml(coachShiftLabel(coach))}</small></td>
+            <td>
+                ${escapeHtml(coach.phone || "—")}
+                <small>${escapeHtml(coach.email || "—")}</small>
+            </td>
+            <td>${coachSpecializationsHtml(coach)}</td>
+            <td>${coachStatusBadge(coach.status)}</td>
+            <td>${coachClientCount(coach.id)}</td>
+            <td><span class="badge open">Archived</span></td>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-restore" onclick="restoreCoach('${id}')">Restore</button>
+                    <button class="btn-delete" onclick="permanentlyDeleteCoach('${id}')">Delete Permanently</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -774,7 +924,7 @@ function fillCoachSelect(selectId, includeAll, selectedId) {
 
     const options = [];
     if (includeAll) options.push('<option value="all">All Coaches</option>');
-    getCoaches().forEach(coach => {
+    getActiveCoaches().forEach(coach => {
         const suffix = coach.status === "Active" ? "" : ` (${coach.status})`;
         options.push(`<option value="${escapeHtml(coach.id)}">${escapeHtml(coach.name + suffix)}</option>`);
     });
@@ -787,7 +937,7 @@ function fillCoachSelect(selectId, includeAll, selectedId) {
         if (includeAll) select.value = "all";
         return;
     }
-    if (getCoaches().some(coach => String(coach.id) === String(selectedId))) select.value = selectedId;
+    if (getActiveCoaches().some(coach => String(coach.id) === String(selectedId))) select.value = selectedId;
 }
 
 
@@ -796,7 +946,7 @@ function fillCoachSelect(selectId, includeAll, selectedId) {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function selectedScheduleCoach() {
     const select = document.getElementById("scheduleCoach");
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     const wanted = select ? select.value : "";
     return coaches.find(coach => String(coach.id) === String(wanted)) || coaches[0] || null;
 }
@@ -1052,7 +1202,7 @@ function renderAssignments() {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function selectedAssignmentCoach() {
     const select = document.getElementById("assignmentCoach");
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     const wanted = select ? select.value : "";
     return coaches.find(coach => String(coach.id) === String(wanted)) || coaches[0] || null;
 }
@@ -1089,7 +1239,7 @@ function openAssignModal(encodedCoachId, encodedAssignmentId) {
     const modal = document.getElementById("assignModal");
     if (!modal) return;
 
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     const assignmentId = encodedAssignmentId ? decodeURIComponent(encodedAssignmentId) : "";
     const existing = assignmentId
         ? getCoachAssignments().find(row => String(row.id) === String(assignmentId))
@@ -1391,6 +1541,9 @@ function sessionConflictMessage(session, editingId) {
     }
 
     // A coach who is away does not take sessions, whoever the client is.
+    if (coach.archived) {
+        return `Scheduling Conflict: ${coach.name} is an archived (past) coach and cannot take sessions. Restore the coach first.`;
+    }
     if (coach.status !== "Active") {
         return `Scheduling Conflict: ${coach.name} is ${coach.status || "not Active"} and cannot take sessions. Set the employment status to Active first.`;
     }
@@ -1719,7 +1872,7 @@ function renderPerformance() {
         if (el) el.style.display = isCustom ? "" : "none";
     });
 
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     grid.innerHTML = "";
 
     if (isCustom && !performanceRange()) {
@@ -2034,7 +2187,7 @@ function renderCoachTracker() {
     seedCoaches();
     fillSpecializationFilter();
 
-    const coaches = getCoaches();
+    const coaches = getActiveCoaches();
     const scheduleCoach = (document.getElementById("scheduleCoach") || {}).value;
     const assignmentCoach = (document.getElementById("assignmentCoach") || {}).value;
     const sessionCoach = (document.getElementById("filterSessionCoach") || {}).value;
