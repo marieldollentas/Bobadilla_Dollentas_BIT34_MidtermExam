@@ -4045,6 +4045,11 @@ function coachClientCount(coachId) {
     return coachAssignmentsFor(coachId).length;
 }
 
+function coachHasClient(coachId, clientId) {
+    if (!clientId) return false;
+    return coachAssignmentsFor(coachId).some(row => String(row.clientId) === String(clientId));
+}
+
 function coachSessionsFor(coachId) {
     return getCoachSessions().filter(session => String(session.coachId) === String(coachId));
 }
@@ -4848,6 +4853,49 @@ function fillClientOptions(select, selectedId) {
     }
 }
 
+// A coach only ever trains their own caseload, so the session form narrows the
+// client picker to that coach's assigned clients. The assignment modal keeps
+// offering the whole directory, since assigning is what creates a caseload.
+function fillSessionClientOptions(coach, selectedId) {
+    const select = document.getElementById("sessionClient");
+    if (!select) return;
+
+    const assignedIds = coachAssignmentsFor(coach ? coach.id : "").map(row => String(row.clientId));
+    const members = getActiveDirectoryCustomers()
+        .filter(member => assignedIds.includes(String(member.id)))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+    const options = members.map(member => {
+        // Frozen members stay listed so existing records keep rendering, but
+        // the label spells out why a session cannot be booked for them.
+        const frozen = getMemberStatus(member) === "Frozen";
+        const label = frozen ? `${member.name} (Frozen${member.freezeEndDate ? " until " + member.freezeEndDate : ""})` : member.name;
+        return `<option value="${escapeHtml(member.id)}">${escapeHtml(label)}</option>`;
+    });
+
+    // A session already on file keeps its client visible even if the assignment
+    // was removed later, so editing shows the record as it actually stands.
+    const wanted = String(selectedId || "");
+    if (wanted && !members.some(member => String(member.id) === wanted)) {
+        const member = getDirectoryCustomers().find(c => String(c.id) === wanted);
+        const name = member ? member.name : "Unknown client";
+        options.push(`<option value="${escapeHtml(wanted)}">${escapeHtml(`${name} (not assigned to ${coach ? coach.name : "this coach"})`)}</option>`);
+    }
+
+    select.innerHTML = options.length
+        ? options.join("")
+        : `<option value="">No clients assigned to ${escapeHtml(coach ? coach.name : "this coach")} yet</option>`;
+    select.disabled = options.length === 0;
+    if (wanted && options.length) select.value = wanted;
+
+    const note = document.getElementById("sessionClientNote");
+    if (note) {
+        note.textContent = coach
+            ? `Only clients assigned to ${coach.name} can be booked. Use Client Assignment to add one.`
+            : "";
+    }
+}
+
 function renderAssignments() {
     const tbody = document.getElementById("assignmentTableBody");
     if (!tbody) return;
@@ -5105,13 +5153,19 @@ function sessionConflictMessage(session, editingId) {
     // so neither can book time with a coach until the record is unfrozen or
     // restored.
     const client = getDirectoryCustomers().find(c => String(c.id) === String(session.clientId));
-    const clientName = client ? client.name : session.clientName;
+    const clientName = client ? client.name : (session.clientName || "This client");
     if (client && getMemberStatus(client) === "Archived") {
         return `Scheduling Conflict: ${clientName} is an Archived (past) member and cannot book sessions. Restore the membership first.`;
     }
     if (client && getMemberStatus(client) === "Frozen") {
         const until = client.freezeEndDate ? ` until ${client.freezeEndDate}` : "";
         return `Scheduling Conflict: ${clientName}'s membership is Frozen${until} and cannot book sessions. Unfreeze the membership first.`;
+    }
+
+    // A coach only trains their own caseload, so a client has to be assigned
+    // to this coach before a session can be booked for them.
+    if (!coachHasClient(coach.id, session.clientId)) {
+        return `Scheduling Conflict: ${clientName} is not assigned to ${coach.name}. Assign the client to this coach first.`;
     }
 
     if (coach.status === "Inactive") {
@@ -5216,9 +5270,10 @@ function openSessionModal(encodedId) {
 
     document.getElementById("sessionId").value = session ? session.id : "";
     fillCoachSelect("sessionCoach", false, session ? session.coachId : (selectedScheduleCoach() || {}).id);
-    fillClientOptions(document.getElementById("sessionClient"), session ? session.clientId : null);
+    const coach = coachById(document.getElementById("sessionCoach").value);
+    fillSessionClientOptions(coach, session ? session.clientId : null);
     // With no stored type the picker falls back to the coach's first one.
-    fillSessionTypeOptions(coachById(document.getElementById("sessionCoach").value), session ? session.type : null);
+    fillSessionTypeOptions(coach, session ? session.type : null);
     document.getElementById("sessionStatus").value = session ? session.status : "Scheduled";
     document.getElementById("sessionDate").value = session ? session.date : todayISO();
     document.getElementById("sessionTime").value = session ? session.time : "10:00";
@@ -5693,12 +5748,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cancelSessionBtn) cancelSessionBtn.addEventListener("click", () => { sessionModal.style.display = "none"; });
     if (sessionForm) sessionForm.addEventListener("submit", event => { event.preventDefault(); saveSession(); });
 
-    // Switching coach narrows the training types to that coach's
-    // specializations, so the picker is rebuilt on every change.
+    // Switching coach narrows the form to that coach's caseload and to the
+    // training types they specialize in, so both pickers are rebuilt.
     const sessionCoachSelect = document.getElementById("sessionCoach");
     if (sessionCoachSelect) {
         sessionCoachSelect.addEventListener("change", () => {
-            fillSessionTypeOptions(coachById(sessionCoachSelect.value), null);
+            const coach = coachById(sessionCoachSelect.value);
+            fillSessionClientOptions(coach, null);
+            fillSessionTypeOptions(coach, null);
         });
     }
 
