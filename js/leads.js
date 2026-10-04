@@ -96,7 +96,7 @@ function buildLeadCard(lead) {
         ${staffSelectHtml(lead)}
         <div class="kanban-card-actions">
             <button class="btn-view" onclick="openEditPipelineLead(${lead.id})">Edit</button>
-            <button class="btn-delete" onclick="requestDeletePipelineLead(${lead.id})">Delete</button>
+            <button class="btn-archive" onclick="archiveLead(${lead.id})">Archive</button>
         </div>
     `;
     return div;
@@ -111,7 +111,7 @@ function renderPipelineBoard() {
     if (!board) return;
 
     const filters = pipelineFilters();
-    const leads = getPipelineLeads();
+    const leads = getPipelineLeads().filter(l => !l.archived);
 
     board.querySelectorAll(".kanban-column").forEach(col => {
         const stage = col.getAttribute("data-stage");
@@ -182,11 +182,88 @@ function openEditPipelineLead(id) {
 
 // js-split:file=leads.js part=8of8
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function requestDeletePipelineLead(id) {
-    if (!confirm("Delete this lead from the pipeline? This cannot be undone.")) return;
-    const leads = getPipelineLeads().filter(l => String(l.id) !== String(id));
+// Archive a lead instead of deleting it: the record leaves the board but
+// stays on file in the Archive page, where it can be restored or deleted.
+function archiveLead(id) {
+    const leads = getPipelineLeads();
+    const lead = leads.find(l => String(l.id) === String(id));
+    if (!lead) return;
+    if (!confirm(`Archive ${lead.name} from the pipeline? The record is kept and can be restored later.`)) return;
+    lead.archived = true;
+    lead.archivedAt = new Date().toISOString();
     savePipelineLeads(leads);
+
+    logActivity({
+        type: "lead",
+        title: `${lead.name} was archived from the pipeline`,
+        meta: `${lead.tier || "No tier"} • ${lead.staff || "Unassigned"}`,
+        href: activityHref("pipeline.html", lead.name)
+    });
+
     renderPipelineBoard();
+    renderArchivedLeads();
+}
+
+function restoreLead(id) {
+    const leads = getPipelineLeads();
+    const lead = leads.find(l => String(l.id) === String(id));
+    if (!lead) return;
+    if (!confirm(`Restore ${lead.name} back to the pipeline?`)) return;
+    delete lead.archived;
+    delete lead.archivedAt;
+    savePipelineLeads(leads);
+
+    logActivity({
+        type: "lead",
+        title: `${lead.name} was restored from the archive`,
+        meta: `${lead.tier || "No tier"} • ${lead.staff || "Unassigned"}`,
+        href: activityHref("pipeline.html", lead.name)
+    });
+
+    renderPipelineBoard();
+    renderArchivedLeads();
+}
+
+function permanentlyDeleteLead(id) {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can permanently delete leads.");
+        return;
+    }
+    if (!confirm("Permanently delete this archived lead? This cannot be undone.")) return;
+    savePipelineLeads(getPipelineLeads().filter(l => String(l.id) !== String(id)));
+    renderPipelineBoard();
+    renderArchivedLeads();
+}
+
+function renderArchivedLeads() {
+    const tbody = document.getElementById("archivedLeadsBody");
+    if (!tbody) return;
+    const rows = getPipelineLeads()
+        .filter(l => l.archived)
+        .sort((a, b) => String(b.id) - String(a.id));
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No archived leads yet.</td></tr>';
+        return;
+    }
+    rows.forEach(lead => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${escapeHtml(lead.name)}</td>
+            <td>${escapeHtml(lead.staff || "—")}</td>
+            <td>${escapeHtml(serviceTierLabel(lead.tier) || lead.tier || "—")}</td>
+            <td>${escapeHtml(lead.stage || "—")}</td>
+            <td>${escapeHtml(lead.followUp || "—")}</td>
+            <td><span class="badge open">Archived</span></td>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-restore" onclick="restoreLead(${lead.id})">Restore</button>
+                    <button class="btn-delete" onclick="permanentlyDeleteLead(${lead.id})">Delete Permanently</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 // ---- Marketing Campaigns (Social Media) ----

@@ -444,7 +444,7 @@ const byPriority = [PRIORITY_NOT_DEFINED, "High", "Medium", "Low"].map(priority 
 // js-split:file=dashboard.js part=18of30
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function pipelineChartData() {
-    const leads = getPipelineLeads();
+    const leads = getPipelineLeads().filter(l => !l.archived);
     return PIPELINE_STAGES.map(stage => ({
         label: stage.title,
         value: leads.filter(l => l.stage === stage.id).length,
