@@ -733,7 +733,7 @@ letter-spacing: .3px;
     fill: #ffffff;
 }
 
-/* Ghost bars behind ranked and funnel rows keep every row on one scale. The
+/* Ghost bars behind ranked and stage rows keep every row on one scale. The
    donut's empty ring needs fill:none, so it gets its own class instead. */
 .chart .chart-track {
     fill: #f4f2fc;
@@ -747,12 +747,6 @@ letter-spacing: .3px;
 .chart .chart-dot {
     stroke: #ffffff;
     stroke-width: 1.8;
-}
-
-/* Funnel bands sit flush against each other to form one continuous taper */
-.chart .chart-band {
-    stroke: #ffffff;
-    stroke-width: 1.5;
 }
 
 .chart .chart-line {

@@ -445,18 +445,26 @@ const byPriority = [PRIORITY_NOT_DEFINED, "High", "Medium", "Low"].map(priority 
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function pipelineChartData() {
     const leads = getPipelineLeads().filter(l => !l.archived);
-    return PIPELINE_STAGES.map(stage => ({
-        label: stage.title,
-        value: leads.filter(l => l.stage === stage.id).length,
-        color: stage.id === "won" ? CHART_COLORS.active
-            : stage.id === "lost" ? CHART_COLORS.danger
-                : CHART_COLORS.brand
-    }));
+    return PIPELINE_STAGES.map(stage => {
+        const stageLeads = leads.filter(l => l.stage === stage.id);
+        // The money sitting in the stage, so the chart answers "what is this
+        // stage worth" and not only "how many leads are in it".
+        const monthlyValue = stageLeads.reduce((sum, l) => sum + (Number(l.monthlyValue) || 0), 0);
+        return {
+            label: stage.title,
+            value: stageLeads.length,
+            note: monthlyValue > 0 ? `$${monthlyValue.toLocaleString("en-US")}` : "—",
+            color: stage.id === "won" ? CHART_COLORS.active
+                : stage.id === "lost" ? CHART_COLORS.danger
+                    : CHART_COLORS.brand
+        };
+    });
 }
 
 // One renderer per metric, picked to match the shape of the data: a donut for
 // the member-status split, ranked bars for tiers (long names), a trend line for
-// ticket volume over time, a mix bar for priority share, a funnel for stages.
+// ticket volume over time, a mix bar for priority share, straight stage bars
+// for the pipeline (stages are a checklist, not a taper).
 
 
 // js-split:file=dashboard.js part=19of30
@@ -488,7 +496,7 @@ function renderDashboardCharts() {
         emptyText: "No tickets recorded yet."
     });
 
-    renderFunnelChart("chartPipelineStages", pipelineChartData(), {
+    renderStageBars("chartPipelineStages", pipelineChartData(), {
         title: "Pipeline leads by stage",
         emptyText: "No pipeline leads yet."
     });

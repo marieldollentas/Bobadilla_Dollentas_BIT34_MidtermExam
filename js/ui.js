@@ -565,68 +565,65 @@ function renderMixBar(containerId, items, options) {
     container.appendChild(svg);
 }
 
-// Funnel — for ordered pipeline stages. Each stage is a band that tapers into
-// the width of the next one, so the whole card reads as a funnel instead of a
-// bar chart, and every row is annotated with its drop-off from the stage above,
-// which is the number a pipeline is actually read for.
-
+// Stage bars — for the pipeline, where the stages are an ordered checklist and
+// "Membership (Won)" / "Closed / Lost" are outcomes rather than the next step.
+// Every stage gets one straight bar on the same scale, with the lead count and
+// the monthly value in their own columns, so no stage is drawn as if it were
+// measured against the stage above it.
 
 // js-split:file=ui.js part=29of34
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function renderFunnelChart(containerId, items, options) {
+function renderStageBars(containerId, items, options) {
     const chart = beginChart(containerId, items, options);
     if (!chart) return;
     const { container, data, opts } = chart;
 
     // This card is full width, so the SVG is drawn 1:1 with its container
-    // instead of being letterboxed inside a fixed 340-unit viewBox.
+    // instead of being letterboxed inside a fixed 520-unit viewBox.
     const width = Math.max(360, Math.round(container.clientWidth || 0));
     const height = 184;
     const headH = 22;
     const rowH = (height - headH - 6) / data.length;
-    const labelW = Math.min(210, Math.max(130, width * 0.2));
-    const valueW = 96;
+    const labelW = Math.min(190, Math.max(120, width * 0.19));
+    const valueW = 78;                  // right-hand column for "$/mo"
+    const countW = 46;                  // right-hand column for the lead count
     const zoneX = labelW + 14;
-    const zoneW = Math.max(80, width - valueW - zoneX);
-    const centerX = zoneX + zoneW / 2;
+    const zoneW = Math.max(80, width - valueW - countW - zoneX);
+    const barH = Math.max(9, Math.min(18, rowH - 12));
     const max = Math.max(...data.map(item => Number(item.value) || 0));
-    const bandFor = value => value <= 0 ? 0 : Math.max(6, (value / max) * zoneW);
+    const countX = zoneX + zoneW + 8;
 
     const svg = newChartSvg(width, height, opts.title);
 
     svg.appendChild(chartText(labelW, 12, "STAGE", "chart-caption", "end"));
-    svg.appendChild(chartText(width - 52, 12, "LEADS", "chart-caption", "end"));
-    svg.appendChild(chartText(width - 2, 12, "vs PREV", "chart-caption", "end"));
+    svg.appendChild(chartText(countX, 12, "LEADS", "chart-caption", "start"));
+    svg.appendChild(chartText(width - 2, 12, "VALUE /MO", "chart-caption", "end"));
 
     data.forEach((item, index) => {
         const value = Number(item.value) || 0;
-        const topY = headH + rowH * index + 2;
-        const bottomY = headH + rowH * (index + 1) - 2;
-        const centerY = (topY + bottomY) / 2;
-        const isLast = index === data.length - 1;
+        const centerY = headH + rowH * index + rowH / 2;
 
-        // The band tapers into the next stage; the final one closes straight.
-        const topW = bandFor(value);
-        const bottomW = isLast ? topW * 0.72 : bandFor(Number(data[index + 1].value) || 0);
-
-        const band = svgNode("polygon", {
-            points: `${centerX - topW / 2},${topY} ${centerX + topW / 2},${topY} `
-                + `${centerX + bottomW / 2},${bottomY} ${centerX - bottomW / 2},${bottomY}`,
-            fill: item.color || opts.color,
-            class: "chart-band"
-        });
-        band.appendChild(chartTip(`${item.label}: ${value.toLocaleString("en-US")}`));
-        svg.appendChild(band);
+        // Ghost bar first: it fixes the full width so every stage is read
+        // against the same scale instead of against its neighbour.
+        svg.appendChild(svgNode("rect", {
+            x: zoneX, y: centerY - barH / 2, width: zoneW, height: barH, class: "chart-track"
+        }));
 
         wrapLabel(item.label, Math.floor((labelW - 8) / 5.4)).forEach((line, lineIndex) => {
             svg.appendChild(chartText(labelW, centerY + (lineIndex === 0 ? 1 : 11),
                 line, lineIndex === 0 ? "chart-label chart-label-strong" : "chart-label", "end"));
         });
 
-        const previous = index > 0 ? Number(data[index - 1].value) || 0 : 0;
-        svg.appendChild(chartText(width - 52, centerY + 4, value.toLocaleString("en-US"), "chart-value", "end"));
-        svg.appendChild(chartText(width - 2, centerY + 4,
-            index === 0 || previous === 0 ? "—" : chartPercent(value, previous), "chart-share", "end"));
+        const barW = value === 0 ? 0 : Math.max(3, (value / max) * zoneW);
+        const bar = svgNode("rect", {
+            x: zoneX, y: centerY - barH / 2, width: barW, height: barH,
+            fill: item.color || opts.color
+        });
+        bar.appendChild(chartTip(`${item.label}: ${value.toLocaleString("en-US")} lead${value === 1 ? "" : "s"}${item.note ? ` · ${item.note}` : ""}`));
+        svg.appendChild(bar);
+
+        svg.appendChild(chartText(countX, centerY + 4, value.toLocaleString("en-US"), "chart-value", "start"));
+        svg.appendChild(chartText(width - 2, centerY + 4, item.note || "—", "chart-share", "end"));
     });
 
     container.appendChild(svg);
