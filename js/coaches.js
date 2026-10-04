@@ -271,7 +271,7 @@ function coachFeedbackHtml(coach, emptyText) {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachTodaySessions() {
     const today = todayISO();
-    return getCoachSessions().filter(session => session.date === today && session.status === "Scheduled");
+    return getCoachSessions().filter(session => !session.archived && session.date === today && session.status === "Scheduled");
 }
 
 // Shared by the Coach Tracker page and the dashboard card.
@@ -833,7 +833,7 @@ function renderSchedule() {
     const today = new Date();
     const monday = new Date(today);
     monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    const sessions = coachSessionsFor(coach.id);
+    const sessions = coachSessionsFor(coach.id).filter(session => !session.archived);
     let bookedCount = 0;
 
     for (let hour = COACH_SLOT_START; hour <= COACH_SLOT_END; hour++) {
@@ -881,7 +881,7 @@ function renderUpcomingAppointments() {
 
     const coachFilter = (document.getElementById("scheduleCoach") || {}).value || "";
     const upcoming = getCoachSessions()
-        .filter(session => session.status === "Scheduled" && session.date >= todayISO())
+        .filter(session => !session.archived && session.status === "Scheduled" && session.date >= todayISO())
         .filter(session => !coachFilter || coachFilter === "all" || String(session.coachId) === String(coachFilter))
         .sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)))
         .slice(0, 12);
@@ -1208,6 +1208,7 @@ function renderSessions() {
 
     const filters = sessionFilters();
     const sessions = getCoachSessions()
+        .filter(session => !session.archived)
         .filter(session => filters.coach === "all" || String(session.coachId) === String(filters.coach))
         .filter(session => filters.status === "all" || session.status === filters.status)
         .filter(session => {
@@ -1231,6 +1232,7 @@ function renderSessions() {
 
     sessions.forEach(session => {
         const id = encodeURIComponent(session.id);
+        const archivable = String(session.status) === "Completed" || String(session.status) === "Cancelled";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
@@ -1245,6 +1247,7 @@ function renderSessions() {
             <td>
                 <button class="btn-view" onclick="openSessionModal('${id}')">Edit / Notes</button>
                 <button class="btn-view" onclick="openClientDetails('${encodeURIComponent(session.clientId)}')">Client</button>
+                ${archivable ? `<button class="btn-archive" onclick="archiveSession('${id}')">Archive</button>` : ""}
             </td>
         `;
         tbody.appendChild(tr);
@@ -1253,8 +1256,102 @@ function renderSessions() {
 
 
 
-// js-split:file=coaches.js part=50of70
-// Split from script.js - whole top-level blocks moved verbatim, no behavior change.
+// Archive a finished session (Completed / Cancelled only): it leaves the
+// schedule but stays on file in the Archive page, where it can be restored
+// or deleted permanently.
+function archiveSession(encodedId) {
+    const id = decodeURIComponent(encodedId || "");
+    const sessions = getCoachSessions();
+    const session = sessions.find(s => String(s.id) === String(id));
+    if (!session) return;
+    if (String(session.status) !== "Completed" && String(session.status) !== "Cancelled") {
+        alert("Only completed or cancelled sessions can be archived.");
+        return;
+    }
+    if (!confirm(`Archive this ${session.status.toLowerCase()} session? It stays on file and can be restored later.`)) return;
+    session.archived = true;
+    session.archivedAt = new Date().toISOString();
+    saveCoachSessions(sessions);
+
+    logActivity({
+        type: "session",
+        title: `A ${session.status.toLowerCase()} session was archived`,
+        meta: `${sessionClientName(session)} • ${coachNameById(session.coachId)} • ${session.date || "—"}`,
+        href: activityHref("coach.html", sessionClientName(session))
+    });
+
+    renderSessions();
+    renderArchivedSessions();
+    if (typeof renderCoachSummaryStats === "function") renderCoachSummaryStats();
+    if (typeof renderUpcomingAppointments === "function") renderUpcomingAppointments();
+}
+
+function restoreSession(encodedId) {
+    const id = decodeURIComponent(encodedId || "");
+    const sessions = getCoachSessions();
+    const session = sessions.find(s => String(s.id) === String(id));
+    if (!session) return;
+    if (!confirm("Restore this session back to the schedule?")) return;
+    delete session.archived;
+    delete session.archivedAt;
+    saveCoachSessions(sessions);
+
+    renderSessions();
+    renderArchivedSessions();
+    if (typeof renderCoachSummaryStats === "function") renderCoachSummaryStats();
+    if (typeof renderUpcomingAppointments === "function") renderUpcomingAppointments();
+}
+
+function permanentlyDeleteSession(encodedId) {
+    if (sessionStorage.getItem("crmRole") !== "admin") {
+        alert("Only staff can permanently delete sessions.");
+        return;
+    }
+    const id = decodeURIComponent(encodedId || "");
+    if (!confirm("Permanently delete this archived session? This cannot be undone.")) return;
+    saveCoachSessions(getCoachSessions().filter(s => String(s.id) !== String(id)));
+
+    renderSessions();
+    renderArchivedSessions();
+    if (typeof renderCoachSummaryStats === "function") renderCoachSummaryStats();
+    if (typeof renderUpcomingAppointments === "function") renderUpcomingAppointments();
+}
+
+function renderArchivedSessions() {
+    const tbody = document.getElementById("archivedSessionsBody");
+    if (!tbody) return;
+    const rows = getCoachSessions()
+        .filter(s => s.archived)
+        .sort((a, b) => sessionSortValue(b).localeCompare(sessionSortValue(a)));
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No archived sessions yet.</td></tr>';
+        return;
+    }
+    rows.forEach(session => {
+        const id = encodeURIComponent(session.id);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <strong>${escapeHtml(sessionClientName(session))}</strong>
+                <small>${escapeHtml(sessionClientIdLabel(session))}</small>
+            </td>
+            <td>${escapeHtml(sessionDayLabel(session.date))}<small>${escapeHtml(session.date || "")}</small></td>
+            <td>${escapeHtml(formatClock(session.time))}</td>
+            <td>${escapeHtml(session.type || "—")}${session.notes ? `<small>${escapeHtml(shortenLabel(session.notes, 54))}</small>` : ""}</td>
+            <td>${sessionStatusBadge(session.status)}</td>
+            <td>${escapeHtml(coachNameById(session.coachId))}</td>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-restore" onclick="restoreSession('${id}')">Restore</button>
+                    <button class="btn-delete" onclick="permanentlyDeleteSession('${id}')">Delete Permanently</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 function sessionClientIdLabel(session) {
     const member = getDirectoryCustomers().find(c => String(c.id) === String(session.clientId));
     if (member && member.tier) return member.tier;
@@ -1322,6 +1419,7 @@ function sessionConflictMessage(session, editingId) {
     }
 
     const blocking = session =>
+        !session.archived &&
         String(session.id) !== String(editingId) &&
         String(session.status) !== "Cancelled" &&
         String(session.status) !== "Missed";
@@ -1578,7 +1676,7 @@ function performanceRange() {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachPerformance(coach) {
     const range = performanceRange();
-    const sessions = coachSessionsFor(coach.id);
+    const sessions = coachSessionsFor(coach.id).filter(session => !session.archived);
 
     const inPeriod = range ? sessions.filter(session => {
         const date = new Date((session.date || "") + "T00:00:00");
