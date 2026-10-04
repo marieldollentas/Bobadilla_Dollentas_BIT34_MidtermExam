@@ -738,6 +738,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const regTierEl = document.getElementById("regTier");
         const regFobEl = document.getElementById("regKeyFob");
         const regExpEl = document.getElementById("regExp");
+        const regPhoneEl = document.getElementById("regPhone");
+
+        // The phone field accepts digits only, capped at the 11 digits of a local
+        // mobile number. Typing, pasting and autofill all go through the same
+        // filter, so a letter or an extra digit never reaches the member record.
+        if (regPhoneEl) {
+            regPhoneEl.addEventListener("input", () => {
+                const digits = regPhoneEl.value.replace(/\D/g, "").slice(0, 11);
+                if (regPhoneEl.value !== digits) regPhoneEl.value = digits;
+            });
+        }
 
         // Key Fob confirmation dialog
         const fobModal = document.getElementById("fobModal");
@@ -784,7 +795,7 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             const name = document.getElementById("regName").value.trim();
             const email = document.getElementById("regEmail").value.trim();
-            const phone = document.getElementById("regPhone").value.trim();
+            const phone = regPhoneEl ? regPhoneEl.value.replace(/\D/g, "").slice(0, 11) : "";
             const address = document.getElementById("regAddress").value.trim();
             const tier = regTierEl ? regTierEl.value : "";
             const keyFob = regFobEl ? regFobEl.value.trim() : "";
@@ -794,6 +805,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (password !== confirm) {
                 errorEl.textContent = "Passwords do not match.";
+                return;
+            }
+
+            if (phone && !/^\d{11}$/.test(phone)) {
+                errorEl.textContent = "Phone number must be exactly 11 digits.";
                 return;
             }
 
