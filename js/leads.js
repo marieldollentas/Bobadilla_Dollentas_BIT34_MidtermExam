@@ -67,6 +67,12 @@ function updateLeadStaff(id, staff) {
 
 
 
+// One labelled row per field, so a long tier name, email or note can never run
+// into a single block of text: the label column keeps the values scannable.
+function leadDetailRow(label, value) {
+    return `<div class="lead-detail"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+}
+
 // js-split:file=leads.js part=5of8
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function buildLeadCard(lead) {
@@ -76,23 +82,36 @@ function buildLeadCard(lead) {
     div.setAttribute("data-staff", lead.staff);
     div.setAttribute("data-tier", lead.tier);
 
-    const followUp = lead.followUp ? `Next Follow-up: ${lead.followUp}` : "Next Follow-up: —";
-
-    let meta2 = `Assigned: ${escapeHtml(lead.staff)} | ${followUp}`;
-    if (lead.stage === "won") meta2 = `Assigned: ${escapeHtml(lead.staff)} | Membership active`;
-    if (lead.stage === "lost" && lead.reason) meta2 = `Reason: ${escapeHtml(lead.reason)}`;
-
     const value = Number(lead.monthlyValue) || 0;
-    const tierPrice = pipelineTierPrice(lead.tier);
-    const tierText = tierPrice ? `${lead.tier} ($${tierPrice}/mo)` : lead.tier;
-    const valueSuffix = lead.stage === "won" && value > 0 ? ` | $${value}/mo` : "";
 
-    const contactLine = [lead.phone ? `📞 ${escapeHtml(lead.phone)}` : null, lead.email ? `✉️ ${escapeHtml(lead.email)}` : null].filter(Boolean).join(" | ");
+    const rows = [];
+    if (lead.phone) rows.push(leadDetailRow("Phone", lead.phone));
+    if (lead.email) rows.push(leadDetailRow("Email", lead.email));
+    rows.push(leadDetailRow("Target", lead.tier || "—"));
+    if (value > 0) rows.push(leadDetailRow("Value", `$${value}/mo`));
+    // Only one closing line per card: a won lead has no follow-up left, and a
+    // lost one is explained by the reason the staff recorded.
+    if (lead.stage === "won") {
+        rows.push(leadDetailRow("Status", "Membership active"));
+    } else if (lead.stage === "lost" && lead.reason) {
+        rows.push(leadDetailRow("Reason", lead.reason));
+    } else {
+        rows.push(leadDetailRow("Follow-up", lead.followUp ? formatDateLogged(lead.followUp) : "Not scheduled"));
+    }
+
+    const notes = lead.notes
+        ? `<p class="lead-notes" title="${escapeHtml(lead.notes)}"><span class="lead-notes-label">Notes</span>${escapeHtml(lead.notes)}</p>`
+        : "";
+
     div.innerHTML = `
-        <strong>${escapeHtml(lead.name)}</strong> ${leadHeatBadge(lead.heat)}
-        <p class="card-meta">${contactLine || "—"} | Target: ${escapeHtml(tierText)}${valueSuffix}</p>
-        <p class="card-meta">${meta2}</p>
-        ${lead.notes ? `<p class="card-meta">📝 ${escapeHtml(lead.notes)}</p>` : ""}
+        <div class="lead-card-head">
+            <strong>${escapeHtml(lead.name)}</strong>
+            ${leadHeatBadge(lead.heat)}
+        </div>
+        <div class="lead-card-body">
+            <dl class="lead-details">${rows.join("")}</dl>
+            ${notes}
+        </div>
         ${staffSelectHtml(lead)}
         <div class="kanban-card-actions">
             <button class="btn-view" onclick="openEditPipelineLead(${lead.id})">Edit</button>

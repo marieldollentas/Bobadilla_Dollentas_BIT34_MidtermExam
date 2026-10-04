@@ -1361,13 +1361,89 @@ select.search-input {
     box-shadow: 0 14px 26px -18px rgba(23, 22, 53, .55);
 }
 
-.kanban-card > strong {
-    font-size: 13.5px;
-    font-weight: 700;
+.lead-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.kanban-card > .badge {
-    margin-left: 6px;
+.lead-card-head > strong {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+/* Label column stays a fixed width so every value on every card lines up */
+.lead-details {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+}
+
+.lead-detail {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 8px;
+}
+
+.lead-detail dt {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.lead-detail dd {
+    margin: 0;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+/* The client's information scrolls inside the card instead of stretching it:
+   a long note stays fully readable and every card keeps a predictable height. */
+.lead-card-body {
+    max-height: 232px;
+    margin-top: 10px;
+    padding-right: 2px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.lead-card-body::-webkit-scrollbar { width: 6px; }
+.lead-card-body::-webkit-scrollbar-track { background: transparent; }
+.lead-card-body::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #dedcec;
+}
+
+/* Notes are free text: full height, read by scrolling the block above */
+.lead-notes {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    border-left: 2px solid #ddd9f6;
+    border-radius: 0 8px 8px 0;
+    background: #f7f6fe;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.lead-notes-label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
 }
 
 /* Inline "Assigned Staff" editor on a lead card, reusing the shared input look */
