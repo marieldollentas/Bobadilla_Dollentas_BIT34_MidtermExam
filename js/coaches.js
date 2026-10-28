@@ -2077,7 +2077,7 @@ function openAddCoach() {
     document.getElementById("coachModalTitle").textContent = "Add Coach";
     document.getElementById("saveCoachBtn").textContent = "Save Coach";
     modal.style.display = "flex";
-    document.getElementById("coachName").focus();
+    document.getElementById("coachLastName").focus();
 }
 
 
@@ -2091,7 +2091,7 @@ function openEditCoach(encodedId) {
 
     buildCoachFormFields();
     document.getElementById("coachId").value = coach.id;
-    document.getElementById("coachName").value = coach.name || "";
+    fillNameInputs("coach", coach);
     document.getElementById("coachEmail").value = coach.email || "";
     document.getElementById("coachPhone").value = coach.phone || "";
     // Only catalogue entries have a chip, so a stale value on an old record
@@ -2119,7 +2119,8 @@ function openEditCoach(encodedId) {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function saveCoach() {
     const id = document.getElementById("coachId").value;
-    const name = document.getElementById("coachName").value.trim();
+    const nameParts = readNameInputs("coach");
+    const name = nameParts.name;
     const email = document.getElementById("coachEmail").value.trim();
     const phone = document.getElementById("coachPhone").value.trim();
     const specializations = coachSpecializationSelection();
@@ -2139,7 +2140,7 @@ function saveCoach() {
         return false;
     };
 
-    if (!name) return fail("Please enter the coach's full name.");
+    if (!nameParts.firstName || !nameParts.lastName) return fail("Please enter the coach's first and last name.");
     if (!email || !COACH_EMAIL_PATTERN.test(email)) return fail("Please enter a valid email address.", "email");
     if (!phone) return fail("Please enter a contact number.", "phone");
     if (phone.length !== COACH_PHONE_DIGITS) return fail(`Phone number must be exactly ${COACH_PHONE_DIGITS} digits.`, "phone");
@@ -2154,7 +2155,19 @@ function saveCoach() {
     );
     if (duplicate) return fail(`${name} already exists in the coach directory.`);
 
-    const data = { name, email, phone, specializations, status, days, shiftStart, shiftEnd };
+    const data = {
+        name,
+        firstName: nameParts.firstName,
+        middleName: nameParts.middleName,
+        lastName: nameParts.lastName,
+        email,
+        phone,
+        specializations,
+        status,
+        days,
+        shiftStart,
+        shiftEnd
+    };
     const previous = id ? coaches.find(coach => String(coach.id) === String(id)) : null;
 
     if (previous) {

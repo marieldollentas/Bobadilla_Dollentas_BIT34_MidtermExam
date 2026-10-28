@@ -466,5 +466,58 @@ function sessionSortValue(session) {
     return `${session.date || ""} ${isNaN(minutes) ? 0 : String(minutes).padStart(4, "0")}`;
 }
 
+function combineNameParts(firstName, middleName, lastName) {
+    return [firstName, middleName, lastName]
+        .map(part => String(part || "").trim())
+        .filter(Boolean)
+        .join(" ");
+}
+
+function splitFullName(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: "", middleName: "", lastName: "" };
+    if (parts.length === 1) return { firstName: parts[0], middleName: "", lastName: "" };
+    return {
+        firstName: parts[0],
+        middleName: parts.slice(1, -1).join(" "),
+        lastName: parts[parts.length - 1]
+    };
+}
+
+function namePartsFromRecord(record) {
+    if (record && (record.firstName || record.middleName || record.lastName)) {
+        return {
+            firstName: record.firstName || "",
+            middleName: record.middleName || "",
+            lastName: record.lastName || ""
+        };
+    }
+    return splitFullName(record ? record.name : "");
+}
+
+function readNameInputs(prefix) {
+    const read = suffix => (document.getElementById(prefix + suffix) || { value: "" }).value.trim();
+    const firstName = read("FirstName");
+    const middleName = read("MiddleName");
+    const lastName = read("LastName");
+    return {
+        firstName,
+        middleName,
+        lastName,
+        name: combineNameParts(firstName, middleName, lastName)
+    };
+}
+
+function fillNameInputs(prefix, record) {
+    const parts = namePartsFromRecord(record);
+    const fill = (suffix, value) => {
+        const el = document.getElementById(prefix + suffix);
+        if (el) el.value = value || "";
+    };
+    fill("FirstName", parts.firstName);
+    fill("MiddleName", parts.middleName);
+    fill("LastName", parts.lastName);
+}
+
 // Every place that reads a coach's specializations goes through these, so
 // the list is formatted the same way in the table, dialogs and activity feed.

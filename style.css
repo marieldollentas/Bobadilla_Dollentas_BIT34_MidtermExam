@@ -1067,6 +1067,17 @@ letter-spacing: .3px;
     margin-bottom: 15px;
 }
 
+.name-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 15px;
+}
+
+.name-fields .form-group {
+    margin-bottom: 0;
+}
+
 .form-group label {
     display: block;
     margin-bottom: 6px;

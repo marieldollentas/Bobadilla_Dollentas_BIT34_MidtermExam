@@ -528,9 +528,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pipelineForm) {
         pipelineForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const name = document.getElementById("leadName").value.trim();
-            if (!name) {
-                alert("Please enter the client's name.");
+            const nameParts = readNameInputs("lead");
+            const name = nameParts.name;
+            if (!nameParts.firstName || !nameParts.lastName) {
+                alert("Please enter the client's first and last name.");
                 return;
             }
 
@@ -549,6 +550,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const leads = getPipelineLeads();
             const data = {
                 name,
+                firstName: nameParts.firstName,
+                middleName: nameParts.middleName,
+                lastName: nameParts.lastName,
                 phone: phoneVal,
                 email: emailVal,
                 tier: document.getElementById("leadTier").value,
@@ -846,7 +850,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         registerForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const name = document.getElementById("regName").value.trim();
+            const nameParts = readNameInputs("reg");
+            const name = nameParts.name;
             const email = document.getElementById("regEmail").value.trim();
             const phone = regPhoneEl ? regPhoneEl.value.replace(/\D/g, "").slice(0, 11) : "";
             const address = document.getElementById("regAddress").value.trim();
@@ -855,6 +860,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const password = document.getElementById("regPassword").value;
             const confirm = document.getElementById("regConfirm").value;
             const errorEl = document.getElementById("regError");
+
+            if (!nameParts.firstName || !nameParts.lastName) {
+                errorEl.textContent = "Please enter your first and last name.";
+                return;
+            }
 
             if (password !== confirm) {
                 errorEl.textContent = "Passwords do not match.";
@@ -882,6 +892,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 keyFob,
                 password,
                 name,
+                firstName: nameParts.firstName,
+                middleName: nameParts.middleName,
+                lastName: nameParts.lastName,
                 email,
                 phone,
                 address,
@@ -1222,14 +1235,15 @@ window.submitInquiry = () => {
     if (ticketForm) {
         ticketForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const name = document.getElementById("ticketName").value.trim();
+            const nameParts = readNameInputs("ticket");
+            const name = nameParts.name;
             const contact = document.getElementById("ticketContact").value.trim();
             const priority = document.getElementById("ticketPriority").value;
             const status = document.getElementById("ticketStatus").value;
             const issue = document.getElementById("ticketIssue").value.trim();
 
-            if (!name || !issue) {
-                alert("Please provide at least a name and an issue description.");
+            if (!nameParts.firstName || !nameParts.lastName || !issue) {
+                alert("Please provide at least a first name, last name and an issue description.");
                 return;
             }
 
@@ -1239,6 +1253,9 @@ window.submitInquiry = () => {
                 id: Date.now(),
                 date: now,
                 name,
+                firstName: nameParts.firstName,
+                middleName: nameParts.middleName,
+                lastName: nameParts.lastName,
                 contact,
                 issue,
                 priority,

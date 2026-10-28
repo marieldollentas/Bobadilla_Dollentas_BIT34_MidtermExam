@@ -177,7 +177,7 @@ function openEditPipelineLead(id) {
     if (!lead || !modal) return;
 
     document.getElementById("leadId").value = lead.id;
-    document.getElementById("leadName").value = lead.name;
+    fillNameInputs("lead", lead);
     document.getElementById("leadPhone").value = lead.phone || "";
     (document.getElementById("leadEmail") || {}).value = lead.email || "";
     document.getElementById("leadTier").value = lead.tier;
