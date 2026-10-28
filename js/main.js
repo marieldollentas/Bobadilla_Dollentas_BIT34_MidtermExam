@@ -981,6 +981,139 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("pOrigExp").textContent = customer.originalExpirationDate || "—";
         }
 
+        const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+        const AVATAR_MAX_PX = 512;
+        const avatarInput = document.getElementById("avatarInput");
+        const avatarUploadBtn = document.getElementById("avatarUploadBtn");
+        const avatarRemoveBtn = document.getElementById("avatarRemoveBtn");
+        const avatarMsg = document.getElementById("avatarMsg");
+
+        const avatarIsImage = value => /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(String(value || ""));
+
+        const avatarInitials = () => {
+            const source = String(customer.name || customer.username || "AF").trim();
+            const parts = source.split(/\s+/).filter(Boolean);
+            if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            return (source.slice(0, 2) || "AF").toUpperCase();
+        };
+
+        const paintAvatar = src => {
+            const safeSrc = avatarIsImage(src) ? src : "";
+            ["userAvatar", "portalAvatar"].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle("has-photo", Boolean(safeSrc));
+                el.innerHTML = "";
+                if (safeSrc) {
+                    const img = document.createElement("img");
+                    img.src = safeSrc;
+                    img.alt = `${customer.name || "Member"} profile picture`;
+                    el.appendChild(img);
+                } else {
+                    el.textContent = avatarInitials();
+                }
+            });
+            if (avatarRemoveBtn) avatarRemoveBtn.hidden = !safeSrc;
+        };
+
+        const saveCustomerAvatar = value => {
+            const list = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
+            const record = list.find(c => c.username === currentUser);
+            if (!record) return false;
+            if (value) record.avatar = value;
+            else delete record.avatar;
+            try {
+                localStorage.setItem("crmCustomers", JSON.stringify(list));
+            } catch (e) {
+                return false;
+            }
+            if (value) customer.avatar = value;
+            else delete customer.avatar;
+            return true;
+        };
+
+        const resizeAvatarFile = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error("read"));
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => reject(new Error("decode"));
+                img.onload = () => {
+                    const scale = Math.min(1, AVATAR_MAX_PX / Math.max(img.width, img.height));
+                    const width = Math.max(1, Math.round(img.width * scale));
+                    const height = Math.max(1, Math.round(img.height * scale));
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) {
+                        reject(new Error("canvas"));
+                        return;
+                    }
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    try {
+                        resolve(canvas.toDataURL("image/jpeg", 0.85));
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const showAvatarMsg = (text, isError) => {
+            if (!avatarMsg) return;
+            avatarMsg.className = isError ? "error-msg" : "success-msg";
+            avatarMsg.textContent = text;
+        };
+
+        paintAvatar(customer.avatar);
+
+        if (avatarUploadBtn && avatarInput) {
+            avatarUploadBtn.addEventListener("click", () => avatarInput.click());
+            avatarInput.addEventListener("change", async () => {
+                const file = avatarInput.files && avatarInput.files[0];
+                avatarInput.value = "";
+                if (!file) return;
+                if (!/^image\/(?:jpeg|png|webp)$/i.test(file.type)) {
+                    showAvatarMsg("Please choose a JPG, PNG or WebP image.", true);
+                    return;
+                }
+                if (file.size > AVATAR_MAX_BYTES) {
+                    showAvatarMsg("That image is larger than 5 MB. Please choose a smaller file.", true);
+                    return;
+                }
+                showAvatarMsg("Uploading your photo…", false);
+                try {
+                    const dataUrl = await resizeAvatarFile(file);
+                    if (!saveCustomerAvatar(dataUrl)) {
+                        showAvatarMsg("We couldn't save your photo. Please try a smaller image.", true);
+                        return;
+                    }
+                    paintAvatar(dataUrl);
+                    showAvatarMsg("Profile picture updated.", false);
+                } catch (e) {
+                    showAvatarMsg("That image could not be read. Please try another file.", true);
+                }
+            });
+        }
+
+        if (avatarRemoveBtn) {
+            avatarRemoveBtn.addEventListener("click", () => {
+                if (!customer.avatar) return;
+                if (!confirm("Remove your profile picture?")) return;
+                if (!saveCustomerAvatar("")) {
+                    showAvatarMsg("We couldn't remove your photo. Please try again.", true);
+                    return;
+                }
+                paintAvatar("");
+                showAvatarMsg("Profile picture removed.", false);
+            });
+        }
+
         const pStatusEl = document.getElementById("pStatus");
         if (pStatusEl) {
             const today = todayStart();

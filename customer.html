@@ -89,6 +89,22 @@
                 </header>
 
                 <div class="portal-group-grid">
+                    <section class="content-section span-12">
+                        <div class="profile-photo">
+                            <span class="avatar avatar-lg" id="portalAvatar" aria-hidden="true">AF</span>
+                            <div class="profile-photo-copy">
+                                <h3>Profile Picture</h3>
+                                <p class="card-sub">Upload a photo so the front desk can recognize you. JPG, PNG or WebP, up to 5 MB.</p>
+                                <div class="profile-photo-actions">
+                                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" hidden>
+                                    <button type="button" class="btn-primary" id="avatarUploadBtn">Upload Photo</button>
+                                    <button type="button" class="btn-secondary" id="avatarRemoveBtn" hidden>Remove Photo</button>
+                                </div>
+                                <p id="avatarMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="content-section span-7">
                         <div class="card-head">
                             <div>
