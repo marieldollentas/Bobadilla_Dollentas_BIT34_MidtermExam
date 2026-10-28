@@ -103,9 +103,9 @@ const PIPELINE_STAFF_ALIASES = {
 // js-split:file=data.js part=9of59
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 const PIPELINE_TIERS = [
-    { value: "6-Month Membership", label: "6-Month Membership ($45/mo)", price: 45, months: 6 },
-    { value: "12-Month Membership", label: "12-Month Membership ($40/mo)", price: 40, months: 12 },
-    { value: "18-Month Membership", label: "18-Month Membership ($35/mo)", price: 35, months: 18 }
+    { value: "6-Month Membership", label: "6-Month Membership (₱2,500/mo)", price: 2500, months: 6 },
+    { value: "12-Month Membership", label: "12-Month Membership (₱2,200/mo)", price: 2200, months: 12 },
+    { value: "18-Month Membership", label: "18-Month Membership (₱1,950/mo)", price: 1950, months: 18 }
 ];
 
 

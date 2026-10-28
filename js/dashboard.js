@@ -372,7 +372,7 @@ function memberChartData() {
     // so the plan and what it costs are read together.
     const byTier = PIPELINE_TIERS.map(tier => ({
         label: tier.value,
-        note: `$${tier.price}/mo`,
+        note: `₱${tier.price.toLocaleString()}/mo`,
         value: tierCounts[tier.value] || 0
     }));
     const knownTiers = PIPELINE_TIERS.map(tier => tier.value);
