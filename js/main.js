@@ -797,6 +797,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const regExpEl = document.getElementById("regExp");
         const regPhoneEl = document.getElementById("regPhone");
 
+        // Name fields accept letters and spaces only, capped at 50 characters.
+        // Filtering on input keeps pasted or autofilled values clean too, so a
+        // number or special character never reaches the member record.
+        const NAME_MAX_LENGTH = 50;
+        const nameEls = ["regFirstName", "regMiddleName", "regLastName"]
+            .map(id => document.getElementById(id))
+            .filter(Boolean);
+        const sanitizeName = (el) => {
+            const clean = el.value.replace(/[^A-Za-z\s]/g, "").slice(0, NAME_MAX_LENGTH);
+            if (el.value !== clean) el.value = clean;
+        };
+        nameEls.forEach(el => {
+            el.addEventListener("input", () => sanitizeName(el));
+            el.addEventListener("blur", () => sanitizeName(el));
+        });
+
         // The phone field accepts digits only, capped at the 11 digits of a local
         // mobile number. Typing, pasting and autofill all go through the same
         // filter, so a letter or an extra digit never reaches the member record.
@@ -850,8 +866,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         registerForm.addEventListener("submit", (e) => {
             e.preventDefault();
+            nameEls.forEach(sanitizeName);
             const nameParts = readNameInputs("reg");
-            const name = nameParts.name;
+            const suffixEl = document.getElementById("regSuffix");
+            const suffix = suffixEl ? suffixEl.value : "";
+            const name = nameParts.name + (suffix ? ` ${suffix}` : "");
             const email = document.getElementById("regEmail").value.trim();
             const phone = regPhoneEl ? regPhoneEl.value.replace(/\D/g, "").slice(0, 11) : "";
             const address = document.getElementById("regAddress").value.trim();
@@ -863,6 +882,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!nameParts.firstName || !nameParts.lastName) {
                 errorEl.textContent = "Please enter your first and last name.";
+                return;
+            }
+
+            if (!/^[A-Za-z\s]+$/.test(nameParts.firstName) || !/^[A-Za-z\s]+$/.test(nameParts.lastName)) {
+                errorEl.textContent = "Names may only contain letters and spaces.";
+                return;
+            }
+
+            if (nameParts.middleName && !/^[A-Za-z\s]+$/.test(nameParts.middleName)) {
+                errorEl.textContent = "Middle name may only contain letters and spaces.";
                 return;
             }
 
@@ -895,6 +924,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 firstName: nameParts.firstName,
                 middleName: nameParts.middleName,
                 lastName: nameParts.lastName,
+                suffix,
                 email,
                 phone,
                 address,
