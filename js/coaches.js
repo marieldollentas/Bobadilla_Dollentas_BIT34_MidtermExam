@@ -1511,6 +1511,17 @@ function sessionClientIdLabel(session) {
 // Session scheduling rules. Returns "" when the slot is clean, or a
 // warning the form shows instead of saving.
 
+// New sessions are limited to the current month and cannot be booked into the
+// past. The date picker uses these bounds as min/max so out-of-range days are
+// blacked out instead of being selectable.
+function sessionDateBounds() {
+    const now = new Date();
+    return {
+        min: todayISO(),
+        max: localISODate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    };
+}
+
 
 // js-split:file=coaches.js part=51of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
@@ -1560,6 +1571,19 @@ function sessionConflictMessage(session, editingId) {
 
     const date = new Date(session.date + "T00:00:00");
     if (isNaN(date.getTime())) return "Please choose a valid session date.";
+
+    // New bookings must stay inside the current month and never move backwards.
+    // Editing an existing session keeps its original date so older records can
+    // still be updated (for example, marking a past session completed).
+    if (!editingId) {
+        const bounds = sessionDateBounds();
+        if (session.date < bounds.min) {
+            return "Scheduling Conflict: past dates cannot be booked. Choose today or a later date this month.";
+        }
+        if (session.date > bounds.max) {
+            return `Scheduling Conflict: sessions can only be booked within the current month (up to ${bounds.max}).`;
+        }
+    }
 
     if (!coachWorkingDayOn(coach, date)) {
         return `Scheduling Conflict: ${coach.name} does not work on ${date.toLocaleDateString("en-US", { weekday: "long" })}. Working days: ${coachWorkingDayLabels(coach)}.`;
@@ -1664,7 +1688,19 @@ function openSessionModal(encodedId) {
     // With no stored type the picker falls back to the coach's first one.
     fillSessionTypeOptions(coach, session ? session.type : null);
     document.getElementById("sessionStatus").value = session ? session.status : "Scheduled";
-    document.getElementById("sessionDate").value = session ? session.date : todayISO();
+
+    const dateInput = document.getElementById("sessionDate");
+    const bounds = sessionDateBounds();
+    dateInput.min = bounds.min;
+    dateInput.max = bounds.max;
+    // An existing session outside the current window stays editable, otherwise
+    // its unchanged date would fail the browser's min/max validation on save.
+    if (session && session.date) {
+        if (session.date < bounds.min) dateInput.min = session.date;
+        if (session.date > bounds.max) dateInput.max = session.date;
+    }
+    dateInput.value = session ? session.date : todayISO();
+
     document.getElementById("sessionTime").value = session ? session.time : "10:00";
     document.getElementById("sessionNotes").value = session ? (session.notes || "") : "";
     document.getElementById("sessionFormError").textContent = "";
