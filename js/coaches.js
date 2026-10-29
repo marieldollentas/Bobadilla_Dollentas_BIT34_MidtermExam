@@ -11,7 +11,7 @@ function normalizeCoach(coach) {
         ...coach,
         specializations: list.map(value => String(value).trim()).filter(Boolean),
         status: coach.status === "Inactive" ? "On Leave" : coach.status,
-        phone: coach.phone ? String(coach.phone).replace(/\D/g, "").slice(0, COACH_PHONE_DIGITS) : coach.phone
+        phone: coach.phone ? phLocalNumber(coach.phone) : coach.phone
     };
 }
 
@@ -1987,9 +1987,9 @@ function setCoachSpecializationSelection(values) {
 }
 
 // Keeps the coach form's contact fields to what they can actually store:
-// the phone number is 11 bare digits, and the email has to look like an
-// address. Both checks run while typing, so a bad value is caught before
-// the form is submitted.
+// the phone number is the 10-digit national number after +63 (saved locally
+// as 11 digits), and the email has to look like an address. Both checks run
+// while typing, so a bad value is caught before the form is submitted.
 
 
 // js-split:file=coaches.js part=63of70
@@ -2009,14 +2009,11 @@ function bindCoachContactFields() {
         el.addEventListener("blur", () => sanitizePersonNameInput(el));
     });
 
-    // Letters, spaces and dashes are dropped as they are typed or pasted, and
-    // the length cap in the markup stops an extra digit at the source.
+    // The field shows the +63 prefix, so only the 10-digit national number is
+    // kept; letters, spaces and extra digits are dropped as they are typed.
     if (phone) {
-        phone.addEventListener("input", () => {
-            const digits = phone.value.replace(/\D/g, "").slice(0, COACH_PHONE_DIGITS);
-            if (digits !== phone.value) phone.value = digits;
-            clearFieldError(errorEl, "phone");
-        });
+        bindPhPhoneInput(phone);
+        phone.addEventListener("input", () => clearFieldError(errorEl, "phone"));
     }
 
     // An address can hold almost every character, so nothing is blocked while
@@ -2103,7 +2100,7 @@ function openEditCoach(encodedId) {
     document.getElementById("coachId").value = coach.id;
     fillNameInputs("coach", coach);
     document.getElementById("coachEmail").value = coach.email || "";
-    document.getElementById("coachPhone").value = coach.phone || "";
+    document.getElementById("coachPhone").value = phPhoneNationalDigits(coach.phone || "");
     // Only catalogue entries have a chip, so a stale value on an old record
     // is dropped in favour of the default rather than shown unchecked.
     const known = coachSpecializations(coach).filter(value => COACH_SPECIALIZATIONS.includes(value));
@@ -2132,7 +2129,7 @@ function saveCoach() {
     const nameParts = readNameInputs("coach");
     const name = nameParts.name;
     const email = document.getElementById("coachEmail").value.trim();
-    const phone = document.getElementById("coachPhone").value.trim();
+    const phone = phLocalNumber(document.getElementById("coachPhone").value);
     const specializations = coachSpecializationSelection();
     const status = document.getElementById("coachStatus").value;
     const shiftStart = Number(document.getElementById("coachShiftStart").value);
@@ -2156,7 +2153,7 @@ function saveCoach() {
     }
     if (!email || !COACH_EMAIL_PATTERN.test(email)) return fail("Please enter a valid email address.", "email");
     if (!phone) return fail("Please enter a contact number.", "phone");
-    if (phone.length !== COACH_PHONE_DIGITS) return fail(`Phone number must be exactly ${COACH_PHONE_DIGITS} digits.`, "phone");
+    if (phone.length !== COACH_PHONE_DIGITS) return fail("Enter the 10-digit mobile number after +63.", "phone");
     if (!specializations.length) return fail("Please select at least one specialization.");
     if (!days.length) return fail("Please select at least one working day.");
     if (!(shiftStart < shiftEnd)) return fail("Working hours must end after they start.");

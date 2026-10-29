@@ -480,13 +480,9 @@ document.addEventListener("DOMContentLoaded", () => {
         el.addEventListener("blur", () => sanitizePersonNameInput(el));
     });
 
-    const leadPhoneInput = document.getElementById("leadPhone");
-    if (leadPhoneInput) {
-        leadPhoneInput.addEventListener("input", function() {
-            this.value = this.value.replace(/\D/g, "");
-            if (this.value.length > 11) this.value = this.value.slice(0, 11);
-        });
-    }
+    // The lead form shows the +63 prefix, so the field holds the 10-digit
+    // national number and is stored back as an 11-digit local number.
+    bindPhPhoneInput(document.getElementById("leadPhone"));
 
     const leadEmailInput = document.getElementById("leadEmail");
     if (leadEmailInput) {
@@ -550,9 +546,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const phoneVal = document.getElementById("leadPhone").value.trim();
-            if (phoneVal && !/^\d{11}$/.test(phoneVal)) {
-                alert("Phone number must be exactly 11 digits.");
+            const phoneVal = phLocalNumber(document.getElementById("leadPhone").value);
+            if (phoneVal && !/^0\d{10}$/.test(phoneVal)) {
+                alert("Enter the 10-digit mobile number after +63.");
                 return;
             }
 
@@ -824,15 +820,9 @@ document.addEventListener("DOMContentLoaded", () => {
             el.addEventListener("blur", () => sanitizeName(el));
         });
 
-        // The phone field accepts digits only, capped at the 11 digits of a local
-        // mobile number. Typing, pasting and autofill all go through the same
-        // filter, so a letter or an extra digit never reaches the member record.
-        if (regPhoneEl) {
-            regPhoneEl.addEventListener("input", () => {
-                const digits = regPhoneEl.value.replace(/\D/g, "").slice(0, 11);
-                if (regPhoneEl.value !== digits) regPhoneEl.value = digits;
-            });
-        }
+        // The field shows the +63 prefix, so it holds the 10-digit national
+        // number; typing, pasting and autofill all go through the same filter.
+        bindPhPhoneInput(regPhoneEl);
 
         // Key Fob confirmation dialog
         const fobModal = document.getElementById("fobModal");
@@ -883,7 +873,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const suffix = suffixEl ? suffixEl.value : "";
             const name = nameParts.name + (suffix ? ` ${suffix}` : "");
             const email = document.getElementById("regEmail").value.trim();
-            const phone = regPhoneEl ? regPhoneEl.value.replace(/\D/g, "").slice(0, 11) : "";
+            const phone = phLocalNumber(regPhoneEl ? regPhoneEl.value : "");
             const address = document.getElementById("regAddress").value.trim();
             const tier = regTierEl ? regTierEl.value : "";
             const keyFob = regFobEl ? regFobEl.value.trim() : "";
@@ -911,8 +901,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            if (phone && !/^\d{11}$/.test(phone)) {
-                errorEl.textContent = "Phone number must be exactly 11 digits.";
+            if (phone && !/^0\d{10}$/.test(phone)) {
+                errorEl.textContent = "Enter the 10-digit mobile number after +63.";
                 return;
             }
 

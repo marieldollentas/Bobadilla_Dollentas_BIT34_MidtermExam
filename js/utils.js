@@ -536,3 +536,27 @@ function fillNameInputs(prefix, record) {
 
 // Every place that reads a coach's specializations goes through these, so
 // the list is formatted the same way in the table, dialogs and activity feed.
+
+// Philippine mobile numbers are stored as 11-digit local numbers (0XXXXXXXXXX)
+// but the forms show them as the 10-digit national number after the +63 prefix.
+const PH_PHONE_DIGITS = 10;
+
+function phPhoneNationalDigits(value) {
+    let digits = String(value || "").replace(/\D/g, "");
+    if (digits.length > PH_PHONE_DIGITS && digits.startsWith("63")) digits = digits.slice(2);
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    return digits.slice(0, PH_PHONE_DIGITS);
+}
+
+function phLocalNumber(value) {
+    const digits = phPhoneNationalDigits(value);
+    return digits ? "0" + digits : "";
+}
+
+function bindPhPhoneInput(input) {
+    if (!input) return;
+    input.addEventListener("input", () => {
+        const digits = phPhoneNationalDigits(input.value);
+        if (input.value !== digits) input.value = digits;
+    });
+}

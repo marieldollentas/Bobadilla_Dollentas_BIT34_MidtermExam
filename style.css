@@ -1137,6 +1137,57 @@ letter-spacing: .3px;
     color: var(--text-muted);
 }
 
+/* Phone fields carry a Philippine flag and the +63 country code inside the
+   control, so the number is typed in national format (912 345 6789). */
+.phone-field {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    overflow: hidden;
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.phone-field:focus-within {
+    border-color: var(--primary-300, #c3baf1);
+    box-shadow: 0 0 0 4px rgba(91, 75, 196, .18);
+}
+
+.phone-prefix {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 11px;
+    border-right: 1px solid var(--border);
+    background: var(--background);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.phone-flag {
+    width: 20px;
+    height: 14px;
+    flex: 0 0 auto;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(23, 22, 53, .1);
+}
+
+.phone-field .search-input {
+    min-width: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.phone-field .search-input:focus {
+    border: 0;
+    box-shadow: none;
+}
+
 select.search-input {
     -webkit-appearance: none;
     appearance: none;
