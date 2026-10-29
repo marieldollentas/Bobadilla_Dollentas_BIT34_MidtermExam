@@ -507,6 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("leadId").value = "";
             document.getElementById("leadStage").value = "new-lead";
             document.getElementById("lostReasonGroup").style.display = "none";
+            if (typeof applyLeadFollowUpBounds === "function") applyLeadFollowUpBounds();
             document.getElementById("pipelineModalTitle").textContent = "Add Prospecting Client";
             document.getElementById("pipelineForm").querySelector('button[type="submit"]').textContent = "Save Client";
             if (typeof syncLeadValue === "function") syncLeadValue();
@@ -556,6 +557,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
                 alert("Please enter a valid email address.");
                 return;
+            }
+
+            const followUpInput = document.getElementById("leadFollowUp");
+            const followUpVal = followUpInput.value;
+            const editingId = document.getElementById("leadId").value;
+            const existingLead = editingId ? getPipelineLeads().find(l => String(l.id) === String(editingId)) : null;
+            const existingFollowUp = existingLead ? existingLead.followUp || "" : "";
+            if (followUpVal && followUpVal !== existingFollowUp) {
+                const bounds = leadFollowUpBounds();
+                if (followUpVal < bounds.min || followUpVal > bounds.max) {
+                    alert("Follow-up dates must be today or later, and no more than 10 years from today.");
+                    return;
+                }
             }
 
             const leads = getPipelineLeads();

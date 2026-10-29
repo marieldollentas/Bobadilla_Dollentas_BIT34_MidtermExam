@@ -169,6 +169,32 @@ function renderPipelineBoard() {
 
 
 
+// Follow-ups are limited to the next 10 years and can never be dated in the
+// past. The date picker gets these as min/max so the calendar itself cannot
+// navigate beyond the allowed range.
+function leadFollowUpBounds() {
+    const now = new Date();
+    return {
+        min: localISODate(now),
+        max: localISODate(new Date(now.getFullYear() + 10, now.getMonth(), now.getDate()))
+    };
+}
+
+function applyLeadFollowUpBounds(followUp) {
+    const input = document.getElementById("leadFollowUp");
+    if (!input) return;
+    const bounds = leadFollowUpBounds();
+    input.min = bounds.min;
+    input.max = bounds.max;
+    // An existing follow-up outside the window stays editable, otherwise its
+    // unchanged date would fail the browser's min/max validation on save.
+    if (followUp) {
+        if (followUp < bounds.min) input.min = followUp;
+        if (followUp > bounds.max) input.max = followUp;
+    }
+}
+
+
 // js-split:file=leads.js part=7of8
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function openEditPipelineLead(id) {
@@ -184,6 +210,7 @@ function openEditPipelineLead(id) {
     document.getElementById("leadStaff").value = lead.staff;
     document.getElementById("leadHeat").value = lead.heat || "Warm";
     document.getElementById("leadStage").value = lead.stage;
+    applyLeadFollowUpBounds(lead.followUp);
     document.getElementById("leadFollowUp").value = lead.followUp || "";
     (document.getElementById("leadNotes") || {}).value = lead.notes || "";
     if (typeof syncLeadValue === "function") syncLeadValue();
