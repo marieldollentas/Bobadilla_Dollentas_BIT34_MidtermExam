@@ -470,6 +470,16 @@ document.addEventListener("DOMContentLoaded", () => {
         leadTierSelect.addEventListener("change", syncLeadValue);
     }
 
+    // Lead names are filtered at the source: numbers and special characters
+    // (except ñ/Ñ) never reach the field, and the length is capped to match
+    // the member registration form.
+    ["leadFirstName", "leadMiddleName", "leadLastName"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", () => sanitizePersonNameInput(el));
+        el.addEventListener("blur", () => sanitizePersonNameInput(el));
+    });
+
     const leadPhoneInput = document.getElementById("leadPhone");
     if (leadPhoneInput) {
         leadPhoneInput.addEventListener("input", function() {
@@ -532,6 +542,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const name = nameParts.name;
             if (!nameParts.firstName || !nameParts.lastName) {
                 alert("Please enter the client's first and last name.");
+                return;
+            }
+
+            if (![nameParts.firstName, nameParts.middleName, nameParts.lastName].every(isValidPersonName)) {
+                alert("Names may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.");
                 return;
             }
 
@@ -800,14 +815,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // Name fields accept letters and spaces only, capped at 50 characters.
         // Filtering on input keeps pasted or autofilled values clean too, so a
         // number or special character never reaches the member record.
-        const NAME_MAX_LENGTH = 50;
         const nameEls = ["regFirstName", "regMiddleName", "regLastName"]
             .map(id => document.getElementById(id))
             .filter(Boolean);
-        const sanitizeName = (el) => {
-            const clean = el.value.replace(/[^A-Za-z\s]/g, "").slice(0, NAME_MAX_LENGTH);
-            if (el.value !== clean) el.value = clean;
-        };
+        const sanitizeName = (el) => sanitizePersonNameInput(el, PERSON_NAME_MAX_LENGTH);
         nameEls.forEach(el => {
             el.addEventListener("input", () => sanitizeName(el));
             el.addEventListener("blur", () => sanitizeName(el));
@@ -885,13 +896,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            if (!/^[A-Za-z\s]+$/.test(nameParts.firstName) || !/^[A-Za-z\s]+$/.test(nameParts.lastName)) {
-                errorEl.textContent = "Names may only contain letters and spaces.";
+            if (!isValidPersonName(nameParts.firstName) || !isValidPersonName(nameParts.lastName)) {
+                errorEl.textContent = "Names may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.";
                 return;
             }
 
-            if (nameParts.middleName && !/^[A-Za-z\s]+$/.test(nameParts.middleName)) {
-                errorEl.textContent = "Middle name may only contain letters and spaces.";
+            if (nameParts.middleName && !isValidPersonName(nameParts.middleName)) {
+                errorEl.textContent = "Middle name may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.";
                 return;
             }
 

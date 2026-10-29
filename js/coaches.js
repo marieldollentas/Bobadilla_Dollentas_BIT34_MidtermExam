@@ -1999,6 +1999,16 @@ function bindCoachContactFields() {
     const email = document.getElementById("coachEmail");
     const errorEl = document.getElementById("coachFormError");
 
+    // Coach names are filtered at the source: numbers and special characters
+    // (except ñ/Ñ) never reach the field, and the length is capped to match
+    // the member registration form.
+    ["coachFirstName", "coachMiddleName", "coachLastName"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", () => sanitizePersonNameInput(el));
+        el.addEventListener("blur", () => sanitizePersonNameInput(el));
+    });
+
     // Letters, spaces and dashes are dropped as they are typed or pasted, and
     // the length cap in the markup stops an extra digit at the source.
     if (phone) {
@@ -2141,6 +2151,9 @@ function saveCoach() {
     };
 
     if (!nameParts.firstName || !nameParts.lastName) return fail("Please enter the coach's first and last name.");
+    if (![nameParts.firstName, nameParts.middleName, nameParts.lastName].every(isValidPersonName)) {
+        return fail("Names may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.");
+    }
     if (!email || !COACH_EMAIL_PATTERN.test(email)) return fail("Please enter a valid email address.", "email");
     if (!phone) return fail("Please enter a contact number.", "phone");
     if (phone.length !== COACH_PHONE_DIGITS) return fail(`Phone number must be exactly ${COACH_PHONE_DIGITS} digits.`, "phone");

@@ -466,6 +466,21 @@ function sessionSortValue(session) {
     return `${session.date || ""} ${isNaN(minutes) ? 0 : String(minutes).padStart(4, "0")}`;
 }
 
+// Names may only contain letters, spaces and the Filipino enye (ñ/Ñ).
+function isValidPersonName(value) {
+    return /^[A-Za-zñÑ\s]*$/.test(String(value || ""));
+}
+
+// Strips anything a person's name cannot contain (numbers, punctuation and
+// other special characters) as it is typed or pasted, and caps the length.
+const PERSON_NAME_MAX_LENGTH = 50;
+function sanitizePersonNameInput(el, maxLength) {
+    if (!el) return;
+    const limit = maxLength || PERSON_NAME_MAX_LENGTH;
+    const clean = String(el.value || "").replace(/[^A-Za-zñÑ\s]/g, "").slice(0, limit);
+    if (el.value !== clean) el.value = clean;
+}
+
 function combineNameParts(firstName, middleName, lastName) {
     return [firstName, middleName, lastName]
         .map(part => String(part || "").trim())
