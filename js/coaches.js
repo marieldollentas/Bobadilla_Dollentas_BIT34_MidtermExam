@@ -953,6 +953,100 @@ function selectedScheduleCoach() {
 
 
 
+// The Monday picked from the calendar. Kept outside renderSchedule so the
+// chosen week survives every repaint of the tracker.
+let scheduleWeekStart = null;
+
+function startOfWeekMonday(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d;
+}
+
+function scheduleSelectedMonday() {
+    if (scheduleWeekStart) {
+        const parts = String(scheduleWeekStart).split("-").map(Number);
+        const picked = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(picked.getTime())) return startOfWeekMonday(picked);
+    }
+    return startOfWeekMonday(new Date());
+}
+
+function scheduleMondayLabel(date) {
+    const month = date.toLocaleDateString("en-US", { month: "long" });
+    return `Mon(${month} ${date.getDate()})`;
+}
+
+function scheduleDayLabel(day, date) {
+    const month = date.toLocaleDateString("en-US", { month: "long" });
+    return `${day.short}(${month} ${date.getDate()})`;
+}
+
+// Only Mondays, spanning this month and the next. The current week's Monday is
+// included even when it falls in the previous month, so the default week always
+// has a highlighted entry.
+function scheduleMondayOptions() {
+    const today = new Date();
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastOfRange = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+    const weekStart = startOfWeekMonday(today);
+    const start = weekStart < firstOfMonth ? weekStart : firstOfMonth;
+
+    const mondays = [];
+    const cursor = new Date(start);
+    cursor.setDate(cursor.getDate() + ((8 - cursor.getDay()) % 7));
+    while (cursor <= lastOfRange) {
+        mondays.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 7);
+    }
+    return mondays;
+}
+
+function buildScheduleCalendar() {
+    const pop = document.getElementById("scheduleCalendarPop");
+    if (!pop) return;
+
+    const selectedISO = localISODate(scheduleSelectedMonday());
+    const groups = [];
+    scheduleMondayOptions().forEach(date => {
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        let group = groups.find(entry => entry.key === key);
+        if (!group) {
+            group = {
+                key,
+                label: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+                dates: []
+            };
+            groups.push(group);
+        }
+        group.dates.push(date);
+    });
+
+    pop.innerHTML = groups.map(group => `
+        <div class="calendar-month">
+            <p class="calendar-month-label">${escapeHtml(group.label)}</p>
+            <div class="calendar-mondays">
+                ${group.dates.map(date => {
+                    const iso = localISODate(date);
+                    const active = iso === selectedISO;
+                    return `<button type="button" class="calendar-day${active ? " active" : ""}" data-date="${iso}" aria-pressed="${active}"><span class="calendar-dow">Mon</span><span class="calendar-date">${date.getDate()}</span></button>`;
+                }).join("")}
+            </div>
+        </div>
+    `).join("");
+
+    const label = document.getElementById("scheduleCalendarLabel");
+    if (label) label.textContent = scheduleMondayLabel(scheduleSelectedMonday());
+}
+
+function closeScheduleCalendar() {
+    const pop = document.getElementById("scheduleCalendarPop");
+    const toggle = document.getElementById("scheduleCalendarToggle");
+    if (pop) pop.setAttribute("hidden", "");
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+}
+
+
 // js-split:file=coaches.js part=39of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function renderSchedule() {
@@ -974,24 +1068,31 @@ function renderSchedule() {
 
     // Monday first, matching a gym week
     const days = COACH_WEEKDAYS.filter(day => day.value >= 1).concat(COACH_WEEKDAYS.filter(day => day.value === 0));
-    head.innerHTML = `<th>Time</th>${days.map(day =>
-        `<th${day.value === new Date().getDay() ? ' class="is-today"' : ""}>${day.short}</th>`
-    ).join("")}`;
 
-    // Build the Mon-Sun dates of the current week so every slot can be
+    // Build the Mon-Sun dates of the selected week so every slot can be
     // matched against the coach's working days and booked sessions.
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const monday = scheduleSelectedMonday();
+    const weekDates = days.map(day => {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + (day.value === 0 ? 6 : day.value - 1));
+        return date;
+    });
+
+    head.innerHTML = `<th>Time</th>${days.map((day, index) => {
+        const date = weekDates[index];
+        const classes = ["schedule-date-head"];
+        if (localISODate(date) === todayISO()) classes.push("is-today");
+        return `<th class="${classes.join(" ")}">${escapeHtml(scheduleDayLabel(day, date))}</th>`;
+    }).join("")}`;
+
     const sessions = coachSessionsFor(coach.id).filter(session => !session.archived);
     let bookedCount = 0;
 
     for (let hour = COACH_SLOT_START; hour <= COACH_SLOT_END; hour++) {
         const cells = [`<td class="schedule-slot">${formatHourLabel(hour)}</td>`];
 
-        days.forEach(day => {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + (day.value === 0 ? 6 : day.value - 1));
+        days.forEach((day, index) => {
+            const date = weekDates[index];
             const dateISO = localISODate(date);
             const slotSessions = sessions.filter(session =>
                 session.date === dateISO &&
@@ -1017,8 +1118,11 @@ function renderSchedule() {
 
     const summary = document.getElementById("scheduleSummary");
     if (summary) {
-        summary.textContent = `${coach.name} • ${coachWorkingDayLabels(coach)} • ${coachShiftLabel(coach)} • ${bookedCount} session${bookedCount === 1 ? "" : "s"} this week`;
+        summary.textContent = `${coach.name} • ${coachWorkingDayLabels(coach)} • ${coachShiftLabel(coach)} • ${bookedCount} session${bookedCount === 1 ? "" : "s"} for the week of ${scheduleMondayLabel(monday)}`;
     }
+
+    const calendarLabel = document.getElementById("scheduleCalendarLabel");
+    if (calendarLabel) calendarLabel.textContent = scheduleMondayLabel(monday);
 }
 
 
@@ -2396,6 +2500,40 @@ document.addEventListener("DOMContentLoaded", () => {
             renderUpcomingAppointments();
         });
     }
+    const scheduleCalendarToggle = document.getElementById("scheduleCalendarToggle");
+    const scheduleCalendarPop = document.getElementById("scheduleCalendarPop");
+    if (scheduleCalendarToggle && scheduleCalendarPop) {
+        scheduleCalendarToggle.addEventListener("click", event => {
+            event.stopPropagation();
+            const willOpen = scheduleCalendarPop.hasAttribute("hidden");
+            if (!willOpen) {
+                closeScheduleCalendar();
+                return;
+            }
+            buildScheduleCalendar();
+            scheduleCalendarPop.removeAttribute("hidden");
+            scheduleCalendarToggle.setAttribute("aria-expanded", "true");
+        });
+
+        scheduleCalendarPop.addEventListener("click", event => {
+            const picked = event.target.closest("[data-date]");
+            if (!picked) return;
+            scheduleWeekStart = picked.getAttribute("data-date");
+            closeScheduleCalendar();
+            buildScheduleCalendar();
+            renderSchedule();
+        });
+
+        document.addEventListener("click", event => {
+            if (scheduleCalendarPop.hasAttribute("hidden")) return;
+            if (!event.target.closest("#scheduleCalendar")) closeScheduleCalendar();
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") closeScheduleCalendar();
+        });
+    }
+
     const assignmentCoachSelect = document.getElementById("assignmentCoach");
     if (assignmentCoachSelect) assignmentCoachSelect.addEventListener("change", renderAssignments);
 
