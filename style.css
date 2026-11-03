@@ -994,6 +994,26 @@ letter-spacing: .3px;
     transform: translateY(-1px);
 }
 
+.export-pdf-btn {
+    white-space: nowrap;
+}
+
+.export-pdf-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.export-pdf-btn[disabled] {
+    cursor: progress;
+    opacity: .7;
+    transform: none;
+}
+
 .btn-secondary {
     padding: 10px 18px;
     border-radius: var(--radius-sm);
