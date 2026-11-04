@@ -1529,7 +1529,7 @@ function renderSessions() {
 
     sessions.forEach(session => {
         const id = encodeURIComponent(session.id);
-        const archivable = String(session.status) === "Completed" || String(session.status) === "Cancelled";
+        const archivable = ["Completed", "Cancelled", "Missed"].includes(String(session.status));
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
@@ -1553,16 +1553,16 @@ function renderSessions() {
 
 
 
-// Archive a finished session (Completed / Cancelled only): it leaves the
-// schedule but stays on file in the Archive page, where it can be restored
+// Archive a finished session (Completed / Cancelled / Missed only): it leaves
+// the schedule but stays on file in the Archive page, where it can be restored
 // or deleted permanently.
 function archiveSession(encodedId) {
     const id = decodeURIComponent(encodedId || "");
     const sessions = getCoachSessions();
     const session = sessions.find(s => String(s.id) === String(id));
     if (!session) return;
-    if (String(session.status) !== "Completed" && String(session.status) !== "Cancelled") {
-        alert("Only completed or cancelled sessions can be archived.");
+    if (!["Completed", "Cancelled", "Missed"].includes(String(session.status))) {
+        alert("Only completed, cancelled or missed sessions can be archived.");
         return;
     }
     if (!confirm(`Archive this ${session.status.toLowerCase()} session? It stays on file and can be restored later.`)) return;
