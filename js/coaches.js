@@ -953,90 +953,123 @@ function selectedScheduleCoach() {
 
 
 
-// The Monday picked from the calendar. Kept outside renderSchedule so the
+// The date picked from the calendar. Kept outside renderSchedule so the
 // chosen week survives every repaint of the tracker.
-let scheduleWeekStart = null;
+let scheduleSelectedDate = null;
+let scheduleCalendarMonthOffset = 0;
 
-function startOfWeekMonday(date) {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+function scheduleTodayDate() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
     return d;
 }
 
-function scheduleSelectedMonday() {
-    if (scheduleWeekStart) {
-        const parts = String(scheduleWeekStart).split("-").map(Number);
-        const picked = new Date(parts[0], parts[1] - 1, parts[2]);
-        if (!isNaN(picked.getTime())) return startOfWeekMonday(picked);
-    }
-    return startOfWeekMonday(new Date());
+function scheduleDateFromISO(value) {
+    const parts = String(value || "").split("-").map(Number);
+    if (parts.length !== 3 || parts.some(part => !Number.isFinite(part))) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (isNaN(date.getTime())) return null;
+    if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return null;
+    return date;
 }
 
-function scheduleMondayLabel(date) {
-    const month = date.toLocaleDateString("en-US", { month: "long" });
-    return `Mon(${month} ${date.getDate()})`;
+function scheduleRangeEnd() {
+    const today = scheduleTodayDate();
+    return new Date(today.getFullYear(), today.getMonth() + 2, 0);
+}
+
+function scheduleSelectedDateValue() {
+    const today = scheduleTodayDate();
+    const rangeEnd = scheduleRangeEnd();
+    const picked = scheduleDateFromISO(scheduleSelectedDate);
+    if (picked && picked >= today && picked <= rangeEnd) return picked;
+    return today;
+}
+
+function startOfWeekSunday(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+}
+
+function scheduleWeekStartSunday() {
+    return startOfWeekSunday(scheduleSelectedDateValue());
+}
+
+function scheduleDateLabel(date) {
+    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function scheduleWeekLabel(date) {
+    const end = new Date(date);
+    end.setDate(date.getDate() + 6);
+    const startLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const endLabel = end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return `${startLabel} - ${endLabel}`;
 }
 
 function scheduleDayLabel(day, date) {
     const month = date.toLocaleDateString("en-US", { month: "long" });
-    return `${day.short}(${month} ${date.getDate()})`;
+    return `${day.full} (${month} ${date.getDate()})`;
 }
 
-// Only Mondays, spanning this month and the next. The current week's Monday is
-// included even when it falls in the previous month, so the default week always
-// has a highlighted entry.
-function scheduleMondayOptions() {
-    const today = new Date();
-    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastOfRange = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-    const weekStart = startOfWeekMonday(today);
-    const start = weekStart < firstOfMonth ? weekStart : firstOfMonth;
-
-    const mondays = [];
-    const cursor = new Date(start);
-    cursor.setDate(cursor.getDate() + ((8 - cursor.getDay()) % 7));
-    while (cursor <= lastOfRange) {
-        mondays.push(new Date(cursor));
-        cursor.setDate(cursor.getDate() + 7);
-    }
-    return mondays;
+function syncScheduleCalendarMonth() {
+    const selected = scheduleSelectedDateValue();
+    const today = scheduleTodayDate();
+    const diff = (selected.getFullYear() - today.getFullYear()) * 12 + (selected.getMonth() - today.getMonth());
+    scheduleCalendarMonthOffset = diff === 1 ? 1 : 0;
 }
 
 function buildScheduleCalendar() {
     const pop = document.getElementById("scheduleCalendarPop");
     if (!pop) return;
 
-    const selectedISO = localISODate(scheduleSelectedMonday());
-    const groups = [];
-    scheduleMondayOptions().forEach(date => {
-        const key = `${date.getFullYear()}-${date.getMonth()}`;
-        let group = groups.find(entry => entry.key === key);
-        if (!group) {
-            group = {
-                key,
-                label: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-                dates: []
-            };
-            groups.push(group);
-        }
-        group.dates.push(date);
-    });
+    const today = scheduleTodayDate();
+    const rangeEnd = scheduleRangeEnd();
+    const selected = scheduleSelectedDateValue();
+    const selectedISO = localISODate(selected);
 
-    pop.innerHTML = groups.map(group => `
-        <div class="calendar-month">
-            <p class="calendar-month-label">${escapeHtml(group.label)}</p>
-            <div class="calendar-mondays">
-                ${group.dates.map(date => {
-                    const iso = localISODate(date);
-                    const active = iso === selectedISO;
-                    return `<button type="button" class="calendar-day${active ? " active" : ""}" data-date="${iso}" aria-pressed="${active}"><span class="calendar-dow">Mon</span><span class="calendar-date">${date.getDate()}</span></button>`;
-                }).join("")}
-            </div>
+    const offset = Math.min(1, Math.max(0, scheduleCalendarMonthOffset));
+    scheduleCalendarMonthOffset = offset;
+
+    const month = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    const monthLabel = month.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const leadingBlanks = month.getDay();
+
+    const cells = [];
+    for (let i = 0; i < leadingBlanks; i++) {
+        cells.push('<span class="calendar-day is-empty" aria-hidden="true"></span>');
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(month.getFullYear(), month.getMonth(), day);
+        const iso = localISODate(date);
+        const active = iso === selectedISO;
+        const isToday = iso === localISODate(today);
+        const disabled = date < today || date > rangeEnd;
+        const classes = ["calendar-day"];
+        if (active) classes.push("active");
+        if (isToday) classes.push("is-today");
+        cells.push(`<button type="button" class="${classes.join(" ")}" data-date="${iso}" aria-label="${escapeHtml(scheduleDateLabel(date))}" aria-pressed="${active}"${disabled ? ' disabled aria-disabled="true"' : ""}><span class="calendar-date">${day}</span></button>`);
+    }
+
+    pop.innerHTML = `
+        <div class="calendar-nav">
+            <button type="button" class="calendar-nav-btn" data-calendar-nav="prev" aria-label="Previous month"${offset === 0 ? " disabled" : ""}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+            </button>
+            <span class="calendar-month-label">${escapeHtml(monthLabel)}</span>
+            <button type="button" class="calendar-nav-btn" data-calendar-nav="next" aria-label="Next month"${offset === 1 ? " disabled" : ""}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
         </div>
-    `).join("");
+        <div class="calendar-weekdays">${COACH_WEEKDAYS.map(day => `<span>${escapeHtml(day.short)}</span>`).join("")}</div>
+        <div class="calendar-grid">${cells.join("")}</div>
+        <p class="calendar-hint">Choose any date from ${escapeHtml(scheduleDateLabel(today))} through ${escapeHtml(scheduleDateLabel(rangeEnd))}.</p>
+    `;
 
     const label = document.getElementById("scheduleCalendarLabel");
-    if (label) label.textContent = scheduleMondayLabel(scheduleSelectedMonday());
+    if (label) label.textContent = scheduleDateLabel(selected);
 }
 
 function closeScheduleCalendar() {
@@ -1066,15 +1099,15 @@ function renderSchedule() {
         return;
     }
 
-    // Monday first, matching a gym week
-    const days = COACH_WEEKDAYS.filter(day => day.value >= 1).concat(COACH_WEEKDAYS.filter(day => day.value === 0));
+    // Sunday first, matching the calendar week
+    const days = COACH_WEEKDAYS.slice().sort((a, b) => a.value - b.value);
 
-    // Build the Mon-Sun dates of the selected week so every slot can be
+    // Build the Sun-Sat dates of the selected week so every slot can be
     // matched against the coach's working days and booked sessions.
-    const monday = scheduleSelectedMonday();
+    const weekStart = scheduleWeekStartSunday();
     const weekDates = days.map(day => {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + (day.value === 0 ? 6 : day.value - 1));
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + day.value);
         return date;
     });
 
@@ -1118,11 +1151,11 @@ function renderSchedule() {
 
     const summary = document.getElementById("scheduleSummary");
     if (summary) {
-        summary.textContent = `${coach.name} • ${coachWorkingDayLabels(coach)} • ${coachShiftLabel(coach)} • ${bookedCount} session${bookedCount === 1 ? "" : "s"} for the week of ${scheduleMondayLabel(monday)}`;
+        summary.textContent = `${coach.name} • ${coachWorkingDayLabels(coach)} • ${coachShiftLabel(coach)} • ${bookedCount} session${bookedCount === 1 ? "" : "s"} for the week of ${scheduleWeekLabel(weekStart)}`;
     }
 
     const calendarLabel = document.getElementById("scheduleCalendarLabel");
-    if (calendarLabel) calendarLabel.textContent = scheduleMondayLabel(monday);
+    if (calendarLabel) calendarLabel.textContent = scheduleDateLabel(scheduleSelectedDateValue());
 }
 
 
@@ -2510,15 +2543,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 closeScheduleCalendar();
                 return;
             }
+            syncScheduleCalendarMonth();
             buildScheduleCalendar();
             scheduleCalendarPop.removeAttribute("hidden");
             scheduleCalendarToggle.setAttribute("aria-expanded", "true");
         });
 
         scheduleCalendarPop.addEventListener("click", event => {
+            event.stopPropagation();
+
+            const nav = event.target.closest("[data-calendar-nav]");
+            if (nav) {
+                const direction = nav.getAttribute("data-calendar-nav");
+                if (direction === "prev" && scheduleCalendarMonthOffset > 0) scheduleCalendarMonthOffset--;
+                if (direction === "next" && scheduleCalendarMonthOffset < 1) scheduleCalendarMonthOffset++;
+                buildScheduleCalendar();
+                return;
+            }
+
             const picked = event.target.closest("[data-date]");
-            if (!picked) return;
-            scheduleWeekStart = picked.getAttribute("data-date");
+            if (!picked || picked.disabled) return;
+
+            const pickedISO = picked.getAttribute("data-date");
+            const pickedDate = scheduleDateFromISO(pickedISO);
+            const today = scheduleTodayDate();
+            if (!pickedDate || pickedDate < today || pickedDate > scheduleRangeEnd()) return;
+
+            scheduleSelectedDate = pickedISO;
             closeScheduleCalendar();
             buildScheduleCalendar();
             renderSchedule();

@@ -2791,6 +2791,11 @@ a.activity-item:focus-visible .activity-title {
     margin-top: 14px;
 }
 
+.schedule-legend .badge.warning {
+    background: #f0f0f5;
+    color: var(--text-secondary);
+}
+
 .schedule-wrap {
     width: 100%;
     overflow-x: auto;
@@ -2853,7 +2858,7 @@ a.activity-item:focus-visible .activity-title {
     color: var(--text-secondary);
 }
 
-/* Monday picker for the weekly availability grid */
+/* Monthly date picker for the weekly availability grid */
 .schedule-calendar {
     position: relative;
 }
@@ -2912,9 +2917,9 @@ a.activity-item:focus-visible .activity-title {
     top: calc(100% + 8px);
     right: 0;
     z-index: 60;
-    width: 300px;
+    width: 340px;
     max-width: calc(100vw - 40px);
-    max-height: 380px;
+    max-height: 420px;
     overflow-y: auto;
     padding: 14px;
     background: #fff;
@@ -2925,6 +2930,84 @@ a.activity-item:focus-visible .activity-title {
 
 .schedule-calendar-pop[hidden] {
     display: none;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.calendar-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+
+.calendar-nav-btn:hover:not([disabled]) {
+    border-color: var(--primary-200);
+    background: var(--primary-50);
+    color: var(--primary);
+}
+
+.calendar-nav-btn[disabled] {
+    cursor: not-allowed;
+    opacity: .35;
+}
+
+.calendar-nav-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.calendar-nav .calendar-month-label {
+    margin-bottom: 0;
+    text-align: center;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.calendar-weekdays span {
+    text-align: center;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.calendar-hint {
+    margin-top: 10px;
+    font-size: 10.5px;
+    line-height: 1.4;
+    color: var(--text-muted);
 }
 
 .calendar-month + .calendar-month {
@@ -2973,6 +3056,31 @@ a.activity-item:focus-visible .activity-title {
     border-color: var(--primary);
     background: var(--primary);
     color: #fff;
+}
+
+.calendar-day.is-today:not(.active) {
+    border-color: var(--primary-200);
+}
+
+.calendar-day:disabled,
+.calendar-day:disabled:hover {
+    border-color: var(--border-soft);
+    background: #f7f7fb;
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: .5;
+}
+
+.calendar-day.is-empty {
+    visibility: hidden;
+    border-color: transparent;
+    background: transparent;
+    cursor: default;
+}
+
+.calendar-day.is-empty:hover {
+    border-color: transparent;
+    background: transparent;
 }
 
 .calendar-dow {
