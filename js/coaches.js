@@ -2111,6 +2111,119 @@ function renderPerformance() {
     });
 }
 
+function memberPerformanceRange() {
+    const now = new Date();
+    const endOfDay = date => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+    const period = (document.getElementById("memberPerformancePeriod") || {}).value || "month";
+
+    if (period === "custom") {
+        const fromEl = document.getElementById("memberPerformanceFrom");
+        const toEl = document.getElementById("memberPerformanceTo");
+        const startValue = fromEl ? fromEl.value : "";
+        const endValue = toEl ? toEl.value : "";
+        if (!startValue || !endValue) return null;
+        const start = new Date(startValue + "T00:00:00");
+        const end = new Date(endValue + "T00:00:00");
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return null;
+        return { from: start, to: endOfDay(end) };
+    }
+
+    if (period === "week") {
+        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+        const sunday = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6);
+        return { from, to: endOfDay(sunday) };
+    }
+
+    if (period === "last30" || period === "last90") {
+        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (period === "last30" ? 29 : 89));
+        return { from, to: endOfDay(now) };
+    }
+
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: firstOfMonth, to: endOfDay(lastOfMonth) };
+}
+
+function memberPerformance(member) {
+    const range = memberPerformanceRange();
+    const sessions = getCoachSessions().filter(session =>
+        !session.archived && String(session.clientId) === String(member.id)
+    );
+
+    const inPeriod = range ? sessions.filter(session => {
+        const date = new Date((session.date || "") + "T00:00:00");
+        return !isNaN(date.getTime()) && date >= range.from && date <= range.to;
+    }) : [];
+
+    const scheduled = inPeriod.filter(session => session.status === "Scheduled").length;
+    const completed = inPeriod.filter(session => session.status === "Completed").length;
+    const missed = inPeriod.filter(session => session.status === "Missed").length;
+    const cancelled = inPeriod.filter(session => session.status === "Cancelled").length;
+    const attended = completed + missed;
+
+    return {
+        scheduled,
+        completed,
+        missed,
+        cancelled,
+        attendance: attended ? Math.round((completed / attended) * 100) : null,
+        cancellation: inPeriod.length ? Math.round((cancelled / inPeriod.length) * 100) : null,
+        total: inPeriod.length
+    };
+}
+
+function renderMemberPerformance() {
+    const grid = document.getElementById("memberPerformanceGrid");
+    if (!grid) return;
+
+    const isCustom = ((document.getElementById("memberPerformancePeriod") || {}).value || "") === "custom";
+    ["memberPerformanceFrom", "memberPerformanceTo"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isCustom ? "" : "none";
+    });
+
+    const members = getActiveDirectoryCustomers();
+    grid.innerHTML = "";
+
+    if (isCustom && !memberPerformanceRange()) {
+        grid.innerHTML = '<p class="card-meta">Choose a valid start and end date to build the report.</p>';
+        return;
+    }
+
+    if (members.length === 0) {
+        grid.innerHTML = '<p class="card-meta">No members on record yet.</p>';
+        return;
+    }
+
+    members.forEach(member => {
+        const stats = memberPerformance(member);
+        const status = getMemberStatus(member);
+        const card = document.createElement("article");
+        card.className = "card span-4";
+        card.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <h3>${escapeHtml(member.name)}</h3>
+                    <p class="card-sub">Membership Tier: ${escapeHtml(member.tier || "No membership tier")}</p>
+                </div>
+                ${membershipBadge(status)}
+            </div>
+            <div class="perf-grid">
+                <div class="perf-metric"><span>Sessions in Period</span><strong>${stats.total}</strong></div>
+                <div class="perf-metric"><span>Scheduled Sessions</span><strong>${stats.scheduled}</strong></div>
+                <div class="perf-metric"><span>Completed Sessions</span><strong>${stats.completed}</strong></div>
+                <div class="perf-metric"><span>Missed Sessions</span><strong>${stats.missed}</strong></div>
+                <div class="perf-metric"><span>Cancelled Sessions</span><strong>${stats.cancelled}</strong></div>
+            </div>
+            <div class="perf-rates">
+                <div><span>Attendance Rate</span><strong>${stats.attendance === null ? "—" : stats.attendance + "%"}</strong></div>
+                <div><span>Cancellation Rate</span><strong>${stats.cancellation === null ? "—" : stats.cancellation + "%"}</strong></div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
 // ---- Add / edit coach ----
 
 
@@ -2418,6 +2531,7 @@ function renderCoachTracker() {
     renderAssignments();
     renderSessions();
     renderPerformance();
+    renderMemberPerformance();
 }
 
 
@@ -2613,6 +2727,13 @@ document.addEventListener("DOMContentLoaded", () => {
     ["performanceFrom", "performanceTo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("change", renderPerformance);
+    });
+
+    const memberPeriodSelect = document.getElementById("memberPerformancePeriod");
+    if (memberPeriodSelect) memberPeriodSelect.addEventListener("change", renderMemberPerformance);
+    ["memberPerformanceFrom", "memberPerformanceTo"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", renderMemberPerformance);
     });
 
     // Another tab editing coaches refreshes this one

@@ -337,6 +337,27 @@
                     </div>
                     <div class="dashboard-grid coach-perf-grid" id="performanceGrid"></div>
                 </section>
+
+                <section class="content-section">
+                    <div class="card-head">
+                        <div>
+                            <h2>Member Performance Overview</h2>
+                            <p class="card-sub">Session attendance and activity for the selected reporting period</p>
+                        </div>
+                        <div class="head-actions">
+                            <input type="date" id="memberPerformanceFrom" class="search-input date-compact" aria-label="Member reporting period start">
+                            <input type="date" id="memberPerformanceTo" class="search-input date-compact" aria-label="Member reporting period end">
+                            <select id="memberPerformancePeriod" class="search-input select-compact" aria-label="Member reporting period">
+                                <option value="week">This Week</option>
+                                <option value="month" selected>This Month</option>
+                                <option value="last30">Last 30 Days</option>
+                                <option value="last90">Last 3 Months</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid coach-perf-grid" id="memberPerformanceGrid"></div>
+                </section>
             </main>
         </div>
     </div>
