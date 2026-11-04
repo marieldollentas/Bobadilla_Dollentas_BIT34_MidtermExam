@@ -85,9 +85,17 @@
 
             <main class="main-content">
                 <section class="page-header">
-                    <span class="eyebrow">Membership Management</span>
-                    <h1>Customer Directory &amp; Membership Status</h1>
-                    <p>Every registered account and front desk record, with tier, key fob and renewal dates in one place.</p>
+                    <div class="page-header-row">
+                        <div>
+                            <span class="eyebrow">Membership Management</span>
+                            <h1>Customer Directory &amp; Membership Status</h1>
+                            <p>Every registered account and front desk record, with tier, key fob and renewal dates in one place.</p>
+                        </div>
+                        <button type="button" id="exportMembersPdfBtn" class="btn-primary export-pdf-btn" title="Download the membership report as a PDF">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4.5 16.5v1.5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-1.5"/></svg>
+                            Export PDF
+                        </button>
+                    </div>
                 </section>
 
                 <!-- Directory statistics (real values rendered by the js/ modules) -->
@@ -268,11 +276,14 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <script src="js/utils.js" defer></script>
     <script src="js/data.js" defer></script>
     <script src="js/ui.js" defer></script>
+    <script src="js/report.js" defer></script>
     <script src="js/auth.js" defer></script>
     <script src="js/members.js" defer></script>
+    <script src="js/members-report.js" defer></script>
     <script src="js/leads.js" defer></script>
     <script src="js/tickets.js" defer></script>
     <script src="js/coaches.js" defer></script>
