@@ -3334,3 +3334,354 @@ a.activity-item:focus-visible .activity-title {
     .campaign-embed-frame .fb-post { min-width: 0; }
     .campaign-embed-head { align-items: flex-start; }
 }
+
+/* ---------- 27. Member goals & progress tracking ---------- */
+.progress-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.progress-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+}
+
+.progress-form-row-3 {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.progress-form-row .form-group {
+    margin-bottom: 15px;
+}
+
+.progress-form-action {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 15px;
+}
+
+.progress-form-action .btn-primary {
+    width: 100%;
+}
+
+#progressSection [hidden],
+.progress-lightbox[hidden] {
+    display: none !important;
+}
+
+.progress-goal-summary {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.progress-goal-summary h4,
+.progress-history h4 {
+    margin-bottom: 10px;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+}
+
+.progress-goal-summary .profile-item {
+    background: #fff;
+}
+
+.progress-chart {
+    margin-top: 16px;
+}
+
+.progress-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.progress-chart text {
+    font-family: inherit;
+}
+
+.progress-chart .progress-grid-line {
+    stroke: #f1eefa;
+    stroke-width: 1;
+}
+
+.progress-chart .progress-area {
+    fill: rgba(91, 75, 196, .1);
+}
+
+.progress-chart .progress-line {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.progress-chart .progress-point {
+    fill: #fff;
+    stroke: var(--primary);
+    stroke-width: 2.5;
+}
+
+.progress-chart .progress-tick {
+    fill: var(--text-muted);
+    font-size: 10px;
+}
+
+.progress-history {
+    margin-top: 16px;
+}
+
+.progress-log-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border-soft);
+}
+
+.progress-log-row:first-of-type {
+    border-top: none;
+}
+
+.progress-log-main {
+    min-width: 0;
+}
+
+.progress-log-main strong {
+    display: block;
+    font-size: 13.5px;
+}
+
+.progress-log-main > span {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+
+.progress-log-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.progress-log-values b {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.progress-log-row .btn-delete {
+    flex: 0 0 auto;
+}
+
+.progress-plan {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.progress-plan-day {
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+}
+
+.progress-plan-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--background);
+}
+
+.progress-plan-day-head strong {
+    font-size: 12.5px;
+}
+
+.progress-plan-day-head span {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.progress-plan-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.progress-plan-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.progress-plan-list li:first-child {
+    border-top: none;
+}
+
+.progress-plan-item {
+    min-width: 0;
+}
+
+.progress-plan-item strong {
+    display: block;
+    font-size: 13px;
+}
+
+.progress-plan-item span {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+
+.progress-plan-list .btn-delete {
+    flex: 0 0 auto;
+}
+
+.progress-photo-form {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.progress-photo-form .form-group {
+    flex: 0 1 220px;
+    min-width: 180px;
+    margin-bottom: 0;
+}
+
+.progress-photo-form .profile-photo-actions {
+    margin-top: 0;
+}
+
+.progress-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.progress-gallery > .card-meta {
+    grid-column: 1 / -1;
+}
+
+.progress-photo-card {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.progress-photo-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: #000;
+    cursor: zoom-in;
+}
+
+.progress-photo-open img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+}
+
+.progress-photo-card figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+
+.progress-photo-card figcaption .btn-delete {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.progress-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 14, 35, .82);
+}
+
+.progress-lightbox img {
+    max-width: min(900px, 100%);
+    max-height: 90vh;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .7);
+}
+
+.progress-lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .15);
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.progress-lightbox-close:hover {
+    background: rgba(255, 255, 255, .25);
+}
+
+@media (max-width: 560px) {
+    .progress-form-row,
+    .progress-form-row-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .progress-form-action {
+        padding-bottom: 0;
+    }
+
+    .progress-photo-form {
+        align-items: stretch;
+    }
+
+    .progress-photo-form .form-group {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .progress-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+}
