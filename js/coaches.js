@@ -551,18 +551,27 @@ function renderPortalSessions(customer) {
     if (!tbody || !empty) return;
 
     const clientId = "reg-" + (customer.username || "");
+    const showArchived = !!((document.getElementById("portalShowArchivedSessions") || {}).checked);
     const sessions = getCoachSessions()
         .filter(session => String(session.clientId) === String(clientId))
         .sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
 
+    // Archived sessions are staff-filed records: the member sees them only when
+    // the "Show archived sessions" toggle is on. The portal has no archive or
+    // restore controls, so this view stays read-only.
+    const visible = sessions.filter(session => showArchived || !session.archived);
+
     // Upcoming first, then most recent past, so the next session is on top.
     const today = todayISO();
-    const upcoming = sessions.filter(session => session.date >= today);
-    const past = sessions.filter(session => session.date < today).reverse();
+    const upcoming = visible.filter(session => session.date >= today);
+    const past = visible.filter(session => session.date < today).reverse();
     const ordered = [...upcoming, ...past];
 
     tbody.innerHTML = "";
     if (ordered.length === 0) {
+        empty.textContent = !showArchived && sessions.length > 0
+            ? 'No current training sessions. Turn on "Show archived sessions" to see filed sessions.'
+            : "No training sessions scheduled yet.";
         empty.style.display = "block";
         return;
     }
@@ -570,13 +579,14 @@ function renderPortalSessions(customer) {
 
     ordered.forEach(session => {
         const coach = coachById(session.coachId);
+        const archivedBadge = session.archived ? ' <span class="badge open">Archived</span>' : "";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${escapeHtml(sessionDayLabel(session.date))}</td>
             <td>${escapeHtml(formatClock(session.time))}</td>
             <td>${escapeHtml(coach ? coach.name : "Previous coach")}</td>
             <td>${escapeHtml(session.type || "—")}</td>
-            <td>${sessionStatusBadge(session.status)}</td>
+            <td>${sessionStatusBadge(session.status)}${archivedBadge}</td>
             <td>${escapeHtml(session.notes || "—")}</td>
         `;
         tbody.appendChild(tr);

@@ -1241,6 +1241,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         renderPortalCoachSection(customer);
+
+        // Archived sessions are revealed read-only; archiving stays a staff action.
+        const showArchivedSessionsEl = document.getElementById("portalShowArchivedSessions");
+        if (showArchivedSessionsEl) {
+            showArchivedSessionsEl.addEventListener("change", () => renderPortalSessions(customer));
+        }
+
         renderMyInquiries();
 
         // Ratings come from the member side only: the handler is scoped to this
