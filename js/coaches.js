@@ -1252,10 +1252,15 @@ function fillSessionClientOptions(coach, selectedId) {
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
     const options = members.map(member => {
-        // Frozen members stay listed so existing records keep rendering, but
-        // the label spells out why a session cannot be booked for them.
-        const frozen = getMemberStatus(member) === "Frozen";
-        const label = frozen ? `${member.name} (Frozen${member.freezeEndDate ? " until " + member.freezeEndDate : ""})` : member.name;
+        // Frozen and expired members stay listed so existing records keep
+        // rendering, but the label spells out why a session cannot be booked
+        // for them.
+        const status = getMemberStatus(member);
+        const label = status === "Frozen"
+            ? `${member.name} (Frozen${member.freezeEndDate ? " until " + member.freezeEndDate : ""})`
+            : status === "Expired"
+                ? `${member.name} (Expired membership)`
+                : member.name;
         return `<option value="${escapeHtml(member.id)}">${escapeHtml(label)}</option>`;
     });
 
@@ -1679,9 +1684,9 @@ function sessionConflictMessage(session, editingId) {
     if (!session.date) return "Please choose a session date.";
     if (isNaN(clockToMinutes(session.time))) return "Please choose a session time.";
 
-    // A frozen membership is on hold and an archived member is a past member,
-    // so neither can book time with a coach until the record is unfrozen or
-    // restored.
+    // A frozen membership is on hold, an expired membership has lapsed and an
+    // archived member is a past member, so none can book time with a coach
+    // until the record is unfrozen, renewed or restored.
     const client = getDirectoryCustomers().find(c => String(c.id) === String(session.clientId));
     const clientName = client ? client.name : (session.clientName || "This client");
     if (client && getMemberStatus(client) === "Archived") {
@@ -1690,6 +1695,10 @@ function sessionConflictMessage(session, editingId) {
     if (client && getMemberStatus(client) === "Frozen") {
         const until = client.freezeEndDate ? ` until ${client.freezeEndDate}` : "";
         return `Scheduling Conflict: ${clientName}'s membership is Frozen${until} and cannot book sessions. Unfreeze the membership first.`;
+    }
+    if (client && getMemberStatus(client) === "Expired") {
+        const exp = client.exp ? ` on ${client.exp}` : "";
+        return `Scheduling Conflict: ${clientName}'s membership Expired${exp} and cannot book sessions. Renew the membership first.`;
     }
 
     // A coach only trains their own caseload, so a client has to be assigned
