@@ -475,7 +475,7 @@
 
         const progressDateMin = todayValue();
         const progressDateMax = dateWithYearOffset(10);
-        ["progressGoalTargetDate", "progressPhotoDate"].forEach(function (id) {
+        ["progressGoalTargetDate"].forEach(function (id) {
             const input = byId(id);
             if (!input) return;
             input.min = progressDateMin;
@@ -710,11 +710,7 @@
                 setMessage("progressPhotoMsg", "Uploading your photo…", false);
                 try {
                     const dataUrl = await resizePhotoFile(file);
-                    const date = (byId("progressPhotoDate") && byId("progressPhotoDate").value) || todayValue();
-                    if (!isDateInProgressRange(date)) {
-                        setMessage("progressPhotoMsg", "Photo date must be between today and 10 years from now.", true);
-                        return;
-                    }
+                    const date = todayValue();
                     const photo = {
                         id: newId("photo"),
                         date: date,
