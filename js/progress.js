@@ -45,6 +45,20 @@
         return now.getFullYear() + "-" + month + "-" + day;
     }
 
+    function dateWithYearOffset(years) {
+        const parts = todayValue().split("-");
+        const year = Number(parts[0]) + years;
+        const month = Number(parts[1]);
+        const day = Number(parts[2]);
+        const lastDay = new Date(year, month, 0).getDate();
+        return year + "-" + String(month).padStart(2, "0") + "-" + String(Math.min(day, lastDay)).padStart(2, "0");
+    }
+
+    function isDateInProgressRange(value) {
+        if (!value) return false;
+        return value >= todayValue() && value <= dateWithYearOffset(10);
+    }
+
     function numberOrNull(value) {
         if (value === null || value === undefined || value === "") return null;
         const number = Number(value);
@@ -459,8 +473,14 @@
             renderPhotos();
         }
 
-        ["progressWeightDate", "progressMeasureDate", "progressPhotoDate"].forEach(function (id) {
-            if (byId(id) && !byId(id).value) byId(id).value = todayValue();
+        const progressDateMin = todayValue();
+        const progressDateMax = dateWithYearOffset(10);
+        ["progressGoalTargetDate", "progressWeightDate", "progressMeasureDate", "progressPhotoDate"].forEach(function (id) {
+            const input = byId(id);
+            if (!input) return;
+            input.min = progressDateMin;
+            input.max = progressDateMax;
+            if (id !== "progressGoalTargetDate" && !input.value) input.value = progressDateMin;
         });
 
         const goalForm = byId("progressGoalForm");
@@ -474,6 +494,11 @@
 
                 if (!type) {
                     setMessage("progressGoalMsg", "Please choose a fitness goal.", true);
+                    return;
+                }
+
+                if (targetDate && !isDateInProgressRange(targetDate)) {
+                    setMessage("progressGoalMsg", "Target date must be between today and 10 years from now.", true);
                     return;
                 }
 
@@ -522,6 +547,10 @@
                     setMessage("progressWeightMsg", "Please choose the date for this weight entry.", true);
                     return;
                 }
+                if (!isDateInProgressRange(date)) {
+                    setMessage("progressWeightMsg", "Date must be between today and 10 years from now.", true);
+                    return;
+                }
                 if (weight === null) {
                     setMessage("progressWeightMsg", "Weight must be between 1 and 500 kg.", true);
                     return;
@@ -560,6 +589,10 @@
                 const date = byId("progressMeasureDate") ? byId("progressMeasureDate").value : "";
                 if (!date) {
                     setMessage("progressMeasureMsg", "Please choose the date for these measurements.", true);
+                    return;
+                }
+                if (!isDateInProgressRange(date)) {
+                    setMessage("progressMeasureMsg", "Date must be between today and 10 years from now.", true);
                     return;
                 }
 
@@ -694,6 +727,10 @@
                 try {
                     const dataUrl = await resizePhotoFile(file);
                     const date = (byId("progressPhotoDate") && byId("progressPhotoDate").value) || todayValue();
+                    if (!isDateInProgressRange(date)) {
+                        setMessage("progressPhotoMsg", "Photo date must be between today and 10 years from now.", true);
+                        return;
+                    }
                     const photo = {
                         id: newId("photo"),
                         date: date,
