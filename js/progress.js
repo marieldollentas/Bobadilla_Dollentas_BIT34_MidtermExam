@@ -475,7 +475,7 @@
 
         const progressDateMin = todayValue();
         const progressDateMax = dateWithYearOffset(10);
-        ["progressGoalTargetDate", "progressWeightDate", "progressMeasureDate", "progressPhotoDate"].forEach(function (id) {
+        ["progressGoalTargetDate", "progressMeasureDate", "progressPhotoDate"].forEach(function (id) {
             const input = byId(id);
             if (!input) return;
             input.min = progressDateMin;
@@ -540,17 +540,9 @@
         if (weightForm) {
             weightForm.addEventListener("submit", function (event) {
                 event.preventDefault();
-                const date = byId("progressWeightDate") ? byId("progressWeightDate").value : "";
+                const date = todayValue();
                 const weight = positiveNumber(byId("progressWeightValue") ? byId("progressWeightValue").value : "", 1, 500);
 
-                if (!date) {
-                    setMessage("progressWeightMsg", "Please choose the date for this weight entry.", true);
-                    return;
-                }
-                if (!isDateInProgressRange(date)) {
-                    setMessage("progressWeightMsg", "Date must be between today and 10 years from now.", true);
-                    return;
-                }
                 if (weight === null) {
                     setMessage("progressWeightMsg", "Weight must be between 1 and 500 kg.", true);
                     return;
