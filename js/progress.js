@@ -475,7 +475,7 @@
 
         const progressDateMin = todayValue();
         const progressDateMax = dateWithYearOffset(10);
-        ["progressGoalTargetDate", "progressMeasureDate", "progressPhotoDate"].forEach(function (id) {
+        ["progressGoalTargetDate", "progressPhotoDate"].forEach(function (id) {
             const input = byId(id);
             if (!input) return;
             input.min = progressDateMin;
@@ -578,15 +578,7 @@
         if (measurementForm) {
             measurementForm.addEventListener("submit", function (event) {
                 event.preventDefault();
-                const date = byId("progressMeasureDate") ? byId("progressMeasureDate").value : "";
-                if (!date) {
-                    setMessage("progressMeasureMsg", "Please choose the date for these measurements.", true);
-                    return;
-                }
-                if (!isDateInProgressRange(date)) {
-                    setMessage("progressMeasureMsg", "Date must be between today and 10 years from now.", true);
-                    return;
-                }
+                const date = todayValue();
 
                 const values = {};
                 let hasValue = false;
