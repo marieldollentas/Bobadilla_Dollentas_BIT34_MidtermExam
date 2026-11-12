@@ -475,13 +475,25 @@
 
         const progressDateMin = todayValue();
         const progressDateMax = dateWithYearOffset(10);
-        ["progressGoalTargetDate"].forEach(function (id) {
-            const input = byId(id);
-            if (!input) return;
-            input.min = progressDateMin;
-            input.max = progressDateMax;
-            if (id !== "progressGoalTargetDate" && !input.value) input.value = progressDateMin;
-        });
+        const goalTargetDate = byId("progressGoalTargetDate");
+        if (goalTargetDate) {
+            goalTargetDate.min = progressDateMin;
+            goalTargetDate.max = progressDateMax;
+        }
+
+        const progressPanelSelect = byId("progressPanelSelect");
+        const progressPanels = document.querySelectorAll("[data-progress-panel]");
+        if (progressPanelSelect && progressPanels.length) {
+            const showProgressPanel = function (name) {
+                progressPanels.forEach(function (panel) {
+                    panel.hidden = panel.getAttribute("data-progress-panel") !== name;
+                });
+            };
+            progressPanelSelect.addEventListener("change", function () {
+                showProgressPanel(progressPanelSelect.value);
+            });
+            showProgressPanel(progressPanelSelect.value);
+        }
 
         const goalForm = byId("progressGoalForm");
         if (goalForm) {

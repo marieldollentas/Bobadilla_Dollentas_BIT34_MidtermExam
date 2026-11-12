@@ -263,160 +263,173 @@
                 </header>
 
                 <div class="portal-group-grid">
-                    <section class="content-section span-5">
-                        <div class="card-head">
-                            <div>
-                                <h3>My Fitness Goal</h3>
-                                <p class="card-sub">Choose the goal you want to work toward</p>
-                            </div>
+                    <section class="content-section span-12">
+                        <div class="progress-panel-toolbar">
+                            <label for="progressPanelSelect">Show</label>
+                            <select id="progressPanelSelect" class="search-input progress-panel-select">
+                                <option value="goal">My Fitness Goal</option>
+                                <option value="weight">Weight Tracking</option>
+                                <option value="measurements">Body Measurements</option>
+                                <option value="workout">My Workout Plan</option>
+                                <option value="photos">Progress Photos</option>
+                            </select>
                         </div>
-                        <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;">
-                            <div class="form-group">
-                                <label for="progressGoalType">Goal</label>
-                                <select id="progressGoalType" class="search-input">
-                                    <option value="">Select a goal</option>
-                                    <option value="Weight Loss">Weight Loss</option>
-                                    <option value="Weight Gain">Weight Gain</option>
-                                    <option value="Muscle Building">Muscle Building</option>
-                                    <option value="General Fitness">General Fitness</option>
-                                </select>
-                            </div>
-                            <div class="progress-form-row">
-                                <div class="form-group">
-                                    <label for="progressGoalTargetWeight">Target weight (kg)</label>
-                                    <input type="number" id="progressGoalTargetWeight" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 65">
-                                </div>
-                                <div class="form-group">
-                                    <label for="progressGoalTargetDate">Target date</label>
-                                    <input type="date" id="progressGoalTargetDate" class="search-input">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="progressGoalNotes">Notes</label>
-                                <textarea id="progressGoalNotes" class="inquiry-input" rows="2" maxlength="300" placeholder="What does success look like for you?"></textarea>
-                            </div>
-                            <button type="submit" class="btn-primary">Save Goal</button>
-                            <p id="progressGoalMsg" class="success-msg" role="status" aria-live="polite"></p>
-                        </form>
-                        <div id="progressGoalSummary" class="progress-goal-summary" hidden></div>
-                        <button type="button" id="progressGoalClear" class="btn-secondary" style="margin-top: 10px;" hidden>Clear Goal</button>
-                    </section>
 
-                    <section class="content-section span-7">
-                        <div class="card-head">
-                            <div>
-                                <h3>Weight Tracking</h3>
-                                <p class="card-sub">Record your current weight and follow the trend</p>
-                            </div>
-                            <span id="progressCurrentWeight" class="card-chip" hidden></span>
-                        </div>
-                        <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;">
-                            <div class="form-group">
-                                <label for="progressWeightValue">Weight (kg)</label>
-                                <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5" required>
-                            </div>
-                            <div class="progress-form-action">
-                                <button type="submit" class="btn-primary">Log Weight</button>
-                            </div>
-                        </form>
-                        <p id="progressWeightMsg" class="success-msg" role="status" aria-live="polite"></p>
-                        <div id="progressWeightChart" class="progress-chart"></div>
-                        <div id="progressWeightHistory" class="progress-history"></div>
-                    </section>
-
-                    <section class="content-section span-7">
-                        <div class="card-head">
-                            <div>
-                                <h3>Body Measurements</h3>
-                                <p class="card-sub">Track chest, waist, arms, thighs and hips in centimetres</p>
-                            </div>
-                        </div>
-                        <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;">
-                            <div class="progress-form-row progress-form-row-3">
-                                <div class="form-group">
-                                    <label for="progressMeasureChest">Chest (cm)</label>
-                                    <input type="number" id="progressMeasureChest" class="search-input" min="1" max="500" step="0.1" placeholder="—">
-                                </div>
-                                <div class="form-group">
-                                    <label for="progressMeasureWaist">Waist (cm)</label>
-                                    <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="500" step="0.1" placeholder="—">
-                                </div>
-                                <div class="form-group">
-                                    <label for="progressMeasureArms">Arms (cm)</label>
-                                    <input type="number" id="progressMeasureArms" class="search-input" min="1" max="500" step="0.1" placeholder="—">
-                                </div>
-                                <div class="form-group">
-                                    <label for="progressMeasureThighs">Thighs (cm)</label>
-                                    <input type="number" id="progressMeasureThighs" class="search-input" min="1" max="500" step="0.1" placeholder="—">
-                                </div>
-                                <div class="form-group">
-                                    <label for="progressMeasureHips">Hips (cm)</label>
-                                    <input type="number" id="progressMeasureHips" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                        <div class="progress-panel" data-progress-panel="goal">
+                            <div class="card-head">
+                                <div>
+                                    <h3>My Fitness Goal</h3>
+                                    <p class="card-sub">Choose the goal you want to work toward</p>
                                 </div>
                             </div>
-                            <button type="submit" class="btn-primary">Save Measurements</button>
-                            <p id="progressMeasureMsg" class="success-msg" role="status" aria-live="polite"></p>
-                        </form>
-                        <div id="progressMeasureHistory" class="progress-history"></div>
-                    </section>
-
-                    <section class="content-section span-5">
-                        <div class="card-head">
-                            <div>
-                                <h3>My Workout Plan</h3>
-                                <p class="card-sub">Your scheduled exercises, sets and reps</p>
-                            </div>
-                        </div>
-                        <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;">
-                            <div class="progress-form-row">
+                            <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;">
                                 <div class="form-group">
-                                    <label for="progressWorkoutDay">Day</label>
-                                    <select id="progressWorkoutDay" class="search-input">
-                                        <option value="Monday">Monday</option>
-                                        <option value="Tuesday">Tuesday</option>
-                                        <option value="Wednesday">Wednesday</option>
-                                        <option value="Thursday">Thursday</option>
-                                        <option value="Friday">Friday</option>
-                                        <option value="Saturday">Saturday</option>
-                                        <option value="Sunday">Sunday</option>
+                                    <label for="progressGoalType">Goal</label>
+                                    <select id="progressGoalType" class="search-input">
+                                        <option value="">Select a goal</option>
+                                        <option value="Weight Loss">Weight Loss</option>
+                                        <option value="Weight Gain">Weight Gain</option>
+                                        <option value="Muscle Building">Muscle Building</option>
+                                        <option value="General Fitness">General Fitness</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label for="progressWorkoutExercise">Exercise</label>
-                                    <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="80" placeholder="e.g. Bench press" required>
+                                <div class="progress-form-row">
+                                    <div class="form-group">
+                                        <label for="progressGoalTargetWeight">Target weight (kg)</label>
+                                        <input type="number" id="progressGoalTargetWeight" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 65">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressGoalTargetDate">Target date</label>
+                                        <input type="date" id="progressGoalTargetDate" class="search-input">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="progress-form-row">
                                 <div class="form-group">
-                                    <label for="progressWorkoutSets">Sets</label>
-                                    <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="50" step="1" placeholder="3">
+                                    <label for="progressGoalNotes">Notes</label>
+                                    <textarea id="progressGoalNotes" class="inquiry-input" rows="2" maxlength="300" placeholder="What does success look like for you?"></textarea>
                                 </div>
-                                <div class="form-group">
-                                    <label for="progressWorkoutReps">Reps</label>
-                                    <input type="text" id="progressWorkoutReps" class="search-input" maxlength="20" placeholder="8-12">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn-primary">Add Exercise</button>
-                            <p id="progressWorkoutMsg" class="success-msg" role="status" aria-live="polite"></p>
-                        </form>
-                        <div id="progressWorkoutPlan" class="progress-plan"></div>
-                    </section>
+                                <button type="submit" class="btn-primary">Save Goal</button>
+                                <p id="progressGoalMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            </form>
+                            <div id="progressGoalSummary" class="progress-goal-summary" hidden></div>
+                            <button type="button" id="progressGoalClear" class="btn-secondary" style="margin-top: 10px;" hidden>Clear Goal</button>
+                        </div>
 
-                    <section class="content-section span-12">
-                        <div class="card-head">
-                            <div>
-                                <h3>Progress Photos</h3>
-                                <p class="card-sub">Upload photos over time to compare your physical progress. JPG, PNG or WebP, up to 5 MB.</p>
+                        <div class="progress-panel" data-progress-panel="weight" hidden>
+                            <div class="card-head">
+                                <div>
+                                    <h3>Weight Tracking</h3>
+                                    <p class="card-sub">Record your current weight and follow the trend</p>
+                                </div>
+                                <span id="progressCurrentWeight" class="card-chip" hidden></span>
                             </div>
+                            <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;">
+                                <div class="form-group">
+                                    <label for="progressWeightValue">Weight (kg)</label>
+                                    <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5" required>
+                                </div>
+                                <div class="progress-form-action">
+                                    <button type="submit" class="btn-primary">Log Weight</button>
+                                </div>
+                            </form>
+                            <p id="progressWeightMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            <div id="progressWeightChart" class="progress-chart"></div>
+                            <div id="progressWeightHistory" class="progress-history"></div>
                         </div>
-                        <div class="progress-photo-form">
-                            <div class="profile-photo-actions">
-                                <input type="file" id="progressPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>
-                                <button type="button" class="btn-primary" id="progressPhotoUploadBtn">Upload Progress Photo</button>
+
+                        <div class="progress-panel" data-progress-panel="measurements" hidden>
+                            <div class="card-head">
+                                <div>
+                                    <h3>Body Measurements</h3>
+                                    <p class="card-sub">Track chest, waist, arms, thighs and hips in centimetres</p>
+                                </div>
                             </div>
+                            <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;">
+                                <div class="progress-form-row progress-form-row-3">
+                                    <div class="form-group">
+                                        <label for="progressMeasureChest">Chest (cm)</label>
+                                        <input type="number" id="progressMeasureChest" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressMeasureWaist">Waist (cm)</label>
+                                        <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressMeasureArms">Arms (cm)</label>
+                                        <input type="number" id="progressMeasureArms" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressMeasureThighs">Thighs (cm)</label>
+                                        <input type="number" id="progressMeasureThighs" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressMeasureHips">Hips (cm)</label>
+                                        <input type="number" id="progressMeasureHips" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Save Measurements</button>
+                                <p id="progressMeasureMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            </form>
+                            <div id="progressMeasureHistory" class="progress-history"></div>
                         </div>
-                        <p id="progressPhotoMsg" class="success-msg" role="status" aria-live="polite"></p>
-                        <div id="progressPhotoGallery" class="progress-gallery"></div>
+
+                        <div class="progress-panel" data-progress-panel="workout" hidden>
+                            <div class="card-head">
+                                <div>
+                                    <h3>My Workout Plan</h3>
+                                    <p class="card-sub">Your scheduled exercises, sets and reps</p>
+                                </div>
+                            </div>
+                            <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;">
+                                <div class="progress-form-row">
+                                    <div class="form-group">
+                                        <label for="progressWorkoutDay">Day</label>
+                                        <select id="progressWorkoutDay" class="search-input">
+                                            <option value="Monday">Monday</option>
+                                            <option value="Tuesday">Tuesday</option>
+                                            <option value="Wednesday">Wednesday</option>
+                                            <option value="Thursday">Thursday</option>
+                                            <option value="Friday">Friday</option>
+                                            <option value="Saturday">Saturday</option>
+                                            <option value="Sunday">Sunday</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressWorkoutExercise">Exercise</label>
+                                        <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="80" placeholder="e.g. Bench press" required>
+                                    </div>
+                                </div>
+                                <div class="progress-form-row">
+                                    <div class="form-group">
+                                        <label for="progressWorkoutSets">Sets</label>
+                                        <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="50" step="1" placeholder="3">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressWorkoutReps">Reps</label>
+                                        <input type="text" id="progressWorkoutReps" class="search-input" maxlength="20" placeholder="8-12">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Add Exercise</button>
+                                <p id="progressWorkoutMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            </form>
+                            <div id="progressWorkoutPlan" class="progress-plan"></div>
+                        </div>
+
+                        <div class="progress-panel" data-progress-panel="photos" hidden>
+                            <div class="card-head">
+                                <div>
+                                    <h3>Progress Photos</h3>
+                                    <p class="card-sub">Upload photos over time to compare your physical progress. JPG, PNG or WebP, up to 5 MB.</p>
+                                </div>
+                            </div>
+                            <div class="progress-photo-form">
+                                <div class="profile-photo-actions">
+                                    <input type="file" id="progressPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>
+                                    <button type="button" class="btn-primary" id="progressPhotoUploadBtn">Upload Progress Photo</button>
+                                </div>
+                            </div>
+                            <p id="progressPhotoMsg" class="success-msg" role="status" aria-live="polite"></p>
+                            <div id="progressPhotoGallery" class="progress-gallery"></div>
+                        </div>
                     </section>
                 </div>
             </section>
