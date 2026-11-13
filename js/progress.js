@@ -103,6 +103,14 @@
             const text = clipboard ? clipboard.getData("text") : "";
             if (text && !/^\d+(\.\d)?$/.test(text.trim())) event.preventDefault();
         });
+        input.addEventListener("input", function () {
+            const value = input.value;
+            if (!value || value.indexOf(".") === -1) return;
+            const parts = value.split(".");
+            if (parts.length > 2 || (parts[1] && parts[1].length > 1)) {
+                input.value = parts[0] + "." + (parts[1] || "").slice(0, 1);
+            }
+        });
     }
 
     function newId(prefix) {
