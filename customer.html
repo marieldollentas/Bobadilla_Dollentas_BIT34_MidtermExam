@@ -282,7 +282,7 @@
                                     <p class="card-sub">Choose the goal you want to work toward</p>
                                 </div>
                             </div>
-                            <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;">
+                            <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;" novalidate>
                                 <div class="form-group">
                                     <label for="progressGoalType">Goal</label>
                                     <select id="progressGoalType" class="search-input">
@@ -327,10 +327,10 @@
                                 </div>
                                 <span id="progressCurrentWeight" class="card-chip" hidden></span>
                             </div>
-                            <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;">
+                            <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;" novalidate>
                                 <div class="form-group">
                                     <label for="progressWeightValue">Weight (kg)</label>
-                                    <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5" required>
+                                    <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5">
                                 </div>
                                 <div class="progress-form-action">
                                     <button type="submit" class="btn-primary">Log Weight</button>
@@ -345,30 +345,75 @@
                             <div class="card-head">
                                 <div>
                                     <h3>Body Measurements</h3>
-                                    <p class="card-sub">Track chest, waist, arms, thighs and hips in centimetres</p>
+                                    <p class="card-sub">All measurements are optional—fill in only the ones you want to track. Chest, waist, hips, shoulders, neck, arms, thighs and calves are recorded in centimetres.</p>
                                 </div>
                             </div>
-                            <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;">
-                                <div class="progress-form-row progress-form-row-3">
-                                    <div class="form-group">
-                                        <label for="progressMeasureChest">Chest (cm)</label>
-                                        <input type="number" id="progressMeasureChest" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                            <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;" novalidate>
+                                <div class="measurement-section">
+                                    <h4>Torso &amp; Neck</h4>
+                                    <div class="progress-form-row progress-form-row-3">
+                                        <div class="form-group">
+                                            <label for="progressMeasureChest">Chest (cm)</label>
+                                            <input type="number" id="progressMeasureChest" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureWaist">Waist (cm)</label>
+                                            <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureHips">Hips (cm)</label>
+                                            <input type="number" id="progressMeasureHips" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureShoulders">Shoulders (cm)</label>
+                                            <input type="number" id="progressMeasureShoulders" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureNeck">Neck (cm)</label>
+                                            <input type="number" id="progressMeasureNeck" class="search-input" min="1" max="100" step="0.1" placeholder="—">
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="progressMeasureWaist">Waist (cm)</label>
-                                        <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                </div>
+
+                                <div class="measurement-section">
+                                    <h4>Arms</h4>
+                                    <div class="progress-form-row">
+                                        <div class="form-group">
+                                            <label for="progressMeasureArmLeft">Left arm (cm)</label>
+                                            <input type="number" id="progressMeasureArmLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureArmRight">Right arm (cm)</label>
+                                            <input type="number" id="progressMeasureArmRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="progressMeasureArms">Arms (cm)</label>
-                                        <input type="number" id="progressMeasureArms" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                </div>
+
+                                <div class="measurement-section">
+                                    <h4>Thighs</h4>
+                                    <div class="progress-form-row">
+                                        <div class="form-group">
+                                            <label for="progressMeasureThighLeft">Left thigh (cm)</label>
+                                            <input type="number" id="progressMeasureThighLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureThighRight">Right thigh (cm)</label>
+                                            <input type="number" id="progressMeasureThighRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="progressMeasureThighs">Thighs (cm)</label>
-                                        <input type="number" id="progressMeasureThighs" class="search-input" min="1" max="500" step="0.1" placeholder="—">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="progressMeasureHips">Hips (cm)</label>
-                                        <input type="number" id="progressMeasureHips" class="search-input" min="1" max="500" step="0.1" placeholder="—">
+                                </div>
+
+                                <div class="measurement-section">
+                                    <h4>Calves</h4>
+                                    <div class="progress-form-row">
+                                        <div class="form-group">
+                                            <label for="progressMeasureCalfLeft">Left calf (cm)</label>
+                                            <input type="number" id="progressMeasureCalfLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressMeasureCalfRight">Right calf (cm)</label>
+                                            <input type="number" id="progressMeasureCalfRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                        </div>
                                     </div>
                                 </div>
                                 <button type="submit" class="btn-primary">Save Measurements</button>

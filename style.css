@@ -3351,6 +3351,21 @@ a.activity-item:focus-visible .activity-title {
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 }
 
+.measurement-section {
+    margin-bottom: 18px;
+}
+
+.measurement-section h4 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.measurement-section:last-of-type {
+    margin-bottom: 4px;
+}
+
 .progress-form-row .form-group {
     margin-bottom: 15px;
 }
@@ -3485,6 +3500,19 @@ a.activity-item:focus-visible .activity-title {
     margin-top: 2px;
     color: var(--text-secondary);
     font-size: 11.5px;
+}
+
+.progress-log-section {
+    margin-top: 8px;
+}
+
+.progress-log-section h5 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-secondary);
 }
 
 .progress-log-values {

@@ -6,11 +6,23 @@
     const PHOTO_MAX_PX = 900;
     const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const MEASUREMENT_FIELDS = [
-        { key: "chest", id: "progressMeasureChest", label: "Chest" },
-        { key: "waist", id: "progressMeasureWaist", label: "Waist" },
-        { key: "arms", id: "progressMeasureArms", label: "Arms" },
-        { key: "thighs", id: "progressMeasureThighs", label: "Thighs" },
-        { key: "hips", id: "progressMeasureHips", label: "Hips" }
+        { key: "chest", id: "progressMeasureChest", label: "Chest", min: 1, max: 300 },
+        { key: "waist", id: "progressMeasureWaist", label: "Waist", min: 1, max: 300 },
+        { key: "hips", id: "progressMeasureHips", label: "Hips", min: 1, max: 300 },
+        { key: "shoulders", id: "progressMeasureShoulders", label: "Shoulders", min: 1, max: 300 },
+        { key: "armLeft", id: "progressMeasureArmLeft", label: "Left arm", min: 1, max: 150 },
+        { key: "armRight", id: "progressMeasureArmRight", label: "Right arm", min: 1, max: 150 },
+        { key: "thighLeft", id: "progressMeasureThighLeft", label: "Left thigh", min: 1, max: 150 },
+        { key: "thighRight", id: "progressMeasureThighRight", label: "Right thigh", min: 1, max: 150 },
+        { key: "calfLeft", id: "progressMeasureCalfLeft", label: "Left calf", min: 1, max: 150 },
+        { key: "calfRight", id: "progressMeasureCalfRight", label: "Right calf", min: 1, max: 150 },
+        { key: "neck", id: "progressMeasureNeck", label: "Neck", min: 1, max: 100 }
+    ];
+    const MEASUREMENT_SECTIONS = [
+        { label: "Torso & Neck", keys: ["chest", "waist", "hips", "shoulders", "neck"] },
+        { label: "Arms", keys: ["armLeft", "armRight"] },
+        { label: "Thighs", keys: ["thighLeft", "thighRight"] },
+        { label: "Calves", keys: ["calfLeft", "calfRight"] }
     ];
 
     function byId(id) {
@@ -69,6 +81,28 @@
         const number = Number(value);
         if (!Number.isFinite(number) || number < min || number > max) return null;
         return Math.round(number * 10) / 10;
+    }
+
+    function parseOneDecimal(value) {
+        const raw = String(value === null || value === undefined ? "" : value).trim();
+        if (!raw) return { status: "empty", value: null };
+        if (!/^\d+(\.\d)?$/.test(raw)) return { status: "format", value: null };
+        return { status: "ok", value: Number(raw) };
+    }
+
+    function guardNumericInput(input) {
+        if (!input) return;
+        input.addEventListener("keydown", function (event) {
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            if (event.key === "e" || event.key === "E" || event.key === "+" || event.key === "-") {
+                event.preventDefault();
+            }
+        });
+        input.addEventListener("paste", function (event) {
+            const clipboard = event.clipboardData || window.clipboardData;
+            const text = clipboard ? clipboard.getData("text") : "";
+            if (text && !/^\d+(\.\d)?$/.test(text.trim())) event.preventDefault();
+        });
     }
 
     function newId(prefix) {
@@ -413,14 +447,24 @@
             }
 
             container.innerHTML = '<h4>Measurement history</h4>' + measurements.map(function (entry) {
-                const values = MEASUREMENT_FIELDS.map(function (field) {
-                    const value = entry[field.key];
-                    if (value === null || value === undefined) return "";
-                    return '<span>' + escapeValue(field.label) + ": <b>" + escapeValue(value) + ' cm</b></span>';
-                }).filter(Boolean).join("");
+                const values = MEASUREMENT_SECTIONS.map(function (section) {
+                    const items = MEASUREMENT_FIELDS.filter(function (field) {
+                        return section.keys.indexOf(field.key) > -1;
+                    }).map(function (field) {
+                        const value = entry[field.key];
+                        if (value === null || value === undefined) return "";
+                        return '<span>' + escapeValue(field.label) + ": <b>" + escapeValue(value) + ' cm</b></span>';
+                    }).filter(Boolean);
+
+                    if (!items.length) return "";
+                    return '<div class="progress-log-section">' +
+                        '<h5>' + escapeValue(section.label) + '</h5>' +
+                        '<div class="progress-log-values">' + items.join("") + '</div>' +
+                        '</div>';
+                }).join("");
 
                 return '<div class="progress-log-row">' +
-                    '<div class="progress-log-main"><strong>' + escapeValue(dateLabel(entry.date)) + '</strong><div class="progress-log-values">' + values + '</div></div>' +
+                    '<div class="progress-log-main"><strong>' + escapeValue(dateLabel(entry.date)) + '</strong>' + values + '</div>' +
                     '<button type="button" class="btn-delete" data-remove-measurement="' + escapeValue(entry.id) + '">Remove</button>' +
                     '</div>';
             }).join("");
@@ -486,6 +530,10 @@
             goalTargetDate.min = progressDateMin;
             goalTargetDate.max = progressDateMax;
         }
+
+        [byId("progressGoalTargetWeight"), byId("progressWeightValue")]
+            .concat(MEASUREMENT_FIELDS.map(function (field) { return byId(field.id); }))
+            .forEach(guardNumericInput);
 
         const progressPanelSelect = byId("progressPanelSelect");
         const progressPanels = document.querySelectorAll("[data-progress-panel]");
@@ -597,9 +645,20 @@
             weightForm.addEventListener("submit", function (event) {
                 event.preventDefault();
                 const date = todayValue();
-                const weight = positiveNumber(byId("progressWeightValue") ? byId("progressWeightValue").value : "", 1, 500);
+                const raw = byId("progressWeightValue") ? byId("progressWeightValue").value.trim() : "";
 
-                if (weight === null) {
+                if (!raw) {
+                    setMessage("progressWeightMsg", "Please enter your weight.", true);
+                    return;
+                }
+
+                const parsed = parseOneDecimal(raw);
+                if (parsed.status === "format") {
+                    setMessage("progressWeightMsg", "Weight must be a number with up to one decimal place.", true);
+                    return;
+                }
+
+                if (parsed.value < 1 || parsed.value > 500) {
                     setMessage("progressWeightMsg", "Weight must be between 1 and 500 kg.", true);
                     return;
                 }
@@ -607,7 +666,7 @@
                 record.weights.push({
                     id: newId("weight"),
                     date: date,
-                    weight: weight,
+                    weight: parsed.value,
                     at: new Date().toISOString()
                 });
                 persist();
@@ -648,12 +707,19 @@
                         values[field.key] = null;
                         continue;
                     }
-                    const value = positiveNumber(raw, 1, 500);
-                    if (value === null) {
-                        setMessage("progressMeasureMsg", field.label + " must be between 1 and 500 cm.", true);
+
+                    const parsed = parseOneDecimal(raw);
+                    if (parsed.status === "format") {
+                        setMessage("progressMeasureMsg", field.label + " must be a number with up to one decimal place.", true);
                         return;
                     }
-                    values[field.key] = value;
+
+                    if (parsed.value < field.min || parsed.value > field.max) {
+                        setMessage("progressMeasureMsg", field.label + " must be between " + field.min + " and " + field.max + " cm.", true);
+                        return;
+                    }
+
+                    values[field.key] = parsed.value;
                     hasValue = true;
                 }
 
