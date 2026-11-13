@@ -1668,4 +1668,36 @@ document.addEventListener("DOMContentLoaded", () => {
     renderArchivedTickets();
     renderArchivedLeads();
     renderArchivedSessions();
+
+    // Each archive container has its own search field. Rows are filtered by
+    // their rendered text and the filter is re-applied whenever a renderer
+    // repaints the table (restore, delete or a storage update).
+    const archiveFilters = [
+        ["archiveMemberSearch", "archivedTableBody"],
+        ["archiveCoachSearch", "archivedCoachesBody"],
+        ["archiveStaffTicketSearch", "archivedStaffTicketsBody"],
+        ["archiveCustomerInquirySearch", "archivedCustomerInquiriesBody"],
+        ["archiveLeadSearch", "archivedLeadsBody"],
+        ["archiveSessionSearch", "archivedSessionsBody"]
+    ];
+
+    const applyArchiveFilter = (input, tbody) => {
+        const query = input.value.trim().toLowerCase();
+        Array.from(tbody.rows).forEach(row => {
+            if (row.querySelector("td[colspan]")) return;
+            row.style.display = !query || row.textContent.toLowerCase().includes(query) ? "" : "none";
+        });
+    };
+
+    archiveFilters.forEach(([inputId, tbodyId]) => {
+        const input = document.getElementById(inputId);
+        const tbody = document.getElementById(tbodyId);
+        if (!input || !tbody) return;
+
+        input.addEventListener("input", () => applyArchiveFilter(input, tbody));
+        if (typeof MutationObserver === "function") {
+            new MutationObserver(() => applyArchiveFilter(input, tbody))
+                .observe(tbody, { childList: true });
+        }
+    });
 });

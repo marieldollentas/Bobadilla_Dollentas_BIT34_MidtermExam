@@ -489,6 +489,12 @@ letter-spacing: .3px;
     gap: 14px;
 }
 
+.archive-search-input {
+    width: auto;
+    flex: 0 1 280px;
+    min-width: 180px;
+}
+
 .card-sub {
     margin-top: 4px;
     font-size: 12px;
