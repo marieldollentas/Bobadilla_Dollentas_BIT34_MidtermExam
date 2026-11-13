@@ -154,7 +154,7 @@
                         <section class="content-section span-5">
                             <div class="card-head">
                                 <div>
-                                    <h3>Membership Information</h3>
+                                    <h3>My Membership Details</h3>
                                     <p class="card-sub">Plan length and expiration</p>
                                 </div>
                             </div>
@@ -164,6 +164,151 @@
                                 <div class="profile-item"><label>Membership Expiration</label><span id="pExp"></span></div>
                                 <div class="profile-item"><label>Frozen Until</label><span id="pFrozenUntil">—</span></div>
                                 <div class="profile-item"><label>Original Expiration</label><span id="pOrigExp">—</span></div>
+                            </div>
+                        </section>
+
+                        <!-- Static membership guide. This is general branch information,
+                             kept separate from the personal membership details above. -->
+                        <section class="content-section span-12 membership-guide" aria-labelledby="membershipGuideTitle">
+                            <div class="card-head">
+                                <div>
+                                    <h3 id="membershipGuideTitle">Anytime Fitness – Membership Information</h3>
+                                    <p class="card-sub">A quick guide to your membership, facilities and services</p>
+                                </div>
+                                <span class="card-chip">Member Guide</span>
+                            </div>
+
+                            <p class="membership-guide-intro">Welcome to Anytime Fitness! Your membership gives you access to a convenient fitness environment designed to support your health and wellness goals. Whether you want to improve your strength, build endurance, maintain your fitness, or develop a consistent workout routine, Anytime Fitness provides the facilities, equipment, and support to help you along the way.</p>
+
+                            <div class="membership-accordions">
+                                <details class="membership-accordion" open>
+                                    <summary>
+                                        <span class="membership-accordion-icon tone-brand" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                        </span>
+                                        <span class="membership-accordion-title">
+                                            <span class="membership-accordion-index">1</span>
+                                            Membership Benefits
+                                        </span>
+                                        <svg class="membership-accordion-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="membership-accordion-body">
+                                        <ul class="membership-list">
+                                            <li><strong>24/7 Gym Access:</strong> Enjoy round-the-clock access to your home gym, allowing you to work out at a time that fits your schedule.</li>
+                                            <li><strong>Personalized Fitness Support:</strong> Receive guidance from professional coaches who can help you develop workout plans based on your fitness goals.</li>
+                                            <li><strong>Workout Resources:</strong> Explore different workout routines, exercise guides, and fitness resources.</li>
+                                            <li><strong>Progress Tracking:</strong> Monitor your fitness progress and stay informed about your workouts and personal goals.</li>
+                                        </ul>
+                                    </div>
+                                </details>
+
+                                <details class="membership-accordion">
+                                    <summary>
+                                        <span class="membership-accordion-icon tone-blue" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+                                        </span>
+                                        <span class="membership-accordion-title">
+                                            <span class="membership-accordion-index">2</span>
+                                            Gym Facilities and Equipment
+                                        </span>
+                                        <svg class="membership-accordion-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="membership-accordion-body">
+                                        <p>Members can enjoy access to a variety of gym equipment and facilities, including:</p>
+                                        <ul class="membership-list">
+                                            <li><strong>Strength Equipment:</strong> Squat racks, barbells, dumbbells, adjustable benches, and strength machines.</li>
+                                            <li><strong>Cardio Equipment:</strong> Treadmills, stationary bikes, ellipticals, rowing machines, and stair climbers.</li>
+                                            <li><strong>Functional Training Equipment:</strong> Kettlebells, resistance bands, medicine balls, battle ropes, and other training equipment.</li>
+                                            <li><strong>Member Facilities:</strong> Private restrooms, showers, storage cubbies, Wi-Fi, and water fountains.</li>
+                                        </ul>
+                                    </div>
+                                </details>
+
+                                <details class="membership-accordion">
+                                    <summary>
+                                        <span class="membership-accordion-icon tone-green" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M3.5 10h17M7.5 15h3"/></svg>
+                                        </span>
+                                        <span class="membership-accordion-title">
+                                            <span class="membership-accordion-index">3</span>
+                                            Membership Plans and Access
+                                        </span>
+                                        <svg class="membership-accordion-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="membership-accordion-body">
+                                        <div class="membership-plans">
+                                            <div class="membership-plan">
+                                                <h4>6-Month Membership</h4>
+                                                <span class="membership-plan-price">₱2,500<span>/mo</span></span>
+                                                <span class="membership-plan-meta">6-month commitment</span>
+                                            </div>
+                                            <div class="membership-plan">
+                                                <h4>12-Month Membership</h4>
+                                                <span class="membership-plan-price">₱2,200<span>/mo</span></span>
+                                                <span class="membership-plan-meta">12-month commitment</span>
+                                            </div>
+                                            <div class="membership-plan">
+                                                <h4>18-Month Membership</h4>
+                                                <span class="membership-plan-price">₱1,950<span>/mo</span></span>
+                                                <span class="membership-plan-meta">18-month commitment</span>
+                                            </div>
+                                        </div>
+                                        <p class="membership-note">Members can access participating Anytime Fitness locations worldwide using their assigned key fob.</p>
+                                        <p>Your home gym serves as your primary membership location, where you can manage your membership and request assistance.</p>
+                                    </div>
+                                </details>
+
+                                <details class="membership-accordion">
+                                    <summary>
+                                        <span class="membership-accordion-icon tone-amber" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19v-1.5a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4V19"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.9"/><path d="M17 14.2a4 4 0 0 1 3.5 3.3V19"/></svg>
+                                        </span>
+                                        <span class="membership-accordion-title">
+                                            <span class="membership-accordion-index">4</span>
+                                            Coaching and Personal Training Services
+                                        </span>
+                                        <svg class="membership-accordion-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="membership-accordion-body">
+                                        <p>Anytime Fitness offers various coaching services to help members work toward their fitness goals, including:</p>
+                                        <ul class="membership-list">
+                                            <li><strong>Fitness Consultations:</strong> Discuss your fitness goals and receive guidance on getting started.</li>
+                                            <li><strong>Personalized Workout Plans:</strong> Follow exercise routines designed around your individual goals.</li>
+                                            <li><strong>Personal Training:</strong> Receive one-on-one guidance from a professional fitness coach.</li>
+                                            <li><strong>Nutrition and Recovery Guidance:</strong> Learn about nutrition, recovery, and mobility as part of your overall fitness journey.</li>
+                                            <li><strong>Equipment Orientation:</strong> Become familiar with gym equipment and how to use it appropriately.</li>
+                                        </ul>
+                                    </div>
+                                </details>
+
+                                <details class="membership-accordion">
+                                    <summary>
+                                        <span class="membership-accordion-icon tone-rose" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24"><path d="M12 3.5 21 19.5H3Z"/><path d="M12 9v4.5M12 16.5h.01"/></svg>
+                                        </span>
+                                        <span class="membership-accordion-title">
+                                            <span class="membership-accordion-index">5</span>
+                                            Important Membership Reminders
+                                        </span>
+                                        <svg class="membership-accordion-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="membership-accordion-body">
+                                        <ul class="membership-list">
+                                            <li>Keep your membership information and account details updated.</li>
+                                            <li>Use your assigned key fob when entering the gym.</li>
+                                            <li>Follow gym rules, equipment guidelines, and safety procedures.</li>
+                                            <li>Return equipment to its designated area after use.</li>
+                                            <li>Respect other members and maintain cleanliness throughout the facility.</li>
+                                            <li>Contact your home gym through support tickets for questions regarding membership renewals, payments, contract terms, and account concerns.</li>
+                                            <li>Check with gym staff for specific membership policies, available services, and applicable fees.</li>
+                                        </ul>
+                                    </div>
+                                </details>
+                            </div>
+
+                            <div class="membership-closing">
+                                <h4>Make Every Workout Count!</h4>
+                                <p>Anytime Fitness is committed to providing a supportive environment where members can work toward their personal fitness goals. Stay consistent, make use of the available facilities and resources, and enjoy your fitness journey!</p>
                             </div>
                         </section>
                     </div>
