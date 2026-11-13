@@ -299,7 +299,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         buildCustomerTierOptions();
         document.getElementById("customerId").value = customer.id;
-        document.getElementById("customerName").value = customer.name || "";
+        const nameParts = namePartsFromRecord(customer);
+        document.getElementById("customerFirstName").value = nameParts.firstName || "—";
+        document.getElementById("customerMiddleName").value = nameParts.middleName || "—";
+        document.getElementById("customerLastName").value = nameParts.lastName || "—";
         document.getElementById("customerContact").value = customer.contact || "—";
         document.getElementById("customerKeyFob").value = customer.keyFob || "—";
         document.getElementById("customerJoined").value = customer.joined || "";

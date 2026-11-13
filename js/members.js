@@ -260,7 +260,7 @@ function renderCustomerDirectory() {
     const rows = getActiveDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8">No customers found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10">No customers found.</td></tr>';
         return;
     }
 
@@ -281,7 +281,9 @@ function renderCustomerDirectory() {
         }
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.firstName || "—")}</td>
+            <td>${escapeHtml(c.middleName || "—")}</td>
+            <td>${escapeHtml(c.lastName || "—")}</td>
             <td>${escapeHtml(c.contact || "—")}</td>
             <td>${escapeHtml(c.keyFob || "—")}</td>
             <td>${escapeHtml(c.tier)}</td>

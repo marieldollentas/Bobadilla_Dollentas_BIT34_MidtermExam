@@ -247,14 +247,27 @@ const DIRECTORY_KEY = "crmDirectory";
 // js-split:file=data.js part=27of59
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function getDirectoryCustomers() {
-    const staff = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
+    const staff = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]")
+        .map(d => {
+            const parts = namePartsFromRecord(d);
+            return {
+                ...d,
+                firstName: parts.firstName,
+                middleName: parts.middleName,
+                lastName: parts.lastName
+            };
+        });
     const registered = JSON.parse(localStorage.getItem("crmCustomers") || "[]")
         .map(c => {
             const months = tierDurationMonths(c.tier);
             const exp = c.exp || (months && c.joined ? computeExpirationDate(months, new Date(c.joined + "T00:00:00")) : "");
+            const parts = namePartsFromRecord(c);
                 return {
                     id: "reg-" + c.username,
                     name: c.name,
+                    firstName: parts.firstName,
+                    middleName: parts.middleName,
+                    lastName: parts.lastName,
                     contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
                     keyFob: c.keyFob || c.username,
                     tier: c.tier,
