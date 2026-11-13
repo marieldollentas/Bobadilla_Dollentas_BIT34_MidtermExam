@@ -308,8 +308,15 @@
 
             <div class="form-group">
                 <label id="detailsActionLabel" for="detailsComment">Add Comment</label>
-                <input type="text" id="detailsStaffName" class="search-input" placeholder="Enter your name before commenting / replying">
-                <textarea id="detailsComment" class="inquiry-input" rows="3" placeholder="Write a comment..." style="margin-top:8px;"></textarea>
+                <div class="staff-comment-author-bar">
+                    <div class="staff-author-avatar-chip">
+                        <span class="avatar has-photo" id="detailsStaffAvatarPreview" title="Admin Profile Picture">
+                            <img id="detailsStaffAvatarImg" src="" alt="Admin Profile Picture">
+                        </span>
+                    </div>
+                    <input type="text" id="detailsStaffName" class="search-input" placeholder="Enter your name before commenting / replying" style="flex:1;">
+                </div>
+                <textarea id="detailsComment" class="inquiry-input" rows="3" placeholder="Write a comment..." style="margin-top:4px;"></textarea>
             </div>
 
             <div class="modal-actions">

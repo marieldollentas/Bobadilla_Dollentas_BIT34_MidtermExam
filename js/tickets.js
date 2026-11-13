@@ -134,6 +134,10 @@ function openTicketDetails(id, source, buttonElement) {
         comment.placeholder = "Type the reply to the customer...";
     }
     if (staffNameEl) staffNameEl.value = localStorage.getItem("crmStaffName") || "";
+
+    const staffAvatarImg = document.getElementById("detailsStaffAvatarImg");
+    if (staffAvatarImg) staffAvatarImg.src = getAdminAvatar();
+
     document.getElementById("detailsComment").value = "";
     document.getElementById("archiveFromDetails").style.display = String(item.status || "").toLowerCase() === "resolved" ? "inline-block" : "none";
     modal.style.display = "flex";
@@ -170,7 +174,8 @@ function saveTicketUpdate() {
             author: staffName.trim(),
             role: "staff",
             text: comment,
-            date: new Date().toLocaleString()
+            date: new Date().toLocaleString(),
+            avatar: getAdminAvatar()
         });
     }
 

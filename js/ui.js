@@ -56,20 +56,170 @@ function matchesFilters(item, filters, source, extraText) {
 
 
 
+// Default profile pictures (embedded SVG data URIs so they load reliably offline)
+const DEFAULT_ADMIN_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWZBZG1pbkJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzRhMzdiNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3RvcC1jb2xvcj0iIzU4NDJjMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM3MDU5ZGIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImFmQWRtaW5Hb2xkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2ZiYmYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmNTllMGIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIiBmaWxsPSJ1cmwoI2FmQWRtaW5CZykiLz4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0yMiA4OGMwLTE0IDEyLTI1IDI4LTI1czI4IDExIDI4IDI1djEySDIyVjg4eiIgZmlsbD0iIzFlMWI0YiIvPgogIDxwYXRoIGQ9Ik00MyA2M2w3IDggNy04IiBmaWxsPSJub25lIiBzdHJva2U9IiNlMGU3ZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ4IDcxaDRsLTEgMTRoLTJ6IiBmaWxsPSJ1cmwoI2FmQWRtaW5Hb2xkKSIvPgogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNDIiIHI9IjE4IiBmaWxsPSIjZmVkN2FhIi8+CiAgPHBhdGggZD0iTTMyIDM5YzAtMTAgOC0xOCAxOC0xOHMxOCA4IDE4IDE4YzAgMy0xIDYtMyA4LTIuNS01LjUtNy04LTE1LThzLTEyLjUgMi41LTE1IDhjLTItMi0zLTUtMy04eiIgZmlsbD0iIzMxMmU4MSIvPgogIDxjaXJjbGUgY3g9IjQzIiBjeT0iNDIiIHI9IjIuMiIgZmlsbD0iIzFlMWI0YiIvPgogIDxjaXJjbGUgY3g9IjU3IiBjeT0iNDIiIHI9IjIuMiIgZmlsbD0iIzFlMWI0YiIvPgogIDxwYXRoIGQ9Ik00NSA0OWMyIDIuNSA4IDIuNSAxMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNjMjQxMGMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTMwIDQwYTIwIDIwIDAgMCAxIDQwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YxZjVmOSIgc3Ryb2tlLXdpZHRoPSIzLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxyZWN0IHg9IjI4IiB5PSIzNiIgd2lkdGg9IjUiIGhlaWdodD0iMTEiIHJ4PSIyLjUiIGZpbGw9IiNmMWY1ZjkiLz4KICA8cmVjdCB4PSI2NyIgeT0iMzYiIHdpZHRoPSI1IiBoZWlnaHQ9IjExIiByeD0iMi41IiBmaWxsPSIjZjFmNWY5Ii8+CiAgPHBhdGggZD0iTTY5IDQ1djdhNSA1IDAgMCAxLTUgNWgtNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjFmNWY5IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjU1IiBjeT0iNTciIHI9IjMiIGZpbGw9IiMzOGJkZjgiLz4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2NCwgNjQpIHNjYWxlKDAuMzIpIj4KICAgIDxjaXJjbGUgY3g9IjQ1IiBjeT0iNDUiIHI9IjQ0IiBmaWxsPSIjNGEzN2I0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iNiIvPgogICAgPHBhdGggZD0iTTQ1IDE4bDI0IDl2MThjMCAxNS0xMCAyOC0yNCAzMy0xNC01LTI0LTE4LTI0LTMzVjI3bDI0LTl6IiBmaWxsPSJ1cmwoI2FmQWRtaW5Hb2xkKSIvPgogICAgPHBhdGggZD0iTTQ1IDMydjI0TTMzIDQ0aDI0IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPC9nPgo8L3N2Zz4=";
+
+const DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWZVc2VyQmciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDI4NGM3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjMGVhNWU5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWZVc2VyU2hpcnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMGYxNzJhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzFlMjkzYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9InVybCgjYWZVc2VyQmcpIi8+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjI1KSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTIyIDg4YzAtMTQgMTItMjUgMjgtMjVzMjggMTEgMjggMjV2MTJIMjJWODh6IiBmaWxsPSJ1cmwoI2FmVXNlclNoaXJ0KSIvPgogIDxwYXRoIGQ9Ik0zOCA2M2MzIDYgMjEgNiAyNCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI0MiIgcj0iMTgiIGZpbGw9IiNmZWQ3YWEiLz4KICA8cGF0aCBkPSJNMzEgMzhjMC0xMSA4LTE5IDE5LTE5czE5IDggMTkgMTljMCA0LTEgNy0zIDktMy02LTgtOS0xNi05cy0xMyAzLTE2IDljLTItMi0zLTUtMy05eiIgZmlsbD0iIzBmMTcyYSIvPgogIDxjaXJjbGUgY3g9IjQzIiBjeT0iNDIiIHI9IjIuMiIgZmlsbD0iIzBmMTcyYSIvPgogIDxjaXJjbGUgY3g9IjU3IiBjeT0iNDIiIHI9IjIuMiIgZmlsbD0iIzBmMTcyYSIvPgogIDxwYXRoIGQ9Ik00NSA0OWMyIDIuNSA4IDIuNSAxMCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNjMjQxMGMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjQsIDY0KSBzY2FsZSgwLjMyKSI+CiAgICA8Y2lyY2xlIGN4PSI0NSIgY3k9IjQ1IiByPSI0NCIgZmlsbD0iIzAyODRjNyIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjYiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNDUsMTUgNTQsMzQgNzUsMzcgNjAsNTIgNjQsNzMgNDUsNjMgMjYsNzMgMzAsNTIgMTUsMzcgMzYsMzQiIGZpbGw9IiMzOGJkZjgiLz4KICA8L2c+Cjwvc3ZnPg==";
+
+function isAvatarImage(value) {
+    if (!value || typeof value !== "string") return false;
+    const clean = value.trim();
+    return clean.startsWith("data:image/") ||
+        clean.startsWith("http://") ||
+        clean.startsWith("https://") ||
+        clean.startsWith("blob:");
+}
+
+function getAdminAvatar() {
+    return DEFAULT_ADMIN_AVATAR;
+}
+
+function getCustomerAvatar(item, comment) {
+    const username = (comment && comment.username) || (item && item.username);
+    const authorName = (comment && comment.author) || (item && item.name);
+    const email = (comment && comment.email) || (item && item.email);
+
+    try {
+        const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
+        if (username) {
+            const match = customers.find(c => c.username === username);
+            if (match) {
+                return isAvatarImage(match.avatar) ? match.avatar : DEFAULT_USER_AVATAR;
+            }
+        }
+        if (authorName) {
+            const clean = String(authorName).trim().toLowerCase();
+            const match = customers.find(c => c.name && c.name.trim().toLowerCase() === clean);
+            if (match) {
+                return isAvatarImage(match.avatar) ? match.avatar : DEFAULT_USER_AVATAR;
+            }
+        }
+        if (email) {
+            const cleanEmail = String(email).trim().toLowerCase();
+            const match = customers.find(c => c.email && c.email.trim().toLowerCase() === cleanEmail);
+            if (match) {
+                return isAvatarImage(match.avatar) ? match.avatar : DEFAULT_USER_AVATAR;
+            }
+        }
+        if (sessionStorage.getItem("crmRole") === "customer") {
+            const curUser = sessionStorage.getItem("crmCurrentUser");
+            const match = customers.find(c => c.username === curUser);
+            if (match) {
+                if (!authorName || (match.name && match.name.trim().toLowerCase() === String(authorName).trim().toLowerCase())) {
+                    return isAvatarImage(match.avatar) ? match.avatar : DEFAULT_USER_AVATAR;
+                }
+            }
+        }
+    } catch (e) { /* ignore parse error */ }
+
+    if (comment && isAvatarImage(comment.avatar)) {
+        return comment.avatar;
+    }
+    if (item && isAvatarImage(item.avatar)) {
+        return item.avatar;
+    }
+
+    return DEFAULT_USER_AVATAR;
+}
+
+function updateCustomerInquiriesAvatar(username, name, newAvatar) {
+    try {
+        const inqList = JSON.parse(localStorage.getItem("crmInquiries") || "[]");
+        let changed = false;
+        const targetAvatar = isAvatarImage(newAvatar) ? newAvatar : "";
+        inqList.forEach(inq => {
+            const matches = (username && inq.username === username) ||
+                            (name && inq.name && inq.name.trim().toLowerCase() === String(name).trim().toLowerCase());
+            if (matches) {
+                inq.avatar = targetAvatar;
+                if (Array.isArray(inq.comments)) {
+                    inq.comments.forEach(c => {
+                        if (c.role === "customer") {
+                            c.avatar = targetAvatar;
+                        }
+                    });
+                }
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem("crmInquiries", JSON.stringify(inqList));
+        }
+    } catch (e) { /* ignore */ }
+}
+
+function getTicketComments(item) {
+    if (!item) return [];
+    if (Array.isArray(item.comments) && item.comments.length > 0) {
+        return item.comments;
+    }
+    const initialText = item.message || item.issue;
+    if (initialText) {
+        const initial = [{
+            author: item.name || "Customer",
+            role: "customer",
+            text: initialText,
+            date: item.date || new Date().toISOString(),
+            avatar: item.avatar || ""
+        }];
+        if (item.reply) {
+            initial.push({
+                author: "Support Staff",
+                role: "staff",
+                text: item.reply,
+                date: item.date || new Date().toISOString(),
+                avatar: getAdminAvatar()
+            });
+        }
+        return initial;
+    }
+    return [];
+}
+
 // js-split:file=ui.js part=5of34
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function commentsHTML(item) {
-    const comments = Array.isArray(item.comments) ? item.comments : [];
+    if (!item) return '<p class="card-meta">No comments yet.</p>';
+    const comments = getTicketComments(item);
     if (comments.length === 0) {
         return '<p class="card-meta">No comments yet.</p>';
     }
-    return comments.map(c => `
-        <div class="thread-comment ${c.role === "staff" ? "staff" : "customer"}">
-            <span class="thread-author">${c.author || (c.role === "staff" ? "Support Staff" : "Customer")}</span>
-            <span class="thread-date">${c.date ? formatDateLogged(c.date) : ""}</span>
-            <p>${c.text}</p>
-        </div>
-    `).join("");
+    return comments.map(c => {
+        const isStaff = c.role === "staff";
+        const authorName = c.author || (isStaff ? "Support Staff" : (item.name || "Customer"));
+        const roleLabel = isStaff ? "Admin" : "User";
+        const avatarUrl = isStaff ? getAdminAvatar(c) : getCustomerAvatar(item, c);
+        const formattedDate = c.date ? formatDateLogged(c.date) : "";
+
+        return `
+            <div class="thread-comment ${isStaff ? "staff" : "customer"}">
+                <div class="thread-avatar-wrap">
+                    <div class="thread-avatar" title="${escapeHtml(authorName)} (${roleLabel})">
+                        <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(authorName)} profile picture" loading="lazy">
+                    </div>
+                </div>
+                <div class="thread-content-wrap">
+                    <div class="thread-comment-meta">
+                        <span class="thread-author">${escapeHtml(authorName)}</span>
+                        <span class="thread-role-badge ${isStaff ? "staff" : "customer"}">${roleLabel}</span>
+                        <span class="thread-date">${formattedDate}</span>
+                    </div>
+                    <p>${escapeHtml(c.text)}</p>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+if (typeof window !== "undefined") {
+    window.DEFAULT_ADMIN_AVATAR = DEFAULT_ADMIN_AVATAR;
+    window.DEFAULT_USER_AVATAR = DEFAULT_USER_AVATAR;
+    window.isAvatarImage = isAvatarImage;
+    window.getAdminAvatar = getAdminAvatar;
+    window.getCustomerAvatar = getCustomerAvatar;
+    window.getTicketComments = getTicketComments;
+    window.updateCustomerInquiriesAvatar = updateCustomerInquiriesAvatar;
+    window.commentsHTML = commentsHTML;
 }
 
 
@@ -77,10 +227,10 @@ function commentsHTML(item) {
 // js-split:file=ui.js part=6of34
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function commentsSummary(item) {
-    const comments = Array.isArray(item.comments) ? item.comments : [];
+    const comments = getTicketComments(item);
     if (comments.length === 0) return "";
     const last = comments[comments.length - 1];
-    return `<span class="ticket-reply">Last ${last.role === "staff" ? "comment from staff" : "comment"}: ${last.text}</span>`;
+    return `<span class="ticket-reply">Last ${last.role === "staff" ? "comment from staff" : "comment"}: ${escapeHtml(last.text)}</span>`;
 }
 
 

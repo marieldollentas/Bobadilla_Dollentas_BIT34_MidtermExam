@@ -1183,6 +1183,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (value) customer.avatar = value;
             else delete customer.avatar;
+            if (typeof updateCustomerInquiriesAvatar === "function") {
+                updateCustomerInquiriesAvatar(currentUser, customer.name, value);
+            }
             return true;
         };
 
@@ -1249,6 +1252,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     paintAvatar(dataUrl);
                     showAvatarMsg("Profile picture updated.", false);
+                    if (typeof renderMyInquiries === "function") renderMyInquiries();
                 } catch (e) {
                     showAvatarMsg("That image could not be read. Please try another file.", true);
                 }
@@ -1265,6 +1269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 paintAvatar("");
                 showAvatarMsg("Profile picture removed.", false);
+                if (typeof renderMyInquiries === "function") renderMyInquiries();
             });
         }
 
@@ -1339,7 +1344,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="ticket-details" id="ticket-details-${inq.id}" style="display:none;">
                         <div class="ticket-thread">${commentsHTML(inq)}</div>
                         <div class="portal-reply-box">
-                            <label for="reply-${inq.id}">Add Your Reply</label>
+                            <div class="portal-reply-header" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                                <span class="avatar has-photo" style="width:28px; height:28px; border:1px solid #0284c7;">
+                                    <img src="${escapeHtml(getCustomerAvatar(inq, null))}" alt="Your avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+                                </span>
+                                <label for="reply-${inq.id}" style="margin-bottom:0;">Reply as <strong>${escapeHtml(customer.name || "Member")}</strong></label>
+                            </div>
                             <textarea id="reply-${inq.id}" class="inquiry-input" rows="3" placeholder="Type your reply to support..."></textarea>
                             <button class="btn-primary" onclick="replyToInquiry(${inq.id})">Send Reply</button>
                         </div>
@@ -1456,11 +1466,13 @@ window.submitInquiry = () => {
                 priority: PRIORITY_NOT_DEFINED,
                 status: "Open",
                 reply: "",
+                avatar: customer.avatar || "",
                 comments: [{
                     author: customer.name,
                     role: "customer",
                     text: message,
-                    date: dateTimeStr
+                    date: dateTimeStr,
+                    avatar: customer.avatar || ""
                 }]
             };
             inquiries.push(newInquiry);
@@ -1494,7 +1506,8 @@ window.submitInquiry = () => {
                 author: customer.name,
                 role: "customer",
                 text: reply,
-                date: new Date().toLocaleString()
+                date: new Date().toLocaleString(),
+                avatar: customer.avatar || ""
             });
             localStorage.setItem("crmInquiries", JSON.stringify(inquiries));
             getOpenTicketsCount();
@@ -1555,11 +1568,13 @@ window.submitInquiry = () => {
                 priority,
                 status,
                 reply: "",
+                avatar: typeof getCustomerAvatar === "function" ? getCustomerAvatar(null, { author: name }) : "",
                 comments: [{
                     author: name,
                     role: "customer",
                     text: issue,
-                    date: now
+                    date: now,
+                    avatar: typeof getCustomerAvatar === "function" ? getCustomerAvatar(null, { author: name }) : ""
                 }]
             });
             localStorage.setItem("crmStaffTickets", JSON.stringify(tickets));

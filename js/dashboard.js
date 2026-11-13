@@ -528,7 +528,34 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderTopbarChrome() {
         const role = sessionStorage.getItem("crmRole");
         const user = sessionStorage.getItem("crmCurrentUser") || "";
-        setText("userAvatar", (user.slice(0, 2) || "AF").toUpperCase());
+        const avatarEl = document.getElementById("userAvatar");
+        if (avatarEl) {
+            if (role === "admin") {
+                const adminPic = typeof getAdminAvatar === "function" ? getAdminAvatar() : "";
+                if (adminPic) {
+                    avatarEl.classList.add("has-photo");
+                    avatarEl.innerHTML = `<img src="${adminPic}" alt="Admin Profile Picture" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    setText("userAvatar", (user.slice(0, 2) || "AF").toUpperCase());
+                }
+            } else if (role === "customer") {
+                let userPic = typeof DEFAULT_USER_AVATAR !== "undefined" ? DEFAULT_USER_AVATAR : "";
+                try {
+                    const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
+                    const cust = customers.find(c => c.username === user);
+                    if (cust && cust.avatar) userPic = cust.avatar;
+                } catch (e) { /* ignore */ }
+                if (userPic) {
+                    avatarEl.classList.add("has-photo");
+                    avatarEl.innerHTML = `<img src="${userPic}" alt="Member Profile Picture" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    setText("userAvatar", (user.slice(0, 2) || "AF").toUpperCase());
+                }
+            } else {
+                avatarEl.classList.remove("has-photo");
+                setText("userAvatar", (user.slice(0, 2) || "AF").toUpperCase());
+            }
+        }
         setText("userRole", role === "admin"
             ? "Front Desk Staff"
             : role === "customer" ? "Gym Member" : "Signed out");
