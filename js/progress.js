@@ -94,6 +94,7 @@
         if (raw.goal && typeof raw.goal === "object" && raw.goal.type) {
             record.goal = {
                 type: String(raw.goal.type),
+                customType: String(raw.goal.customType || ""),
                 targetWeight: numberOrNull(raw.goal.targetWeight),
                 targetDate: String(raw.goal.targetDate || ""),
                 notes: String(raw.goal.notes || ""),
@@ -259,6 +260,8 @@
                 summary.innerHTML = "";
                 clearButton.hidden = true;
                 if (byId("progressGoalType")) byId("progressGoalType").value = "";
+                if (byId("progressGoalCustomGroup")) byId("progressGoalCustomGroup").hidden = true;
+                if (byId("progressGoalCustom")) byId("progressGoalCustom").value = "";
                 if (byId("progressGoalTargetWeight")) byId("progressGoalTargetWeight").value = "";
                 if (byId("progressGoalTargetDate")) byId("progressGoalTargetDate").value = "";
                 if (byId("progressGoalNotes")) byId("progressGoalNotes").value = "";
@@ -266,7 +269,10 @@
             }
 
             const goal = record.goal;
+            const isOtherGoal = goal.type === "Other";
             if (byId("progressGoalType")) byId("progressGoalType").value = goal.type;
+            if (byId("progressGoalCustomGroup")) byId("progressGoalCustomGroup").hidden = !isOtherGoal;
+            if (byId("progressGoalCustom")) byId("progressGoalCustom").value = isOtherGoal ? (goal.customType || "") : "";
             if (byId("progressGoalTargetWeight")) byId("progressGoalTargetWeight").value = goal.targetWeight === null ? "" : goal.targetWeight;
             if (byId("progressGoalTargetDate")) byId("progressGoalTargetDate").value = goal.targetDate || "";
             if (byId("progressGoalNotes")) byId("progressGoalNotes").value = goal.notes || "";
@@ -274,7 +280,7 @@
             summary.innerHTML = [
                 '<h4>Current goal</h4>',
                 '<div class="profile-grid progress-goal-grid">',
-                '<div class="profile-item"><label>Goal</label><span>', escapeValue(goal.type), '</span></div>',
+                '<div class="profile-item"><label>Goal</label><span>', escapeValue(goal.type === "Other" && goal.customType ? goal.customType : goal.type), '</span></div>',
                 '<div class="profile-item"><label>Target weight</label><span>', goal.targetWeight === null ? "—" : escapeValue(formatWeight(goal.targetWeight)), '</span></div>',
                 '<div class="profile-item"><label>Target date</label><span>', escapeValue(dateLabel(goal.targetDate)), '</span></div>',
                 '<div class="profile-item"><label>Notes</label><span>', escapeValue(goal.notes || "—"), '</span></div>',
@@ -495,36 +501,74 @@
             showProgressPanel(progressPanelSelect.value);
         }
 
+        const goalTypeSelect = byId("progressGoalType");
+        const goalCustomGroup = byId("progressGoalCustomGroup");
+        const goalCustomInput = byId("progressGoalCustom");
+
+        function syncGoalCustomField() {
+            const isOther = goalTypeSelect && goalTypeSelect.value === "Other";
+            if (goalCustomGroup) goalCustomGroup.hidden = !isOther;
+            if (!isOther && goalCustomInput) goalCustomInput.value = "";
+        }
+
+        if (goalTypeSelect) goalTypeSelect.addEventListener("change", syncGoalCustomField);
+
         const goalForm = byId("progressGoalForm");
         if (goalForm) {
             goalForm.addEventListener("submit", function (event) {
                 event.preventDefault();
                 const type = byId("progressGoalType") ? byId("progressGoalType").value : "";
+                const customType = byId("progressGoalCustom") ? byId("progressGoalCustom").value.trim() : "";
                 const targetWeightRaw = byId("progressGoalTargetWeight") ? byId("progressGoalTargetWeight").value.trim() : "";
                 const targetDate = byId("progressGoalTargetDate") ? byId("progressGoalTargetDate").value : "";
                 const notes = byId("progressGoalNotes") ? byId("progressGoalNotes").value.trim() : "";
+                const customMax = byId("progressGoalCustom") ? Number(byId("progressGoalCustom").maxLength) : 60;
 
                 if (!type) {
                     setMessage("progressGoalMsg", "Please choose a fitness goal.", true);
                     return;
                 }
 
-                if (targetDate && !isDateInProgressRange(targetDate)) {
-                    setMessage("progressGoalMsg", "Target date must be between today and 10 years from now.", true);
-                    return;
-                }
-
-                let targetWeight = null;
-                if (targetWeightRaw) {
-                    targetWeight = positiveNumber(targetWeightRaw, 1, 500);
-                    if (targetWeight === null) {
-                        setMessage("progressGoalMsg", "Target weight must be between 1 and 500 kg.", true);
+                if (type === "Other") {
+                    if (!customType) {
+                        setMessage("progressGoalMsg", "Please enter your custom goal.", true);
+                        return;
+                    }
+                    if (customType.length > customMax) {
+                        setMessage("progressGoalMsg", "Custom goal must be " + customMax + " characters or fewer.", true);
                         return;
                     }
                 }
 
+                if (!targetWeightRaw) {
+                    setMessage("progressGoalMsg", "Please enter your target weight.", true);
+                    return;
+                }
+
+                if (!/^\d+(\.\d)?$/.test(targetWeightRaw)) {
+                    setMessage("progressGoalMsg", "Target weight must be a number with up to one decimal place.", true);
+                    return;
+                }
+
+                const targetWeight = positiveNumber(targetWeightRaw, 1, 500);
+                if (targetWeight === null) {
+                    setMessage("progressGoalMsg", "Target weight must be between 1 and 500 kg.", true);
+                    return;
+                }
+
+                if (!targetDate) {
+                    setMessage("progressGoalMsg", "Please choose a target date.", true);
+                    return;
+                }
+
+                if (!isDateInProgressRange(targetDate)) {
+                    setMessage("progressGoalMsg", "Target date must be between today and 10 years from now.", true);
+                    return;
+                }
+
                 record.goal = {
                     type: type,
+                    customType: type === "Other" ? customType : "",
                     targetWeight: targetWeight,
                     targetDate: targetDate,
                     notes: notes,
