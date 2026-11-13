@@ -4,6 +4,7 @@
     const PROGRESS_KEY = "crmMemberProgress";
     const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
     const PHOTO_MAX_PX = 900;
+    const WORKOUT_EXERCISE_MAX = 50;
     const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const MEASUREMENT_FIELDS = [
         { key: "chest", id: "progressMeasureChest", label: "Chest", min: 1, max: 300 },
@@ -113,6 +114,21 @@
         });
     }
 
+    function guardWholeNumberInput(input) {
+        if (!input) return;
+        input.addEventListener("keydown", function (event) {
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            if (["e", "E", "+", "-", ".", ","].indexOf(event.key) > -1) {
+                event.preventDefault();
+            }
+        });
+        input.addEventListener("paste", function (event) {
+            const clipboard = event.clipboardData || window.clipboardData;
+            const text = clipboard ? clipboard.getData("text") : "";
+            if (text && !/^\d+$/.test(text.trim())) event.preventDefault();
+        });
+    }
+
     function newId(prefix) {
         return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
     }
@@ -174,12 +190,30 @@
 
         record.workouts = asArray(raw.workouts).map(function (entry, index) {
             if (!entry || !entry.exercise) return null;
+
+            let repsMin = numberOrNull(entry.repsMin);
+            let repsMax = numberOrNull(entry.repsMax);
+            if (repsMin === null || repsMax === null) {
+                const legacy = String(entry.reps || "").match(/(\d+)\s*[-–]\s*(\d+)/);
+                if (legacy) {
+                    repsMin = Number(legacy[1]);
+                    repsMax = Number(legacy[2]);
+                } else {
+                    const single = numberOrNull(entry.reps);
+                    if (single !== null) {
+                        repsMin = single;
+                        repsMax = single;
+                    }
+                }
+            }
+
             return {
                 id: String(entry.id || "workout-" + index),
                 day: WEEKDAYS.indexOf(entry.day) > -1 ? entry.day : WEEKDAYS[0],
                 exercise: String(entry.exercise),
                 sets: numberOrNull(entry.sets),
-                reps: String(entry.reps || ""),
+                repsMin: repsMin,
+                repsMax: repsMax,
                 at: String(entry.at || "")
             };
         }).filter(Boolean);
@@ -493,9 +527,12 @@
                 return '<div class="progress-plan-day">' +
                     '<div class="progress-plan-day-head"><strong>' + escapeValue(day) + '</strong><span>' + exercises.length + ' exercise' + (exercises.length === 1 ? "" : "s") + '</span></div>' +
                     '<ul class="progress-plan-list">' + exercises.map(function (entry) {
+                        const reps = entry.repsMin === null || entry.repsMax === null
+                            ? "—"
+                            : (entry.repsMin === entry.repsMax ? String(entry.repsMin) : entry.repsMin + "–" + entry.repsMax);
                         return '<li>' +
                             '<div class="progress-plan-item"><strong>' + escapeValue(entry.exercise) + '</strong><span>' +
-                            escapeValue((entry.sets === null ? "—" : entry.sets) + " sets") + ' &times; ' + escapeValue(entry.reps || "—") + ' reps</span></div>' +
+                            escapeValue((entry.sets === null ? "—" : entry.sets) + " sets") + ' &times; ' + escapeValue(reps) + ' reps</span></div>' +
                             '<button type="button" class="btn-delete" data-remove-workout="' + escapeValue(entry.id) + '">Remove</button>' +
                             '</li>';
                     }).join("") + '</ul></div>';
@@ -542,6 +579,20 @@
         [byId("progressGoalTargetWeight"), byId("progressWeightValue")]
             .concat(MEASUREMENT_FIELDS.map(function (field) { return byId(field.id); }))
             .forEach(guardNumericInput);
+
+        const workoutExerciseInput = byId("progressWorkoutExercise");
+        if (workoutExerciseInput) {
+            const sanitizeExercise = function () {
+                if (typeof sanitizePersonNameInput === "function") {
+                    sanitizePersonNameInput(workoutExerciseInput, WORKOUT_EXERCISE_MAX);
+                }
+            };
+            workoutExerciseInput.addEventListener("input", sanitizeExercise);
+            workoutExerciseInput.addEventListener("blur", sanitizeExercise);
+        }
+
+        [byId("progressWorkoutSets"), byId("progressWorkoutRepsMin"), byId("progressWorkoutRepsMax")]
+            .forEach(guardWholeNumberInput);
 
         const progressPanelSelect = byId("progressPanelSelect");
         const progressPanels = document.querySelectorAll("[data-progress-panel]");
@@ -770,20 +821,79 @@
             workoutForm.addEventListener("submit", function (event) {
                 event.preventDefault();
                 const day = byId("progressWorkoutDay") ? byId("progressWorkoutDay").value : WEEKDAYS[0];
-                const exercise = byId("progressWorkoutExercise") ? byId("progressWorkoutExercise").value.trim() : "";
-                const sets = positiveNumber(byId("progressWorkoutSets") ? byId("progressWorkoutSets").value : "", 1, 50);
-                const reps = byId("progressWorkoutReps") ? byId("progressWorkoutReps").value.trim() : "";
+                const exercise = byId("progressWorkoutExercise")
+                    ? byId("progressWorkoutExercise").value.replace(/\s+/g, " ").trim()
+                    : "";
+                const setsRaw = byId("progressWorkoutSets") ? byId("progressWorkoutSets").value.trim() : "";
+                const repsMinRaw = byId("progressWorkoutRepsMin") ? byId("progressWorkoutRepsMin").value.trim() : "";
+                const repsMaxRaw = byId("progressWorkoutRepsMax") ? byId("progressWorkoutRepsMax").value.trim() : "";
 
                 if (!exercise) {
                     setMessage("progressWorkoutMsg", "Please enter an exercise.", true);
                     return;
                 }
-                if (sets === null || Math.floor(sets) !== sets) {
-                    setMessage("progressWorkoutMsg", "Sets must be a whole number between 1 and 50.", true);
+                if (!/^[A-Za-zÑñ\s]+$/.test(exercise)) {
+                    setMessage("progressWorkoutMsg", "Exercise may only contain letters and spaces. Numbers and special characters are not allowed.", true);
                     return;
                 }
-                if (!reps) {
-                    setMessage("progressWorkoutMsg", "Please enter the number of reps.", true);
+                if (exercise.length > WORKOUT_EXERCISE_MAX) {
+                    setMessage("progressWorkoutMsg", "Exercise must be " + WORKOUT_EXERCISE_MAX + " characters or fewer.", true);
+                    return;
+                }
+
+                const duplicate = record.workouts.some(function (entry) {
+                    return entry.day === day &&
+                        String(entry.exercise).replace(/\s+/g, " ").trim().toLowerCase() === exercise.toLowerCase();
+                });
+                if (duplicate) {
+                    setMessage("progressWorkoutMsg", "This exercise is already in your " + day + " plan.", true);
+                    return;
+                }
+
+                if (!setsRaw) {
+                    setMessage("progressWorkoutMsg", "Please enter the number of sets.", true);
+                    return;
+                }
+                if (!/^\d+$/.test(setsRaw)) {
+                    setMessage("progressWorkoutMsg", "Sets must be a whole number from 1 to 20.", true);
+                    return;
+                }
+                const sets = Number(setsRaw);
+                if (sets < 1 || sets > 20) {
+                    setMessage("progressWorkoutMsg", "Sets must be a whole number from 1 to 20.", true);
+                    return;
+                }
+
+                if (!repsMinRaw) {
+                    setMessage("progressWorkoutMsg", "Please enter the minimum reps.", true);
+                    return;
+                }
+                if (!/^\d+$/.test(repsMinRaw)) {
+                    setMessage("progressWorkoutMsg", "Minimum reps must be a whole number from 1 to 100.", true);
+                    return;
+                }
+                const repsMin = Number(repsMinRaw);
+                if (repsMin < 1 || repsMin > 100) {
+                    setMessage("progressWorkoutMsg", "Minimum reps must be a whole number from 1 to 100.", true);
+                    return;
+                }
+
+                if (!repsMaxRaw) {
+                    setMessage("progressWorkoutMsg", "Please enter the maximum reps.", true);
+                    return;
+                }
+                if (!/^\d+$/.test(repsMaxRaw)) {
+                    setMessage("progressWorkoutMsg", "Maximum reps must be a whole number from 1 to 100.", true);
+                    return;
+                }
+                const repsMax = Number(repsMaxRaw);
+                if (repsMax < 1 || repsMax > 100) {
+                    setMessage("progressWorkoutMsg", "Maximum reps must be a whole number from 1 to 100.", true);
+                    return;
+                }
+
+                if (repsMin > repsMax) {
+                    setMessage("progressWorkoutMsg", "Minimum reps must be less than or equal to maximum reps.", true);
                     return;
                 }
 
@@ -792,14 +902,16 @@
                     day: day,
                     exercise: exercise,
                     sets: sets,
-                    reps: reps,
+                    repsMin: repsMin,
+                    repsMax: repsMax,
                     at: new Date().toISOString()
                 });
                 persist();
 
                 byId("progressWorkoutExercise").value = "";
                 byId("progressWorkoutSets").value = "";
-                byId("progressWorkoutReps").value = "";
+                byId("progressWorkoutRepsMin").value = "";
+                byId("progressWorkoutRepsMax").value = "";
                 renderWorkouts();
                 setMessage("progressWorkoutMsg", "Exercise added to your " + day + " plan.", false);
             });

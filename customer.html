@@ -429,7 +429,7 @@
                                     <p class="card-sub">Your scheduled exercises, sets and reps</p>
                                 </div>
                             </div>
-                            <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;">
+                            <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;" novalidate>
                                 <div class="progress-form-row">
                                     <div class="form-group">
                                         <label for="progressWorkoutDay">Day</label>
@@ -445,17 +445,21 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="progressWorkoutExercise">Exercise</label>
-                                        <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="80" placeholder="e.g. Bench press" required>
+                                        <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="50" placeholder="e.g. Bench press" required>
                                     </div>
                                 </div>
-                                <div class="progress-form-row">
+                                <div class="progress-form-row progress-form-row-3">
                                     <div class="form-group">
                                         <label for="progressWorkoutSets">Sets</label>
-                                        <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="50" step="1" placeholder="3">
+                                        <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="20" step="1" placeholder="3" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="progressWorkoutReps">Reps</label>
-                                        <input type="text" id="progressWorkoutReps" class="search-input" maxlength="20" placeholder="8-12">
+                                        <label for="progressWorkoutRepsMin">Minimum reps</label>
+                                        <input type="number" id="progressWorkoutRepsMin" class="search-input" min="1" max="100" step="1" placeholder="8" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="progressWorkoutRepsMax">Maximum reps</label>
+                                        <input type="number" id="progressWorkoutRepsMax" class="search-input" min="1" max="100" step="1" placeholder="12" required>
                                     </div>
                                 </div>
                                 <button type="submit" class="btn-primary">Add Exercise</button>
