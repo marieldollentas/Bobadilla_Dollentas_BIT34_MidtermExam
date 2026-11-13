@@ -254,7 +254,9 @@ function getDirectoryCustomers() {
                 ...d,
                 firstName: parts.firstName,
                 middleName: parts.middleName,
-                lastName: parts.lastName
+                lastName: parts.lastName,
+                gender: d.gender || "—",
+                genderIdentity: d.genderIdentity || ""
             };
         });
     const registered = JSON.parse(localStorage.getItem("crmCustomers") || "[]")
@@ -268,6 +270,8 @@ function getDirectoryCustomers() {
                     firstName: parts.firstName,
                     middleName: parts.middleName,
                     lastName: parts.lastName,
+                    gender: c.gender || "—",
+                    genderIdentity: c.genderIdentity || "",
                     contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
                     keyFob: c.keyFob || c.username,
                     tier: c.tier,

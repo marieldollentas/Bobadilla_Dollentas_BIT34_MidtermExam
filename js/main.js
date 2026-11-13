@@ -303,6 +303,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("customerFirstName").value = nameParts.firstName || "—";
         document.getElementById("customerMiddleName").value = nameParts.middleName || "—";
         document.getElementById("customerLastName").value = nameParts.lastName || "—";
+        document.getElementById("customerGender").value = customer.gender === "Other" && customer.genderIdentity
+            ? `Other (${customer.genderIdentity})`
+            : (customer.gender || "—");
         document.getElementById("customerContact").value = customer.contact || "—";
         document.getElementById("customerKeyFob").value = customer.keyFob || "—";
         document.getElementById("customerJoined").value = customer.joined || "";
@@ -824,6 +827,31 @@ document.addEventListener("DOMContentLoaded", () => {
         const regFobEl = document.getElementById("regKeyFob");
         const regExpEl = document.getElementById("regExp");
         const regPhoneEl = document.getElementById("regPhone");
+        const regGenderEl = document.getElementById("regGender");
+        const regGenderIdentityEl = document.getElementById("regGenderIdentity");
+        const genderIdentityGroup = document.getElementById("genderIdentityGroup");
+
+        // The optional gender identity only applies when "Other" is chosen, so
+        // it is revealed on demand and cleared again when another option is
+        // selected. Its input keeps the same 50-character limit as a name and
+        // allows letters, spaces and hyphens only.
+        const sanitizeGenderIdentity = () => {
+            if (!regGenderIdentityEl) return;
+            const clean = String(regGenderIdentityEl.value || "").replace(/[^A-Za-zñÑ\s-]/g, "").slice(0, PERSON_NAME_MAX_LENGTH);
+            if (regGenderIdentityEl.value !== clean) regGenderIdentityEl.value = clean;
+        };
+        const toggleGenderIdentity = () => {
+            if (!regGenderEl || !genderIdentityGroup) return;
+            const isOther = regGenderEl.value === "Other";
+            genderIdentityGroup.style.display = isOther ? "" : "none";
+            if (!isOther && regGenderIdentityEl) regGenderIdentityEl.value = "";
+        };
+        if (regGenderEl) regGenderEl.addEventListener("change", toggleGenderIdentity);
+        if (regGenderIdentityEl) {
+            regGenderIdentityEl.addEventListener("input", sanitizeGenderIdentity);
+            regGenderIdentityEl.addEventListener("blur", sanitizeGenderIdentity);
+        }
+        toggleGenderIdentity();
 
         // Name fields accept letters and spaces only, capped at 50 characters.
         // Filtering on input keeps pasted or autofilled values clean too, so a
@@ -889,6 +917,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const suffixEl = document.getElementById("regSuffix");
             const suffix = suffixEl ? suffixEl.value : "";
             const name = nameParts.name + (suffix ? ` ${suffix}` : "");
+            sanitizeGenderIdentity();
+            const gender = regGenderEl ? regGenderEl.value : "";
+            const genderIdentity = gender === "Other" && regGenderIdentityEl
+                ? regGenderIdentityEl.value.trim()
+                : "";
             const email = document.getElementById("regEmail").value.trim();
             const phone = phLocalNumber(regPhoneEl ? regPhoneEl.value : "");
             const address = document.getElementById("regAddress").value.trim();
@@ -910,6 +943,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (nameParts.middleName && !isValidPersonName(nameParts.middleName)) {
                 errorEl.textContent = "Middle name may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.";
+                return;
+            }
+
+            if (!gender) {
+                errorEl.textContent = "Please select your gender.";
+                return;
+            }
+
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errorEl.textContent = "Please enter a valid email address.";
                 return;
             }
 
@@ -943,6 +986,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 middleName: nameParts.middleName,
                 lastName: nameParts.lastName,
                 suffix,
+                gender,
+                genderIdentity,
                 email,
                 phone,
                 address,

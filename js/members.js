@@ -260,7 +260,7 @@ function renderCustomerDirectory() {
     const rows = getActiveDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10">No customers found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11">No customers found.</td></tr>';
         return;
     }
 
@@ -275,6 +275,9 @@ function renderCustomerDirectory() {
             freezeBtn = `<button class="btn-unfreeze" onclick="unfreezeMember('${c.id}')">Unfreeze</button>`;
         }
         const expDisplay = c.updatedExpirationDate || c.exp || "—";
+        const genderDisplay = c.gender === "Other" && c.genderIdentity
+            ? `Other (${c.genderIdentity})`
+            : (c.gender || "—");
         let statusHtml = `<span class="badge ${cls}">${memberStatus}</span>`;
         if (memberStatus === "Frozen" && c.freezeEndDate) {
             statusHtml = `<span class="badge ${cls}">● Frozen<br/>Until ${c.freezeEndDate}</span>`;
@@ -284,6 +287,7 @@ function renderCustomerDirectory() {
             <td>${escapeHtml(c.firstName || "—")}</td>
             <td>${escapeHtml(c.middleName || "—")}</td>
             <td>${escapeHtml(c.lastName || "—")}</td>
+            <td>${escapeHtml(genderDisplay)}</td>
             <td>${escapeHtml(c.contact || "—")}</td>
             <td>${escapeHtml(c.keyFob || "—")}</td>
             <td>${escapeHtml(c.tier)}</td>
