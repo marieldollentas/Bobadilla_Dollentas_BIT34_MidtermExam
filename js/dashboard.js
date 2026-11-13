@@ -946,6 +946,8 @@ function applyActivityDeepLink() {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 document.addEventListener("DOMContentLoaded", () => {
     applyActivityDeepLink();
+    initAdminAnnouncement();
+    window.addEventListener("storage", syncAdminAnnouncementFromStorage);
 
     if (document.getElementById("recentActivityList")) {
         renderRecentActivity();
@@ -962,6 +964,293 @@ document.addEventListener("DOMContentLoaded", () => {
         window.addEventListener("storage", renderRecentActivity);
     }
 });
+
+// =============================================================
+// Editable Admin Announcement Banner
+// Visible across all Admin Portal pages with inline editing,
+// category themes, visibility toggle, and cross-tab sync.
+// =============================================================
+const ANNOUNCEMENT_STORAGE_KEY = "crmAdminAnnouncement";
+
+const DEFAULT_ADMIN_ANNOUNCEMENT = {
+    text: "Maintenance Notice: High-intensity area will be sanitized tonight from 10:00 PM to 12:00 AM. Free weights will remain open.",
+    type: "notice", // notice | urgent | warning | info
+    updatedAt: "2026-11-13T08:00:00.000Z",
+    updatedBy: "Admin Staff",
+    visible: true
+};
+
+const ANNOUNCEMENT_TYPE_CONFIG = {
+    notice: {
+        label: "Notice",
+        themeClass: "theme-notice",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>'
+    },
+    urgent: {
+        label: "Urgent",
+        themeClass: "theme-urgent",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+    },
+    warning: {
+        label: "Warning",
+        themeClass: "theme-warning",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+    },
+    info: {
+        label: "Info",
+        themeClass: "theme-info",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    }
+};
+
+function getAdminAnnouncement() {
+    try {
+        const raw = localStorage.getItem(ANNOUNCEMENT_STORAGE_KEY);
+        if (!raw) return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || !parsed.text) {
+            return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
+        }
+        return {
+            text: String(parsed.text || "").trim(),
+            type: ["notice", "urgent", "warning", "info"].includes(parsed.type) ? parsed.type : "notice",
+            updatedAt: parsed.updatedAt || new Date().toISOString(),
+            updatedBy: parsed.updatedBy || "Admin Staff",
+            visible: parsed.visible !== false
+        };
+    } catch (e) {
+        return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
+    }
+}
+
+function saveAdminAnnouncement(data) {
+    try {
+        const payload = {
+            text: String(data && data.text || "").trim(),
+            type: ["notice", "urgent", "warning", "info"].includes(data && data.type) ? data.type : "notice",
+            updatedAt: data && data.updatedAt ? data.updatedAt : new Date().toISOString(),
+            updatedBy: data && data.updatedBy ? data.updatedBy : "Admin Staff",
+            visible: data ? data.visible !== false : true
+        };
+        localStorage.setItem(ANNOUNCEMENT_STORAGE_KEY, JSON.stringify(payload));
+        if (typeof logActivity === "function") {
+            logActivity({
+                type: "announcement",
+                title: "Branch announcement updated",
+                meta: `${payload.type.toUpperCase()}: ${payload.text.slice(0, 48)}${payload.text.length > 48 ? "..." : ""}`
+            });
+        }
+        return payload;
+    } catch (e) {
+        console.error("Failed to save announcement:", e);
+        return null;
+    }
+}
+
+function resetAdminAnnouncement() {
+    const fresh = { ...DEFAULT_ADMIN_ANNOUNCEMENT, updatedAt: new Date().toISOString() };
+    saveAdminAnnouncement(fresh);
+    return fresh;
+}
+
+function renderAdminAnnouncementBanner(container, isEditing) {
+    if (!container) {
+        container = document.getElementById("adminAnnouncementBanner");
+    }
+    if (!container) return;
+
+    const data = getAdminAnnouncement();
+    const typeKey = data.type in ANNOUNCEMENT_TYPE_CONFIG ? data.type : "notice";
+    const typeConfig = ANNOUNCEMENT_TYPE_CONFIG[typeKey];
+
+    container.className = "admin-announcement-bar";
+
+    if (isEditing) {
+        container.classList.add("theme-info");
+        const safeText = typeof escapeHtml === "function" ? escapeHtml(data.text) : data.text;
+        container.innerHTML = `
+            <form class="announcement-edit-form" id="announcementEditForm">
+                <div class="announcement-edit-header">
+                    <div class="announcement-edit-title">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        <span>Edit Branch Announcement Banner</span>
+                    </div>
+                    <small class="card-meta">Visible across all Admin Portal pages in real-time</small>
+                </div>
+                <div class="announcement-edit-inputs">
+                    <textarea class="announcement-edit-textarea" id="announcementEditText" rows="2" maxlength="280" placeholder="Type staff or branch announcement here..." required>${safeText}</textarea>
+                    <select class="announcement-edit-type" id="announcementEditType" aria-label="Announcement Category">
+                        <option value="notice"${typeKey === "notice" ? " selected" : ""}>Notice (Purple)</option>
+                        <option value="urgent"${typeKey === "urgent" ? " selected" : ""}>Urgent (Red)</option>
+                        <option value="warning"${typeKey === "warning" ? " selected" : ""}>Warning (Amber)</option>
+                        <option value="info"${typeKey === "info" ? " selected" : ""}>Info (Blue)</option>
+                    </select>
+                </div>
+                <div class="announcement-edit-buttons">
+                    <button type="submit" class="btn-announcement-save">Save Announcement</button>
+                    <button type="button" class="btn-announcement-cancel" id="btnCancelEditAnnouncement">Cancel</button>
+                    <label class="announcement-visible-toggle">
+                        <input type="checkbox" id="announcementEditVisible"${data.visible ? " checked" : ""}>
+                        <span>Display banner on topbar</span>
+                    </label>
+                    <button type="button" class="btn-announcement-reset" id="btnResetAnnouncement">Reset to Default</button>
+                </div>
+            </form>
+        `;
+
+        const form = container.querySelector("#announcementEditForm");
+        const cancelBtn = container.querySelector("#btnCancelEditAnnouncement");
+        const resetBtn = container.querySelector("#btnResetAnnouncement");
+        const textarea = container.querySelector("#announcementEditText");
+
+        if (textarea) textarea.focus();
+
+        if (form) {
+            form.addEventListener("submit", e => {
+                e.preventDefault();
+                const textVal = textarea ? textarea.value.trim() : "";
+                if (!textVal) {
+                    if (textarea) textarea.focus();
+                    return;
+                }
+                const selectEl = container.querySelector("#announcementEditType");
+                const visibleEl = container.querySelector("#announcementEditVisible");
+                saveAdminAnnouncement({
+                    text: textVal,
+                    type: selectEl ? selectEl.value : "notice",
+                    visible: visibleEl ? visibleEl.checked : true,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: "Admin Staff"
+                });
+                renderAdminAnnouncementBanner(container, false);
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener("click", () => {
+                renderAdminAnnouncementBanner(container, false);
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener("click", () => {
+                resetAdminAnnouncement();
+                renderAdminAnnouncementBanner(container, false);
+            });
+        }
+        return;
+    }
+
+    if (!data.visible) {
+        container.classList.add("theme-collapsed");
+        container.innerHTML = `
+            <div class="announcement-inner">
+                <div class="announcement-left">
+                    <div class="announcement-icon-wrap" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </div>
+                    <p class="announcement-text" style="color: var(--text-muted); font-size: 13px;">
+                        <strong>Banner Hidden:</strong> The branch announcement banner is currently hidden from staff view.
+                    </p>
+                </div>
+                <div class="announcement-actions">
+                    <button type="button" class="btn-announcement-action" id="btnShowAnnouncement" title="Make announcement visible">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Show Banner
+                    </button>
+                    <button type="button" class="btn-announcement-action" id="btnEditAnnouncement" title="Edit announcement message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const showBtn = container.querySelector("#btnShowAnnouncement");
+        const editBtn = container.querySelector("#btnEditAnnouncement");
+        if (showBtn) {
+            showBtn.addEventListener("click", () => {
+                data.visible = true;
+                data.updatedAt = new Date().toISOString();
+                saveAdminAnnouncement(data);
+                renderAdminAnnouncementBanner(container, false);
+            });
+        }
+        if (editBtn) {
+            editBtn.addEventListener("click", () => {
+                renderAdminAnnouncementBanner(container, true);
+            });
+        }
+        return;
+    }
+
+    container.classList.add(typeConfig.themeClass);
+    const safeText = typeof escapeHtml === "function" ? escapeHtml(data.text) : data.text;
+    const timeFormatted = typeof formatDateLogged === "function" ? formatDateLogged(data.updatedAt) : data.updatedAt;
+
+    container.innerHTML = `
+        <div class="announcement-inner">
+            <div class="announcement-left">
+                <div class="announcement-icon-wrap" aria-hidden="true">
+                    ${typeConfig.icon}
+                </div>
+                <span class="announcement-badge">${typeof escapeHtml === "function" ? escapeHtml(typeConfig.label) : typeConfig.label}</span>
+                <p class="announcement-text">${safeText}</p>
+                <span class="announcement-meta" title="${typeof escapeHtml === "function" ? escapeHtml(data.updatedAt || "") : (data.updatedAt || "")}">Updated: ${typeof escapeHtml === "function" ? escapeHtml(timeFormatted) : timeFormatted}</span>
+            </div>
+            <div class="announcement-actions">
+                <button type="button" class="btn-announcement-action" id="btnEditAnnouncement" title="Edit announcement">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    Edit
+                </button>
+                <button type="button" class="btn-announcement-action" id="btnHideAnnouncement" title="Hide banner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    Hide
+                </button>
+            </div>
+        </div>
+    `;
+
+    const editBtn = container.querySelector("#btnEditAnnouncement");
+    const hideBtn = container.querySelector("#btnHideAnnouncement");
+
+    if (editBtn) {
+        editBtn.addEventListener("click", () => {
+            renderAdminAnnouncementBanner(container, true);
+        });
+    }
+
+    if (hideBtn) {
+        hideBtn.addEventListener("click", () => {
+            data.visible = false;
+            data.updatedAt = new Date().toISOString();
+            saveAdminAnnouncement(data);
+            renderAdminAnnouncementBanner(container, false);
+        });
+    }
+}
+
+function initAdminAnnouncement() {
+    const container = document.getElementById("adminAnnouncementBanner");
+    if (!container) return;
+    renderAdminAnnouncementBanner(container, false);
+}
+
+function syncAdminAnnouncementFromStorage(e) {
+    if (e && e.key && e.key !== ANNOUNCEMENT_STORAGE_KEY) return;
+    const container = document.getElementById("adminAnnouncementBanner");
+    if (!container) return;
+    if (container.querySelector("#announcementEditForm")) return;
+    renderAdminAnnouncementBanner(container, false);
+}
+
+if (typeof window !== "undefined") {
+    window.getAdminAnnouncement = getAdminAnnouncement;
+    window.saveAdminAnnouncement = saveAdminAnnouncement;
+    window.resetAdminAnnouncement = resetAdminAnnouncement;
+    window.renderAdminAnnouncementBanner = renderAdminAnnouncementBanner;
+    window.initAdminAnnouncement = initAdminAnnouncement;
+}
 
 // =============================================================
 // Coach Tracker (additive only)

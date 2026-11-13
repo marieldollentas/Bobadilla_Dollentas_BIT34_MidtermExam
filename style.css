@@ -2549,6 +2549,285 @@ select.search-input {
     color: var(--text-muted);
 }
 
+/* ---------- 26. Editable Admin Announcement Banner ---------- */
+.admin-announcement-bar {
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.25s ease, border-color 0.25s ease;
+    animation: bannerFadeIn 0.25s ease-out;
+}
+
+@keyframes bannerFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Themes */
+.admin-announcement-bar.theme-notice {
+    background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%);
+    border-bottom-color: #ddd6fe;
+    color: #4338ca;
+}
+
+.admin-announcement-bar.theme-urgent {
+    background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%);
+    border-bottom-color: #fecaca;
+    color: #991b1b;
+}
+
+.admin-announcement-bar.theme-warning {
+    background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+    border-bottom-color: #fde68a;
+    color: #92400e;
+}
+
+.admin-announcement-bar.theme-info {
+    background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-bottom-color: #bae6fd;
+    color: #0369a1;
+}
+
+.admin-announcement-bar.theme-collapsed {
+    background: #f8fafc;
+    border-bottom-color: var(--border-soft);
+    color: var(--text-secondary);
+}
+
+/* Banner content layout */
+.announcement-inner {
+    padding: 10px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.announcement-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 500px;
+    min-width: 0;
+}
+
+.announcement-icon-wrap {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.announcement-icon-wrap svg {
+    width: 17px;
+    height: 17px;
+}
+
+.announcement-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.theme-notice .announcement-badge { color: #5b21b6; border: 1px solid #ddd6fe; }
+.theme-urgent .announcement-badge { color: #b91c1c; border: 1px solid #fecaca; }
+.theme-warning .announcement-badge { color: #b45309; border: 1px solid #fde68a; }
+.theme-info .announcement-badge { color: #0284c7; border: 1px solid #bae6fd; }
+
+.announcement-text {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: inherit;
+    margin: 0;
+    word-break: break-word;
+}
+
+.announcement-meta {
+    font-size: 11px;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.announcement-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.btn-announcement-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.85);
+    color: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-announcement-action:hover {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-announcement-action svg {
+    width: 13px;
+    height: 13px;
+}
+
+/* Edit Mode Form */
+.announcement-edit-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 28px;
+    background: #fff;
+    border-bottom: 2px solid var(--primary);
+}
+
+.announcement-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.announcement-edit-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.announcement-edit-inputs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.announcement-edit-textarea {
+    flex: 1 1 500px;
+    min-height: 56px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.announcement-edit-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-50);
+}
+
+.announcement-edit-type {
+    flex: 0 0 200px;
+    height: 42px;
+    padding: 0 10px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+}
+
+.announcement-edit-type:focus {
+    border-color: var(--primary);
+}
+
+.announcement-edit-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.btn-announcement-save {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 7px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-announcement-save:hover {
+    background: var(--primary-dark);
+}
+
+.btn-announcement-cancel {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-announcement-cancel:hover {
+    background: #e2e8f0;
+}
+
+.btn-announcement-reset {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.btn-announcement-reset:hover {
+    color: var(--danger);
+}
+
+.announcement-visible-toggle {
+    margin-left: 12px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.announcement-visible-toggle input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+
 /* ---------- 25. Responsive ---------- */
 @media (max-width: 1280px) {
     .span-4,
