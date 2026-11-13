@@ -27,6 +27,22 @@ function findCustomerForPasswordReset(identifier, birthday, phone) {
         return { ok: false, reason: "Please enter your date of birth for identity verification." };
     }
 
+    if (cleanBday) {
+        const bounds = typeof getBirthdayBounds === "function" ? getBirthdayBounds() : (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const earliest = new Date(today);
+            earliest.setFullYear(earliest.getFullYear() - 100);
+            return { min: localISODate(earliest), max: localISODate(today) };
+        })();
+        if (cleanBday > bounds.max) {
+            return { ok: false, reason: "Date of birth cannot be in the future." };
+        }
+        if (cleanBday < bounds.min) {
+            return { ok: false, reason: "Date of birth cannot be more than 100 years ago." };
+        }
+    }
+
     const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
     const customer = customers.find(c => {
         const cFob = String(c.keyFob || c.username || "").trim().toLowerCase();
@@ -69,8 +85,12 @@ function findCustomerForPasswordReset(identifier, birthday, phone) {
 }
 
 function updateCustomerPassword(keyFobOrUsername, newPassword) {
-    if (!newPassword || newPassword.length < 4) {
-        return { ok: false, reason: "Password must be at least 4 characters long." };
+    const validation = typeof validatePasswordComplexity === "function"
+        ? validatePasswordComplexity(newPassword)
+        : (newPassword && newPassword.length >= 8 ? { ok: true } : { ok: false, reason: "Password must be at least 8 characters long." });
+
+    if (!validation.ok) {
+        return { ok: false, reason: validation.reason };
     }
 
     const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
@@ -149,6 +169,21 @@ function initForgotPasswordModal() {
 
     let verifiedCustomer = null;
 
+    // Set birthday picker calendar bounds (only 100 years into the past, never into the future)
+    const applyForgotBirthdayBounds = () => {
+        if (!forgotBirthday) return;
+        const bounds = typeof getBirthdayBounds === "function" ? getBirthdayBounds() : (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const earliest = new Date(today);
+            earliest.setFullYear(earliest.getFullYear() - 100);
+            return { min: localISODate(earliest), max: localISODate(today) };
+        })();
+        forgotBirthday.min = bounds.min;
+        forgotBirthday.max = bounds.max;
+    };
+    applyForgotBirthdayBounds();
+
     const showStep = (step) => {
         if (forgotStepVerify) forgotStepVerify.style.display = step === 1 ? "block" : "none";
         if (forgotStepReset) forgotStepReset.style.display = step === 2 ? "block" : "none";
@@ -174,6 +209,7 @@ function initForgotPasswordModal() {
             forgotIdentifier.value = currentLoginUser.value.trim();
         }
 
+        applyForgotBirthdayBounds();
         showStep(1);
         modal.style.display = "flex";
 
@@ -276,8 +312,12 @@ function initForgotPasswordModal() {
             const newPass = forgotNewPassword ? forgotNewPassword.value : "";
             const confirmPass = forgotConfirmPassword ? forgotConfirmPassword.value : "";
 
-            if (!newPass || newPass.length < 4) {
-                if (forgotResetError) forgotResetError.textContent = "Password must be at least 4 characters long.";
+            const validation = typeof validatePasswordComplexity === "function"
+                ? validatePasswordComplexity(newPass)
+                : { ok: true };
+
+            if (!validation.ok) {
+                if (forgotResetError) forgotResetError.textContent = validation.reason;
                 if (forgotNewPassword) forgotNewPassword.focus();
                 return;
             }
@@ -330,6 +370,14 @@ function initForgotPasswordModal() {
     // Bind phone input formatting if available
     if (forgotPhone && typeof bindPhPhoneInput === "function") {
         bindPhPhoneInput(forgotPhone);
+    }
+
+    // Bind live criteria check and toggle visibility buttons
+    if (typeof bindPasswordCriteria === "function") {
+        bindPasswordCriteria("forgotNewPassword", "forgotPasswordCriteria");
+    }
+    if (typeof initPasswordToggles === "function") {
+        initPasswordToggles(modal);
     }
 }
 

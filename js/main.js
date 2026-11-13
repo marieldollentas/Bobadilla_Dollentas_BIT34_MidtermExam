@@ -792,10 +792,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const isAdmin = role === "admin";
             tabAdmin.classList.toggle("active", isAdmin);
             tabCustomer.classList.toggle("active", !isAdmin);
-            document.getElementById("customerHint").style.display = isAdmin ? "none" : "block";
+            const customerHint = document.getElementById("customerHint");
+            if (customerHint) customerHint.style.display = isAdmin ? "none" : "block";
+            const forgotLink = document.getElementById("forgotPasswordLink");
+            if (forgotLink) forgotLink.style.display = isAdmin ? "none" : "inline";
         };
         tabAdmin.addEventListener("click", () => switchTab("admin"));
         tabCustomer.addEventListener("click", () => switchTab("customer"));
+        switchTab(tabAdmin.classList.contains("active") ? "admin" : "customer");
     }
 
     if (loginForm) {
@@ -820,6 +824,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
             const customer = customers.find(c => c.username === username && c.password === password);
             if (!customer) {
+                // If credentials don't match, check if password fails customer complexity requirements
+                // to provide specific, helpful feedback
+                const validation = typeof validatePasswordComplexity === "function"
+                    ? validatePasswordComplexity(password)
+                    : { ok: true };
+                if (!validation.ok) {
+                    errorEl.textContent = validation.reason;
+                    return;
+                }
                 errorEl.textContent = "Customer not found or invalid credentials.";
                 return;
             }
@@ -992,6 +1005,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (regFobEl) regFobEl.value = generateKeyFob();
         setRegExpiration();
         if (regTierEl) regTierEl.addEventListener("change", setRegExpiration);
+        if (typeof bindPasswordCriteria === "function") {
+            bindPasswordCriteria("regPassword", "regPasswordCriteria");
+        }
 
         registerForm.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -1061,8 +1077,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            const passwordValidation = typeof validatePasswordComplexity === "function"
+                ? validatePasswordComplexity(password)
+                : { ok: true };
+            if (!passwordValidation.ok) {
+                errorEl.textContent = passwordValidation.reason;
+                const pInput = document.getElementById("regPassword");
+                if (pInput) pInput.focus();
+                return;
+            }
+
             if (password !== confirm) {
                 errorEl.textContent = "Passwords do not match.";
+                const cInput = document.getElementById("regConfirm");
+                if (cInput) cInput.focus();
                 return;
             }
 

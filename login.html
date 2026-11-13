@@ -37,9 +37,14 @@
             <div class="form-group">
                 <div class="form-label-row" style="display: flex; justify-content: space-between; align-items: baseline;">
                     <label for="loginPassword">Password</label>
-                    <a href="#" id="forgotPasswordLink" class="auth-link" style="font-size: 12.5px; font-weight: 500;">Forgot password?</a>
+                    <a href="#" id="forgotPasswordLink" class="auth-link" style="display: none; font-size: 12.5px; font-weight: 500;">Forgot password?</a>
                 </div>
-                <input type="password" id="loginPassword" class="search-input" placeholder="Enter password" required>
+                <div class="password-field">
+                    <input type="password" id="loginPassword" class="search-input" placeholder="Enter password" required autocomplete="current-password">
+                    <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" data-toggle-for="loginPassword">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
             </div>
             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px;">Sign In</button>
             <p class="error-msg" id="loginError"></p>
@@ -75,7 +80,6 @@
                 <div class="form-group">
                     <label for="forgotBirthday">Date of Birth <span style="color: var(--danger);">*</span></label>
                     <input type="date" id="forgotBirthday" class="search-input" required autocomplete="bday">
-                    <p class="card-meta" style="margin-top: 4px;">Enter the birthdate used during member registration.</p>
                 </div>
                 <div class="form-group">
                     <label for="forgotPhone">Registered Phone (Optional)</label>
@@ -107,11 +111,28 @@
 
                 <div class="form-group">
                     <label for="forgotNewPassword">New Password <span style="color: var(--danger);">*</span></label>
-                    <input type="password" id="forgotNewPassword" class="search-input" placeholder="Enter new password (min. 4 characters)" minlength="4" required autocomplete="new-password">
+                    <div class="password-field">
+                        <input type="password" id="forgotNewPassword" class="search-input" placeholder="Enter new password" minlength="8" maxlength="128" required autocomplete="new-password">
+                        <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" data-toggle-for="forgotNewPassword">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <div class="password-criteria" id="forgotPasswordCriteria">
+                        <span class="criteria-item crit-length">8–128 characters</span>
+                        <span class="criteria-item crit-upper">1 uppercase (A-Z)</span>
+                        <span class="criteria-item crit-lower">1 lowercase (a-z)</span>
+                        <span class="criteria-item crit-number">1 number (0-9)</span>
+                    </div>
+                    <p class="card-meta" style="margin-top: 4px;">Special characters are optional.</p>
                 </div>
                 <div class="form-group">
                     <label for="forgotConfirmPassword">Confirm New Password <span style="color: var(--danger);">*</span></label>
-                    <input type="password" id="forgotConfirmPassword" class="search-input" placeholder="Re-enter new password" minlength="4" required autocomplete="new-password">
+                    <div class="password-field">
+                        <input type="password" id="forgotConfirmPassword" class="search-input" placeholder="Re-enter new password" minlength="8" maxlength="128" required autocomplete="new-password">
+                        <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" data-toggle-for="forgotConfirmPassword">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
                 <p class="error-msg" id="forgotResetError" style="margin-top: 6px;"></p>
                 <div class="modal-actions" style="margin-top: 16px; padding-top: 14px;">
