@@ -560,3 +560,54 @@ function bindPhPhoneInput(input) {
         if (input.value !== digits) input.value = digits;
     });
 }
+
+function contactRecordPhone(record) {
+    if (!record) return "";
+    if (record.phone) return phLocalNumber(record.phone);
+    const match = String(record.contact || "").match(/(?:\+?63|0)?[\s.-]?(\d{3})[\s.-]?(\d{3})[\s.-]?(\d{4})/);
+    return match ? phLocalNumber(match[0]) : "";
+}
+
+function contactRecordEmail(record) {
+    if (!record) return "";
+    if (record.email) return String(record.email).trim().toLowerCase();
+    const match = String(record.contact || "").match(/[^\s@/]+@[^\s@/]+\.[^\s@/]+/);
+    return match ? match[0].toLowerCase() : "";
+}
+
+function findContactDuplicate(records, phone, email, excludeId) {
+    const wantedPhone = phLocalNumber(phone);
+    const wantedEmail = String(email || "").trim().toLowerCase();
+    if (!wantedPhone && !wantedEmail) return null;
+
+    for (const record of records || []) {
+        if (!record) continue;
+        if (excludeId !== undefined && excludeId !== null && String(record.id) === String(excludeId)) continue;
+
+        const fields = [];
+        if (wantedPhone && contactRecordPhone(record) === wantedPhone) fields.push("phone");
+        if (wantedEmail && contactRecordEmail(record) === wantedEmail) fields.push("email");
+        if (fields.length) return { record, fields };
+    }
+    return null;
+}
+
+function contactDuplicateWarning(label, duplicate) {
+    if (!duplicate) return "";
+    const record = duplicate.record || {};
+    const name = record.name || record.contact || "another record";
+    const fields = duplicate.fields
+        .map(field => field === "phone" ? "phone number" : "email")
+        .join(" and ");
+    return `A ${label} with this ${fields} already exists: ${name}.\n\nSave this ${label} anyway?`;
+}
+
+function contactDuplicateBlockedMessage(label, duplicate) {
+    if (!duplicate) return "";
+    const record = duplicate.record || {};
+    const name = record.name || record.contact || "another record";
+    const fields = duplicate.fields
+        .map(field => field === "phone" ? "phone number" : "email")
+        .join(" and ");
+    return `A ${label} with this ${fields} already exists: ${name}. Duplicate ${label}s are not allowed.`;
+}

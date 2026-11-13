@@ -2470,6 +2470,9 @@ function saveCoach() {
     );
     if (duplicate) return fail(`${name} already exists in the coach directory.`);
 
+    const contactDuplicate = findContactDuplicate(coaches, phone, email, id || null);
+    if (contactDuplicate && !confirm(contactDuplicateWarning("coach", contactDuplicate))) return false;
+
     const data = {
         name,
         firstName: nameParts.firstName,

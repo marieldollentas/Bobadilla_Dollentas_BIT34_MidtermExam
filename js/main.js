@@ -579,6 +579,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const leads = getPipelineLeads();
+            const duplicate = findContactDuplicate(leads, phoneVal, emailVal, editingId);
+            if (duplicate) {
+                alert(contactDuplicateBlockedMessage("lead", duplicate));
+                return;
+            }
+
             const data = {
                 name,
                 firstName: nameParts.firstName,
@@ -974,6 +980,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const customers = JSON.parse(localStorage.getItem("crmCustomers") || "[]");
             if (customers.some(c => c.username === keyFob)) {
                 errorEl.textContent = "Key Fob Number already assigned. Please reload and try again.";
+                return;
+            }
+
+            const directory = JSON.parse(localStorage.getItem(DIRECTORY_KEY) || "[]");
+            const contactDuplicate = findContactDuplicate([...customers, ...directory], phone, email, null);
+            if (contactDuplicate) {
+                alert(contactDuplicateBlockedMessage("member", contactDuplicate));
                 return;
             }
 
