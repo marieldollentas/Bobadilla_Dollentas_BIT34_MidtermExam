@@ -10,542 +10,573 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="customer-portal">
-        <header class="customer-header">
-            <div class="brand-inline">
+    <input type="checkbox" id="navToggle" class="nav-toggle" aria-hidden="true" tabindex="-1">
+    <label class="nav-backdrop" for="navToggle" aria-hidden="true"></label>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-area">
                 <span class="brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
                 </span>
-                <div class="brand-text">
-                    <strong>Anytime Fitness</strong>
-                    <small>Anytime Fitness Member Portal</small>
+                <div class="logo-text">
+                    <h2>Anytime Fitness</h2>
+                    <p>Member Portal</p>
                 </div>
             </div>
-            <div class="topbar-right">
-                <div class="user-chip">
-                    <span class="avatar" id="userAvatar">AF</span>
-                    <span class="user-chip-text">
-                        <span class="user-name">My Account</span>
-                        <span class="user-role">Signed in</span>
-                    </span>
-                </div>
-                <a href="login.html" class="btn-primary" style="text-decoration: none;" onclick="logoutCustomer()">Logout</a>
+
+            <nav class="nav-menu" aria-label="Member portal pages">
+                <span class="nav-section-label nav-text">My Membership</span>
+                <a href="#profile" class="active" data-portal-target="profile" title="Profile">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+                    <span class="nav-text">Profile</span>
+                </a>
+                <a href="#coach" data-portal-target="coach" title="Coach">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 19v-1.5a3.5 3.5 0 0 0-3.5-3.5H6.5A3.5 3.5 0 0 0 3 17.5V19"/><circle cx="9.2" cy="7.5" r="3.2"/><path d="M21 19v-1.5a3.5 3.5 0 0 0-2.6-3.38"/><path d="M16 4.3a3.2 3.2 0 0 1 0 6.2"/></svg>
+                    <span class="nav-text">Coach</span>
+                </a>
+                <a href="#training" data-portal-target="training" title="Training">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6M20 9v6M7 6.5v11M17 6.5v11M7 12h10"/></svg>
+                    <span class="nav-text">Training</span>
+                </a>
+                <a href="#progress" data-portal-target="progress" title="Progress">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5"/><path d="M15.5 6.5H21V12"/></svg>
+                    <span class="nav-text">Progress</span>
+                </a>
+                <a href="#support" data-portal-target="support" title="Support">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+                    <span class="nav-text">Support</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-foot">
+                <a href="login.html" onclick="logoutCustomer()" title="Logout">
+                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5h3.5A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M10 8.5L6 12l4 3.5"/><path d="M6 12h9"/></svg>
+                    <span class="nav-text">Logout</span>
+                </a>
             </div>
-        </header>
+        </aside>
 
-        <div class="portal-body">
-            <section class="page-header">
-                <span class="eyebrow">Member Portal</span>
-                <h1>Welcome, <span id="welcomeName"></span>!</h1>
-                <p>Check your membership details and send an inquiry to the front desk at any time.</p>
-            </section>
+        <div class="main-wrap">
+            <header class="topbar">
+                <label class="nav-toggle-btn" for="navToggle" title="Toggle navigation">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </label>
 
-            <!-- The portal is split into numbered groups so every card sits under a
-                 heading that says what it is for. Each group owns its own 12-column
-                 grid, so the .span-* widths below keep working unchanged. -->
+                <span class="topbar-meta" id="topbarDate"></span>
 
-            <!-- 01 — Overview -->
-            <section class="portal-group" aria-labelledby="groupOverviewTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">01</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupOverviewTitle">Membership Overview</h2>
-                        <p>Where your plan stands today and what needs your attention</p>
+                <div class="topbar-right">
+                    <div class="user-chip">
+                        <span class="avatar" id="userAvatar">AF</span>
+                        <span class="user-chip-text">
+                            <span class="user-name">My Account</span>
+                            <span class="user-role" id="userRole">Signed in</span>
+                        </span>
                     </div>
-                </header>
-
-                <div class="portal-group-grid">
-                    <section class="content-section membership-hero span-12">
-                        <div>
-                            <h3>Membership Status</h3>
-                            <p class="card-sub">Your plan, renewal date and current standing at the branch.</p>
-                        </div>
-                        <span id="pStatus" class="badge active">Active</span>
-                    </section>
-
-                    <!-- Renewal panel: rendered by the js/ modules only while the membership is
-                         expiring or expired, so an active term shows nothing here. -->
-                    <section class="renewal-panel span-12" id="portalRenewalPanel" style="display: none;">
-                        <div class="renewal-copy">
-                            <h3 id="portalRenewalTitle">Membership expiring soon</h3>
-                            <p class="renewal-note" id="portalRenewalNote"></p>
-                            <p class="renewal-msg" id="portalRenewalMsg"></p>
-                        </div>
-                        <div class="renewal-actions">
-                            <button type="button" class="btn-renew btn-renew-solid" id="portalRenewalBtn" onclick="requestPortalRenewal()">Renew Membership</button>
-                        </div>
-                    </section>
                 </div>
-            </section>
+            </header>
 
-            <!-- 02 — Profile -->
-            <section class="portal-group" aria-labelledby="groupProfileTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">02</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupProfileTitle">My Profile</h2>
-                        <p>How the front desk reaches you, and the plan they have on file</p>
-                    </div>
-                </header>
+            <main class="main-content">
+                <section class="page-header">
+                    <span class="eyebrow">Member Portal</span>
+                    <h1>Welcome, <span id="welcomeName"></span>!</h1>
+                    <p>Check your membership, coach, training, progress and support conversations in one place.</p>
+                </section>
 
-                <div class="portal-group-grid">
-                    <section class="content-section span-12">
-                        <div class="profile-photo">
-                            <span class="avatar avatar-lg" id="portalAvatar" aria-hidden="true">AF</span>
-                            <div class="profile-photo-copy">
-                                <h3>Profile Picture</h3>
-                                <p class="card-sub">Upload a photo so the front desk can recognize you. JPG, PNG or WebP, up to 5 MB.</p>
-                                <div class="profile-photo-actions">
-                                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" hidden>
-                                    <button type="button" class="btn-primary" id="avatarUploadBtn">Upload Photo</button>
-                                    <button type="button" class="btn-secondary" id="avatarRemoveBtn" hidden>Remove Photo</button>
+                <!-- The portal is split into groups that each become a sidebar page.
+                     Every group owns its own 12-column grid, so the .span-* widths
+                     below keep working unchanged. -->
+
+                <!-- 01 — Profile (includes the membership overview) -->
+                <section class="portal-group portal-page" id="portalProfile" data-portal-page="profile" aria-labelledby="groupProfileTitle">
+                    <header class="portal-group-head">
+                        <span class="portal-group-step">01</span>
+                        <div class="portal-group-heading">
+                            <h2 id="groupProfileTitle">My Profile &amp; Membership</h2>
+                            <p>Your membership status, plan and contact details</p>
+                        </div>
+                    </header>
+
+                    <div class="portal-group-grid">
+                        <section class="content-section membership-hero span-12">
+                            <div>
+                                <h3>Membership Status</h3>
+                                <p class="card-sub">Your plan, renewal date and current standing at the branch.</p>
+                            </div>
+                            <span id="pStatus" class="badge active">Active</span>
+                        </section>
+
+                        <!-- Renewal panel: rendered by the js/ modules only while the membership is
+                             expiring or expired, so an active term shows nothing here. -->
+                        <section class="renewal-panel span-12" id="portalRenewalPanel" style="display: none;">
+                            <div class="renewal-copy">
+                                <h3 id="portalRenewalTitle">Membership expiring soon</h3>
+                                <p class="renewal-note" id="portalRenewalNote"></p>
+                                <p class="renewal-msg" id="portalRenewalMsg"></p>
+                            </div>
+                            <div class="renewal-actions">
+                                <button type="button" class="btn-renew btn-renew-solid" id="portalRenewalBtn" onclick="requestPortalRenewal()">Renew Membership</button>
+                            </div>
+                        </section>
+
+                        <section class="content-section span-12">
+                            <div class="profile-photo">
+                                <span class="avatar avatar-lg" id="portalAvatar" aria-hidden="true">AF</span>
+                                <div class="profile-photo-copy">
+                                    <h3>Profile Picture</h3>
+                                    <p class="card-sub">Upload a photo so the front desk can recognize you. JPG, PNG or WebP, up to 5 MB.</p>
+                                    <div class="profile-photo-actions">
+                                        <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" hidden>
+                                        <button type="button" class="btn-primary" id="avatarUploadBtn">Upload Photo</button>
+                                        <button type="button" class="btn-secondary" id="avatarRemoveBtn" hidden>Remove Photo</button>
+                                    </div>
+                                    <p id="avatarMsg" class="success-msg" role="status" aria-live="polite"></p>
                                 </div>
-                                <p id="avatarMsg" class="success-msg" role="status" aria-live="polite"></p>
                             </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <section class="content-section span-7">
-                        <div class="card-head">
-                            <div>
-                                <h3>Personal Information</h3>
-                                <p class="card-sub">Details the front desk uses to reach you</p>
-                            </div>
-                        </div>
-                        <div class="profile-grid" style="margin-top: 16px;">
-                            <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
-                            <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
-                            <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
-                            <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
-                            <div class="profile-item"><label>Key Fob Number</label><span id="pFob"></span></div>
-                        </div>
-                    </section>
-
-                    <section class="content-section span-5">
-                        <div class="card-head">
-                            <div>
-                                <h3>Membership Information</h3>
-                                <p class="card-sub">Plan length and expiration</p>
-                            </div>
-                        </div>
-                        <div class="profile-grid" style="margin-top: 16px;">
-                            <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
-                            <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
-                            <div class="profile-item"><label>Membership Expiration</label><span id="pExp"></span></div>
-                            <div class="profile-item"><label>Frozen Until</label><span id="pFrozenUntil">—</span></div>
-                            <div class="profile-item"><label>Original Expiration</label><span id="pOrigExp">—</span></div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <!-- 03 — Coach -->
-            <section class="portal-group" aria-labelledby="groupCoachTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">03</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupCoachTitle">My Coach</h2>
-                        <p>Your assigned coach, your rating, and feedback from other members</p>
-                    </div>
-                </header>
-
-                <div class="portal-group-grid">
-                    <section class="content-section span-7">
-                        <div class="card-head">
-                            <div>
-                                <h3>Coach Details</h3>
-                                <p class="card-sub">Your assigned coach and contact details</p>
-                            </div>
-                        </div>
-                        <div id="customerCoachEmpty" class="card-sub" style="margin-top:16px; display:none;">You haven't been assigned a coach yet. The front desk will assign one soon.</div>
-                        <div id="customerCoachCard" class="profile-grid" style="margin-top:16px; display:none;">
-                            <div class="profile-item"><label>Coach Name</label><span id="cCoachName"></span></div>
-                            <div class="profile-item"><label>Specializations</label><span id="cCoachSpec"></span></div>
-                            <div class="profile-item"><label>Contact Number</label><span id="cCoachPhone"></span></div>
-                            <div class="profile-item"><label>Email</label><span id="cCoachEmail"></span></div>
-                            <div class="profile-item"><label>Shift Schedule</label><span id="cCoachShift"></span></div>
-                            <div class="profile-item"><label>Working Days</label><span id="cCoachDays"></span></div>
-                            <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
-                            <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
-                        </div>
-                    </section>
-
-                    <section class="content-section span-5">
-                        <div class="card-head">
-                            <div>
-                                <h3>Ratings &amp; Reviews</h3>
-                                <p class="card-sub">Rate your coach and read what members said</p>
-                            </div>
-                        </div>
-
-                        <!-- Rating is member-owned: the js/ modules hide this form and shows
-                             the submitted review once the member has rated. -->
-                        <div id="portalRatingDone" class="rating-row" style="display:none;"></div>
-                        <div id="portalRatingBox" style="display:none; margin-top:16px;">
-                            <div class="form-group">
-                                <label for="portalCoachRating">Rate your coach</label>
-                                <select id="portalCoachRating" class="search-input">
-                                    <option value="5">5 - Excellent</option>
-                                    <option value="4">4 - Good</option>
-                                    <option value="3" selected>3 - Average</option>
-                                    <option value="2">2 - Poor</option>
-                                    <option value="1">1 - Very Poor</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="portalCoachFeedbackInput">Your feedback</label>
-                                <textarea id="portalCoachFeedbackInput" class="inquiry-input" rows="3" placeholder="How has your coach been doing?"></textarea>
-                            </div>
-                            <button type="button" class="btn-primary" onclick="rateCoach(window.portalCoachId)">Submit Rating</button>
-                            <p id="portalRatingMsg" class="success-msg"></p>
-                        </div>
-
-                        <div class="form-group" id="portalFeedbackBox" style="display:none; margin-top:16px;">
-                            <label>What members said</label>
-                            <div id="portalCoachFeedbackList"></div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <!-- 04 — Training -->
-            <section class="portal-group" aria-labelledby="groupTrainingTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">04</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupTrainingTitle">My Training</h2>
-                        <p>Every session booked with your coach</p>
-                    </div>
-                </header>
-
-                <div class="portal-group-grid">
-                    <section class="content-section span-12">
-                        <div class="card-head">
-                            <div>
-                                <h3>My Training Sessions</h3>
-                                <p class="card-sub">Upcoming and past sessions with your coach</p>
-                            </div>
-                            <div class="head-actions">
-                                <label class="filter-checkbox">
-                                    <input type="checkbox" id="portalShowArchivedSessions">
-                                    Show archived sessions
-                                </label>
-                            </div>
-                        </div>
-                        <div id="customerSessionsEmpty" class="card-sub" style="margin-top:16px;">No training sessions scheduled yet.</div>
-                        <div class="table-wrap" style="margin-top:16px;">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Coach</th>
-                                        <th>Session Type</th>
-                                        <th>Status</th>
-                                        <th>Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="customerSessionsBody"></tbody>
-                            </table>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <!-- 05 — Goals & Progress -->
-            <section class="portal-group" id="progressSection" aria-labelledby="groupProgressTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">05</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupProgressTitle">Member Goals &amp; Progress Tracking</h2>
-                        <p>Set your goal, log your weight and measurements, follow your plan and compare photos</p>
-                    </div>
-                </header>
-
-                <div class="portal-group-grid">
-                    <section class="content-section span-12">
-                        <div class="progress-panel-toolbar">
-                            <label for="progressPanelSelect">Show</label>
-                            <select id="progressPanelSelect" class="search-input progress-panel-select">
-                                <option value="goal">My Fitness Goal</option>
-                                <option value="weight">Weight Tracking</option>
-                                <option value="measurements">Body Measurements</option>
-                                <option value="workout">My Workout Plan</option>
-                                <option value="photos">Progress Photos</option>
-                            </select>
-                        </div>
-
-                        <div class="progress-panel" data-progress-panel="goal">
+                        <section class="content-section span-7">
                             <div class="card-head">
                                 <div>
-                                    <h3>My Fitness Goal</h3>
-                                    <p class="card-sub">Choose the goal you want to work toward</p>
+                                    <h3>Personal Information</h3>
+                                    <p class="card-sub">Details the front desk uses to reach you</p>
                                 </div>
                             </div>
-                            <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;" novalidate>
+                            <div class="profile-grid" style="margin-top: 16px;">
+                                <div class="profile-item"><label>Full Name</label><span id="pName"></span></div>
+                                <div class="profile-item"><label>Email</label><span id="pEmail"></span></div>
+                                <div class="profile-item"><label>Phone</label><span id="pPhone"></span></div>
+                                <div class="profile-item"><label>Address</label><span id="pAddress"></span></div>
+                                <div class="profile-item"><label>Key Fob Number</label><span id="pFob"></span></div>
+                            </div>
+                        </section>
+
+                        <section class="content-section span-5">
+                            <div class="card-head">
+                                <div>
+                                    <h3>Membership Information</h3>
+                                    <p class="card-sub">Plan length and expiration</p>
+                                </div>
+                            </div>
+                            <div class="profile-grid" style="margin-top: 16px;">
+                                <div class="profile-item"><label>Membership Tier</label><span id="pTier"></span></div>
+                                <div class="profile-item"><label>Date Joined</label><span id="pJoined"></span></div>
+                                <div class="profile-item"><label>Membership Expiration</label><span id="pExp"></span></div>
+                                <div class="profile-item"><label>Frozen Until</label><span id="pFrozenUntil">—</span></div>
+                                <div class="profile-item"><label>Original Expiration</label><span id="pOrigExp">—</span></div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <!-- 02 — Coach -->
+                <section class="portal-group portal-page" id="portalCoach" data-portal-page="coach" aria-labelledby="groupCoachTitle" hidden>
+                    <header class="portal-group-head">
+                        <span class="portal-group-step">02</span>
+                        <div class="portal-group-heading">
+                            <h2 id="groupCoachTitle">My Coach</h2>
+                            <p>Your assigned coach, your rating, and feedback from other members</p>
+                        </div>
+                    </header>
+
+                    <div class="portal-group-grid">
+                        <section class="content-section span-7">
+                            <div class="card-head">
+                                <div>
+                                    <h3>Coach Details</h3>
+                                    <p class="card-sub">Your assigned coach and contact details</p>
+                                </div>
+                            </div>
+                            <div id="customerCoachEmpty" class="card-sub" style="margin-top:16px; display:none;">You haven't been assigned a coach yet. The front desk will assign one soon.</div>
+                            <div id="customerCoachCard" class="profile-grid" style="margin-top:16px; display:none;">
+                                <div class="profile-item"><label>Coach Name</label><span id="cCoachName"></span></div>
+                                <div class="profile-item"><label>Specializations</label><span id="cCoachSpec"></span></div>
+                                <div class="profile-item"><label>Contact Number</label><span id="cCoachPhone"></span></div>
+                                <div class="profile-item"><label>Email</label><span id="cCoachEmail"></span></div>
+                                <div class="profile-item"><label>Shift Schedule</label><span id="cCoachShift"></span></div>
+                                <div class="profile-item"><label>Working Days</label><span id="cCoachDays"></span></div>
+                                <div class="profile-item"><label>Employment Status</label><span id="cCoachStatus"></span></div>
+                                <div class="profile-item"><label>Client Rating</label><span id="cCoachRating"></span></div>
+                            </div>
+                        </section>
+
+                        <section class="content-section span-5">
+                            <div class="card-head">
+                                <div>
+                                    <h3>Ratings &amp; Reviews</h3>
+                                    <p class="card-sub">Rate your coach and read what members said</p>
+                                </div>
+                            </div>
+
+                            <!-- Rating is member-owned: the js/ modules hide this form and shows
+                                 the submitted review once the member has rated. -->
+                            <div id="portalRatingDone" class="rating-row" style="display:none;"></div>
+                            <div id="portalRatingBox" style="display:none; margin-top:16px;">
                                 <div class="form-group">
-                                    <label for="progressGoalType">Goal</label>
-                                    <select id="progressGoalType" class="search-input">
-                                        <option value="">Select a goal</option>
-                                        <option value="Weight Loss">Weight Loss</option>
-                                        <option value="Weight Gain">Weight Gain</option>
-                                        <option value="Muscle Building">Muscle Building</option>
-                                        <option value="General Fitness">General Fitness</option>
-                                        <option value="Other">Other</option>
+                                    <label for="portalCoachRating">Rate your coach</label>
+                                    <select id="portalCoachRating" class="search-input">
+                                        <option value="5">5 - Excellent</option>
+                                        <option value="4">4 - Good</option>
+                                        <option value="3" selected>3 - Average</option>
+                                        <option value="2">2 - Poor</option>
+                                        <option value="1">1 - Very Poor</option>
                                     </select>
                                 </div>
-                                <div class="form-group" id="progressGoalCustomGroup" hidden>
-                                    <label for="progressGoalCustom">Custom goal</label>
-                                    <input type="text" id="progressGoalCustom" class="search-input" maxlength="60" placeholder="e.g. Improve flexibility">
-                                </div>
-                                <div class="progress-form-row">
-                                    <div class="form-group">
-                                        <label for="progressGoalTargetWeight">Target weight (kg)</label>
-                                        <input type="number" id="progressGoalTargetWeight" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 65.5">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="progressGoalTargetDate">Target date</label>
-                                        <input type="date" id="progressGoalTargetDate" class="search-input">
-                                    </div>
-                                </div>
                                 <div class="form-group">
-                                    <label for="progressGoalNotes">Notes</label>
-                                    <textarea id="progressGoalNotes" class="inquiry-input" rows="2" maxlength="300" placeholder="What does success look like for you?"></textarea>
+                                    <label for="portalCoachFeedbackInput">Your feedback</label>
+                                    <textarea id="portalCoachFeedbackInput" class="inquiry-input" rows="3" placeholder="How has your coach been doing?"></textarea>
                                 </div>
-                                <button type="submit" class="btn-primary">Save Goal</button>
-                                <p id="progressGoalMsg" class="success-msg" role="status" aria-live="polite"></p>
-                            </form>
-                            <div id="progressGoalSummary" class="progress-goal-summary" hidden></div>
-                            <button type="button" id="progressGoalClear" class="btn-secondary" style="margin-top: 10px;" hidden>Clear Goal</button>
-                        </div>
+                                <button type="button" class="btn-primary" onclick="rateCoach(window.portalCoachId)">Submit Rating</button>
+                                <p id="portalRatingMsg" class="success-msg"></p>
+                            </div>
 
-                        <div class="progress-panel" data-progress-panel="weight" hidden>
+                            <div class="form-group" id="portalFeedbackBox" style="display:none; margin-top:16px;">
+                                <label>What members said</label>
+                                <div id="portalCoachFeedbackList"></div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <!-- 03 — Training -->
+                <section class="portal-group portal-page" id="portalTraining" data-portal-page="training" aria-labelledby="groupTrainingTitle" hidden>
+                    <header class="portal-group-head">
+                        <span class="portal-group-step">03</span>
+                        <div class="portal-group-heading">
+                            <h2 id="groupTrainingTitle">My Training</h2>
+                            <p>Every session booked with your coach</p>
+                        </div>
+                    </header>
+
+                    <div class="portal-group-grid">
+                        <section class="content-section span-12">
                             <div class="card-head">
                                 <div>
-                                    <h3>Weight Tracking</h3>
-                                    <p class="card-sub">Record your current weight and follow the trend</p>
+                                    <h3>My Training Sessions</h3>
+                                    <p class="card-sub">Upcoming and past sessions with your coach</p>
                                 </div>
-                                <span id="progressCurrentWeight" class="card-chip" hidden></span>
+                                <div class="head-actions">
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" id="portalShowArchivedSessions">
+                                        Show archived sessions
+                                    </label>
+                                </div>
                             </div>
-                            <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;" novalidate>
-                                <div class="form-group">
-                                    <label for="progressWeightValue">Weight (kg)</label>
-                                    <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5" required>
-                                </div>
-                                <div class="progress-form-action">
-                                    <button type="submit" class="btn-primary">Log Weight</button>
-                                </div>
-                            </form>
-                            <p id="progressWeightMsg" class="success-msg" role="status" aria-live="polite"></p>
-                            <div id="progressWeightChart" class="progress-chart"></div>
-                            <div id="progressWeightHistory" class="progress-history"></div>
+                            <div id="customerSessionsEmpty" class="card-sub" style="margin-top:16px;">No training sessions scheduled yet.</div>
+                            <div class="table-wrap" style="margin-top:16px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Coach</th>
+                                            <th>Session Type</th>
+                                            <th>Status</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="customerSessionsBody"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <!-- 04 — Goals & Progress -->
+                <section class="portal-group portal-page" id="progressSection" data-portal-page="progress" aria-labelledby="groupProgressTitle" hidden>
+                    <header class="portal-group-head">
+                        <span class="portal-group-step">04</span>
+                        <div class="portal-group-heading">
+                            <h2 id="groupProgressTitle">Member Goals &amp; Progress Tracking</h2>
+                            <p>Set your goal, log your weight and measurements, follow your plan and compare photos</p>
                         </div>
+                    </header>
 
-                        <div class="progress-panel" data-progress-panel="measurements" hidden>
-                            <div class="card-head">
-                                <div>
-                                    <h3>Body Measurements</h3>
-                                    <p class="card-sub">All measurements are optional—fill in only the ones you want to track. Chest, waist, hips, shoulders, neck, arms, thighs and calves are recorded in centimetres.</p>
-                                </div>
+                    <div class="portal-group-grid">
+                        <section class="content-section span-12">
+                            <div class="progress-panel-toolbar">
+                                <label for="progressPanelSelect">Show</label>
+                                <select id="progressPanelSelect" class="search-input progress-panel-select">
+                                    <option value="goal">My Fitness Goal</option>
+                                    <option value="weight">Weight Tracking</option>
+                                    <option value="measurements">Body Measurements</option>
+                                    <option value="workout">My Workout Plan</option>
+                                    <option value="photos">Progress Photos</option>
+                                </select>
                             </div>
-                            <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;" novalidate>
-                                <div class="measurement-section">
-                                    <h4>Torso &amp; Neck</h4>
-                                    <div class="progress-form-row progress-form-row-3">
-                                        <div class="form-group">
-                                            <label for="progressMeasureChest">Chest (cm)</label>
-                                            <input type="number" id="progressMeasureChest" class="search-input" min="1" max="300" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureWaist">Waist (cm)</label>
-                                            <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="300" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureHips">Hips (cm)</label>
-                                            <input type="number" id="progressMeasureHips" class="search-input" min="1" max="300" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureShoulders">Shoulders (cm)</label>
-                                            <input type="number" id="progressMeasureShoulders" class="search-input" min="1" max="300" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureNeck">Neck (cm)</label>
-                                            <input type="number" id="progressMeasureNeck" class="search-input" min="1" max="100" step="0.1" placeholder="—">
-                                        </div>
+
+                            <div class="progress-panel" data-progress-panel="goal">
+                                <div class="card-head">
+                                    <div>
+                                        <h3>My Fitness Goal</h3>
+                                        <p class="card-sub">Choose the goal you want to work toward</p>
                                     </div>
                                 </div>
-
-                                <div class="measurement-section">
-                                    <h4>Arms</h4>
-                                    <div class="progress-form-row">
-                                        <div class="form-group">
-                                            <label for="progressMeasureArmLeft">Left arm (cm)</label>
-                                            <input type="number" id="progressMeasureArmLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureArmRight">Right arm (cm)</label>
-                                            <input type="number" id="progressMeasureArmRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="measurement-section">
-                                    <h4>Thighs</h4>
-                                    <div class="progress-form-row">
-                                        <div class="form-group">
-                                            <label for="progressMeasureThighLeft">Left thigh (cm)</label>
-                                            <input type="number" id="progressMeasureThighLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureThighRight">Right thigh (cm)</label>
-                                            <input type="number" id="progressMeasureThighRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="measurement-section">
-                                    <h4>Calves</h4>
-                                    <div class="progress-form-row">
-                                        <div class="form-group">
-                                            <label for="progressMeasureCalfLeft">Left calf (cm)</label>
-                                            <input type="number" id="progressMeasureCalfLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="progressMeasureCalfRight">Right calf (cm)</label>
-                                            <input type="number" id="progressMeasureCalfRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn-primary">Save Measurements</button>
-                                <p id="progressMeasureMsg" class="success-msg" role="status" aria-live="polite"></p>
-                            </form>
-                            <div id="progressMeasureHistory" class="progress-history"></div>
-                        </div>
-
-                        <div class="progress-panel" data-progress-panel="workout" hidden>
-                            <div class="card-head">
-                                <div>
-                                    <h3>My Workout Plan</h3>
-                                    <p class="card-sub">Your scheduled exercises, sets and reps</p>
-                                </div>
-                            </div>
-                            <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;" novalidate>
-                                <div class="progress-form-row">
+                                <form id="progressGoalForm" class="progress-form" style="margin-top: 16px;" novalidate>
                                     <div class="form-group">
-                                        <label for="progressWorkoutDay">Day</label>
-                                        <select id="progressWorkoutDay" class="search-input">
-                                            <option value="Monday">Monday</option>
-                                            <option value="Tuesday">Tuesday</option>
-                                            <option value="Wednesday">Wednesday</option>
-                                            <option value="Thursday">Thursday</option>
-                                            <option value="Friday">Friday</option>
-                                            <option value="Saturday">Saturday</option>
-                                            <option value="Sunday">Sunday</option>
+                                        <label for="progressGoalType">Goal</label>
+                                        <select id="progressGoalType" class="search-input">
+                                            <option value="">Select a goal</option>
+                                            <option value="Weight Loss">Weight Loss</option>
+                                            <option value="Weight Gain">Weight Gain</option>
+                                            <option value="Muscle Building">Muscle Building</option>
+                                            <option value="General Fitness">General Fitness</option>
+                                            <option value="Other">Other</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="progressWorkoutExercise">Exercise</label>
-                                        <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="50" placeholder="e.g. Bench press" required>
+                                    <div class="form-group" id="progressGoalCustomGroup" hidden>
+                                        <label for="progressGoalCustom">Custom goal</label>
+                                        <input type="text" id="progressGoalCustom" class="search-input" maxlength="60" placeholder="e.g. Improve flexibility">
                                     </div>
-                                </div>
-                                <div class="progress-form-row progress-form-row-3">
-                                    <div class="form-group">
-                                        <label for="progressWorkoutSets">Sets</label>
-                                        <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="20" step="1" placeholder="3" required>
+                                    <div class="progress-form-row">
+                                        <div class="form-group">
+                                            <label for="progressGoalTargetWeight">Target weight (kg)</label>
+                                            <input type="number" id="progressGoalTargetWeight" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 65.5">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressGoalTargetDate">Target date</label>
+                                            <input type="date" id="progressGoalTargetDate" class="search-input">
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="progressWorkoutRepsMin">Minimum reps</label>
-                                        <input type="number" id="progressWorkoutRepsMin" class="search-input" min="1" max="100" step="1" placeholder="8" required>
+                                        <label for="progressGoalNotes">Notes</label>
+                                        <textarea id="progressGoalNotes" class="inquiry-input" rows="2" maxlength="300" placeholder="What does success look like for you?"></textarea>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="progressWorkoutRepsMax">Maximum reps</label>
-                                        <input type="number" id="progressWorkoutRepsMax" class="search-input" min="1" max="100" step="1" placeholder="12" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn-primary">Add Exercise</button>
-                                <p id="progressWorkoutMsg" class="success-msg" role="status" aria-live="polite"></p>
-                            </form>
-                            <div id="progressWorkoutPlan" class="progress-plan"></div>
-                        </div>
+                                    <button type="submit" class="btn-primary">Save Goal</button>
+                                    <p id="progressGoalMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                </form>
+                                <div id="progressGoalSummary" class="progress-goal-summary" hidden></div>
+                                <button type="button" id="progressGoalClear" class="btn-secondary" style="margin-top: 10px;" hidden>Clear Goal</button>
+                            </div>
 
-                        <div class="progress-panel" data-progress-panel="photos" hidden>
+                            <div class="progress-panel" data-progress-panel="weight" hidden>
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Weight Tracking</h3>
+                                        <p class="card-sub">Record your current weight and follow the trend</p>
+                                    </div>
+                                    <span id="progressCurrentWeight" class="card-chip" hidden></span>
+                                </div>
+                                <form id="progressWeightForm" class="progress-form progress-form-row" style="margin-top: 16px;" novalidate>
+                                    <div class="form-group">
+                                        <label for="progressWeightValue">Weight (kg)</label>
+                                        <input type="number" id="progressWeightValue" class="search-input" min="1" max="500" step="0.1" placeholder="e.g. 68.5" required>
+                                    </div>
+                                    <div class="progress-form-action">
+                                        <button type="submit" class="btn-primary">Log Weight</button>
+                                    </div>
+                                </form>
+                                <p id="progressWeightMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                <div id="progressWeightChart" class="progress-chart"></div>
+                                <div id="progressWeightHistory" class="progress-history"></div>
+                            </div>
+
+                            <div class="progress-panel" data-progress-panel="measurements" hidden>
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Body Measurements</h3>
+                                        <p class="card-sub">All measurements are optional—fill in only the ones you want to track. Chest, waist, hips, shoulders, neck, arms, thighs and calves are recorded in centimetres.</p>
+                                    </div>
+                                </div>
+                                <form id="progressMeasurementForm" class="progress-form" style="margin-top: 16px;" novalidate>
+                                    <div class="measurement-section">
+                                        <h4>Torso &amp; Neck</h4>
+                                        <div class="progress-form-row progress-form-row-3">
+                                            <div class="form-group">
+                                                <label for="progressMeasureChest">Chest (cm)</label>
+                                                <input type="number" id="progressMeasureChest" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureWaist">Waist (cm)</label>
+                                                <input type="number" id="progressMeasureWaist" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureHips">Hips (cm)</label>
+                                                <input type="number" id="progressMeasureHips" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureShoulders">Shoulders (cm)</label>
+                                                <input type="number" id="progressMeasureShoulders" class="search-input" min="1" max="300" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureNeck">Neck (cm)</label>
+                                                <input type="number" id="progressMeasureNeck" class="search-input" min="1" max="100" step="0.1" placeholder="—">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="measurement-section">
+                                        <h4>Arms</h4>
+                                        <div class="progress-form-row">
+                                            <div class="form-group">
+                                                <label for="progressMeasureArmLeft">Left arm (cm)</label>
+                                                <input type="number" id="progressMeasureArmLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureArmRight">Right arm (cm)</label>
+                                                <input type="number" id="progressMeasureArmRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="measurement-section">
+                                        <h4>Thighs</h4>
+                                        <div class="progress-form-row">
+                                            <div class="form-group">
+                                                <label for="progressMeasureThighLeft">Left thigh (cm)</label>
+                                                <input type="number" id="progressMeasureThighLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureThighRight">Right thigh (cm)</label>
+                                                <input type="number" id="progressMeasureThighRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="measurement-section">
+                                        <h4>Calves</h4>
+                                        <div class="progress-form-row">
+                                            <div class="form-group">
+                                                <label for="progressMeasureCalfLeft">Left calf (cm)</label>
+                                                <input type="number" id="progressMeasureCalfLeft" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="progressMeasureCalfRight">Right calf (cm)</label>
+                                                <input type="number" id="progressMeasureCalfRight" class="search-input" min="1" max="150" step="0.1" placeholder="—">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn-primary">Save Measurements</button>
+                                    <p id="progressMeasureMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                </form>
+                                <div id="progressMeasureHistory" class="progress-history"></div>
+                            </div>
+
+                            <div class="progress-panel" data-progress-panel="workout" hidden>
+                                <div class="card-head">
+                                    <div>
+                                        <h3>My Workout Plan</h3>
+                                        <p class="card-sub">Your scheduled exercises, sets and reps</p>
+                                    </div>
+                                </div>
+                                <form id="progressWorkoutForm" class="progress-form" style="margin-top: 16px;" novalidate>
+                                    <div class="progress-form-row">
+                                        <div class="form-group">
+                                            <label for="progressWorkoutDay">Day</label>
+                                            <select id="progressWorkoutDay" class="search-input">
+                                                <option value="Monday">Monday</option>
+                                                <option value="Tuesday">Tuesday</option>
+                                                <option value="Wednesday">Wednesday</option>
+                                                <option value="Thursday">Thursday</option>
+                                                <option value="Friday">Friday</option>
+                                                <option value="Saturday">Saturday</option>
+                                                <option value="Sunday">Sunday</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressWorkoutExercise">Exercise</label>
+                                            <input type="text" id="progressWorkoutExercise" class="search-input" maxlength="50" placeholder="e.g. Bench press" required>
+                                        </div>
+                                    </div>
+                                    <div class="progress-form-row progress-form-row-3">
+                                        <div class="form-group">
+                                            <label for="progressWorkoutSets">Sets</label>
+                                            <input type="number" id="progressWorkoutSets" class="search-input" min="1" max="20" step="1" placeholder="3" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressWorkoutRepsMin">Minimum reps</label>
+                                            <input type="number" id="progressWorkoutRepsMin" class="search-input" min="1" max="100" step="1" placeholder="8" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="progressWorkoutRepsMax">Maximum reps</label>
+                                            <input type="number" id="progressWorkoutRepsMax" class="search-input" min="1" max="100" step="1" placeholder="12" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn-primary">Add Exercise</button>
+                                    <p id="progressWorkoutMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                </form>
+                                <div id="progressWorkoutPlan" class="progress-plan"></div>
+                            </div>
+
+                            <div class="progress-panel" data-progress-panel="photos" hidden>
+                                <div class="card-head">
+                                    <div>
+                                        <h3>Progress Photos</h3>
+                                        <p class="card-sub">Upload photos over time to compare your physical progress. JPG, PNG or WebP, up to 5 MB.</p>
+                                    </div>
+                                </div>
+                                <div class="progress-photo-form">
+                                    <div class="profile-photo-actions">
+                                        <input type="file" id="progressPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>
+                                        <button type="button" class="btn-primary" id="progressPhotoUploadBtn">Upload Progress Photo</button>
+                                    </div>
+                                </div>
+                                <p id="progressPhotoMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                <div id="progressPhotoGallery" class="progress-gallery"></div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <!-- 05 — Support -->
+                <section class="portal-group portal-page" id="portalSupport" data-portal-page="support" aria-labelledby="groupSupportTitle" hidden>
+                    <header class="portal-group-head">
+                        <span class="portal-group-step">05</span>
+                        <div class="portal-group-heading">
+                            <h2 id="groupSupportTitle">Support</h2>
+                            <p>Send the front desk a message and follow the conversation</p>
+                        </div>
+                    </header>
+
+                    <div class="portal-group-grid">
+                        <section class="content-section span-5">
                             <div class="card-head">
                                 <div>
-                                    <h3>Progress Photos</h3>
-                                    <p class="card-sub">Upload photos over time to compare your physical progress. JPG, PNG or WebP, up to 5 MB.</p>
+                                    <h3>Send an Inquiry</h3>
+                                    <p class="card-sub">Questions, feedback or a change request</p>
                                 </div>
                             </div>
-                            <div class="progress-photo-form">
-                                <div class="profile-photo-actions">
-                                    <input type="file" id="progressPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>
-                                    <button type="button" class="btn-primary" id="progressPhotoUploadBtn">Upload Progress Photo</button>
-                                </div>
+                            <!-- Contact details and priority are not the member's to set:
+                                 contact comes from their membership record (front desk keeps
+                                 it) and priority is triaged by staff. -->
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label>Contact Details On File</label>
+                                <p id="inqContact" class="dialog-preview">—</p>
+                                <p class="card-meta">Taken from your membership record so everyone at the desk reaches you on the same details. Ask the front desk to update them.</p>
                             </div>
-                            <p id="progressPhotoMsg" class="success-msg" role="status" aria-live="polite"></p>
-                            <div id="progressPhotoGallery" class="progress-gallery"></div>
-                        </div>
-                    </section>
-                </div>
-            </section>
+                            <div class="form-group">
+                                <label for="inqMessage">Your Inquiry</label>
+                                <textarea id="inqMessage" class="inquiry-input" rows="4" placeholder="Type your question, feedback, or request here..."></textarea>
+                            </div>
+                            <button type="button" class="btn-primary" onclick="submitInquiry()">Submit Inquiry</button>
+                            <p class="card-meta" style="margin-top:8px;">Priority is set by our support team when they pick the inquiry up.</p>
+                            <p id="inqStatus" class="success-msg"></p>
+                        </section>
 
-            <!-- 06 — Support -->
-            <section class="portal-group" aria-labelledby="groupSupportTitle">
-                <header class="portal-group-head">
-                    <span class="portal-group-step">06</span>
-                    <div class="portal-group-heading">
-                        <h2 id="groupSupportTitle">Support</h2>
-                        <p>Send the front desk a message and follow the conversation</p>
+                        <section class="content-section span-7">
+                            <div class="card-head">
+                                <div>
+                                    <h3>My Support Tickets</h3>
+                                    <p class="card-sub">Click View / Hide Details to see the full conversation, including admin comments and replies.</p>
+                                </div>
+                            </div>
+                            <div class="ticket-filter-bar" style="margin-top:16px;">
+                                <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
+                                <select id="portalStatusFilter" class="search-input">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Open">Open</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Resolved">Resolved</option>
+                                </select>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" id="portalHideResolved"> Hide Resolved Tickets
+                                </label>
+                            </div>
+                            <div id="myInquiriesList" class="ticket-list"></div>
+                        </section>
                     </div>
-                </header>
-
-                <div class="portal-group-grid">
-                    <section class="content-section span-5">
-                        <div class="card-head">
-                            <div>
-                                <h3>Send an Inquiry</h3>
-                                <p class="card-sub">Questions, feedback or a change request</p>
-                            </div>
-                        </div>
-                        <!-- Contact details and priority are not the member's to set:
-                             contact comes from their membership record (front desk keeps
-                             it) and priority is triaged by staff. -->
-                        <div class="form-group" style="margin-top: 16px;">
-                            <label>Contact Details On File</label>
-                            <p id="inqContact" class="dialog-preview">—</p>
-                            <p class="card-meta">Taken from your membership record so everyone at the desk reaches you on the same details. Ask the front desk to update them.</p>
-                        </div>
-                        <div class="form-group">
-                            <label for="inqMessage">Your Inquiry</label>
-                            <textarea id="inqMessage" class="inquiry-input" rows="4" placeholder="Type your question, feedback, or request here..."></textarea>
-                        </div>
-                        <button type="button" class="btn-primary" onclick="submitInquiry()">Submit Inquiry</button>
-                        <p class="card-meta" style="margin-top:8px;">Priority is set by our support team when they pick the inquiry up.</p>
-                        <p id="inqStatus" class="success-msg"></p>
-                    </section>
-
-                    <section class="content-section span-7">
-                        <div class="card-head">
-                            <div>
-                                <h3>My Support Tickets</h3>
-                                <p class="card-sub">Click View / Hide Details to see the full conversation, including admin comments and replies.</p>
-                            </div>
-                        </div>
-                        <div class="ticket-filter-bar" style="margin-top:16px;">
-                            <input type="text" id="portalTicketSearch" class="search-input" placeholder="Search my tickets...">
-                            <select id="portalStatusFilter" class="search-input">
-                                <option value="all">All Statuses</option>
-                                <option value="Open">Open</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Resolved">Resolved</option>
-                            </select>
-                            <label class="filter-checkbox">
-                                <input type="checkbox" id="portalHideResolved"> Hide Resolved Tickets
-                            </label>
-                        </div>
-                        <div id="myInquiriesList" class="ticket-list"></div>
-                    </section>
-                </div>
-            </section>
+                </section>
+            </main>
         </div>
     </div>
 
@@ -564,6 +595,7 @@
     <script src="js/coaches.js" defer></script>
     <script src="js/progress.js" defer></script>
     <script src="js/dashboard.js" defer></script>
+    <script src="js/portal.js" defer></script>
     <script src="js/main.js" defer></script>
 </body>
 </html>

@@ -1994,83 +1994,23 @@ select.search-input {
 }
 
 /* ---------- 22. Member portal ---------- */
-.customer-portal {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background: var(--background);
-}
-
-.customer-header {
-    position: sticky;
-    top: 0;
-    z-index: 90;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding: 14px 30px;
-    background: rgba(255, 255, 255, .9);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-}
-
-.brand-inline {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.brand-inline .brand-text strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -.2px;
-}
-
-.brand-inline .brand-text small {
-    display: block;
-    font-size: 11px;
-    color: var(--text-secondary);
-}
-
-.portal-body {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: var(--gap);
-    align-items: start;
-    width: 100%;
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 26px 24px 46px;
-}
-
-.portal-body .page-header {
-    grid-column: span 12;
-}
-
-.portal-body .content-section {
+.portal-group-grid .content-section {
     margin-bottom: 0;
 }
 
-/* ---------- Portal groups ----------
-   customer.html wraps its cards in numbered groups (overview, profile, coach,
-   training, support). Each group is a full-width block with its own heading and
-   its own 12-column grid, so related cards sit together under one title instead
-   of being paired off arbitrarily by the page grid. A divider line plus padding
-   separates one group from the next. */
+/* ---------- Portal pages ----------
+   customer.html wraps its cards in numbered groups (profile, coach, training,
+   progress, support). Each group is a full-width block with its own heading
+   and its own 12-column grid. The sidebar shows only one group at a time, so
+   every portal group is also a page. */
 .portal-group {
-    grid-column: span 12;
     display: flex;
     flex-direction: column;
     gap: 14px;
 }
 
-.portal-group + .portal-group {
-    padding-top: 22px;
-    border-top: 1px solid var(--border);
+.portal-page[hidden] {
+    display: none;
 }
 
 .portal-group-head {
@@ -2465,8 +2405,7 @@ select.search-input {
 
     .nav-text,
     .nav-section-label,
-    .logo-text,
-    .customer-header .brand-text {
+    .logo-text {
         display: none;
     }
 
@@ -2559,8 +2498,6 @@ select.search-input {
     .stat-card { padding: 18px; }
     .data-table thead th:first-child,
     .data-table tbody td:first-child { padding-left: 4px; }
-    .customer-header { padding: 12px 16px; }
-    .portal-body { padding: 20px 16px 40px; }
     .campaign-summary { grid-template-columns: 1fr; }
 }
 
