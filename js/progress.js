@@ -578,6 +578,7 @@
             weightHistory.addEventListener("click", function (event) {
                 const button = event.target.closest("[data-remove-weight]");
                 if (!button) return;
+                if (!confirm("Remove this weight entry?")) return;
                 const id = button.getAttribute("data-remove-weight");
                 record.weights = record.weights.filter(function (entry) { return entry.id !== id; });
                 persist();
@@ -637,6 +638,7 @@
             measureHistory.addEventListener("click", function (event) {
                 const button = event.target.closest("[data-remove-measurement]");
                 if (!button) return;
+                if (!confirm("Remove this measurement entry?")) return;
                 const id = button.getAttribute("data-remove-measurement");
                 record.measurements = record.measurements.filter(function (entry) { return entry.id !== id; });
                 persist();
@@ -690,6 +692,7 @@
             workoutPlan.addEventListener("click", function (event) {
                 const button = event.target.closest("[data-remove-workout]");
                 if (!button) return;
+                if (!confirm("Remove this exercise from your plan?")) return;
                 const id = button.getAttribute("data-remove-workout");
                 record.workouts = record.workouts.filter(function (entry) { return entry.id !== id; });
                 persist();
