@@ -103,7 +103,7 @@
 
                 <!-- Directory statistics (real values rendered by the js/ modules) -->
                 <section class="stats-grid">
-                    <article class="stat-card">
+                    <article class="stat-card clickable is-active" id="cardStatTotal" data-status-filter="all" role="button" tabindex="0" title="Click to view all members">
                         <div class="stat-top">
                             <span class="stat-label">Total Members</span>
                             <span class="stat-icon" aria-hidden="true">
@@ -114,7 +114,7 @@
                         <p class="stat-note">Registered accounts and front desk records</p>
                     </article>
 
-                    <article class="stat-card">
+                    <article class="stat-card clickable" id="cardStatActive" data-status-filter="Active" role="button" tabindex="0" title="Click to filter by Active members">
                         <div class="stat-top">
                             <span class="stat-label">Active Members</span>
                             <span class="stat-icon green" aria-hidden="true">
@@ -125,7 +125,7 @@
                         <p class="stat-note">Not expiring within the next 30 days</p>
                     </article>
 
-                    <article class="stat-card">
+                    <article class="stat-card clickable" id="cardStatFrozen" data-status-filter="Frozen" role="button" tabindex="0" title="Click to filter by Frozen members">
                         <div class="stat-top">
                             <span class="stat-label">Frozen Members</span>
                             <span class="stat-icon amber" aria-hidden="true">
@@ -136,7 +136,7 @@
                         <p class="stat-note">Currently frozen memberships</p>
                     </article>
 
-                    <article class="stat-card">
+                    <article class="stat-card clickable" id="cardStatExpiring" data-status-filter="Expiring Soon" role="button" tabindex="0" title="Click to filter by Expiring Soon members">
                         <div class="stat-top">
                             <span class="stat-label">Expiring Soon</span>
                             <span class="stat-icon amber" aria-hidden="true">
@@ -147,7 +147,7 @@
                         <p class="stat-note" id="memberStatExpiringNote">Renewals to collect within 30 days</p>
                     </article>
 
-                    <article class="stat-card">
+                    <article class="stat-card clickable" id="cardStatExpired" data-status-filter="Expired" role="button" tabindex="0" title="Click to filter by Expired members">
                         <div class="stat-top">
                             <span class="stat-label">Expired Members</span>
                             <span class="stat-icon rose" aria-hidden="true">
@@ -159,17 +159,53 @@
                     </article>
                 </section>
 
+                <!-- Customer Directory Search & Filters -->
+                <section class="filter-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <h3 style="margin-bottom: 0;">Search &amp; Filter Customer Directory</h3>
+                        <span id="customerResultCount" class="card-meta" style="font-weight: 600;">Showing all members</span>
+                    </div>
+                    <div class="ticket-filter-bar">
+                        <input type="text" id="searchCustomer" placeholder="Search by name, email, phone, key fob, address..." class="search-input" style="min-width: 220px; flex: 2 1 240px;">
+                        
+                        <select id="filterMemberStatus" class="search-input" aria-label="Filter by Membership Status" style="min-width: 140px; flex: 1 1 140px;">
+                            <option value="all">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Frozen">Frozen</option>
+                            <option value="Expiring Soon">Expiring Soon</option>
+                            <option value="Expired">Expired</option>
+                        </select>
+
+                        <select id="filterMemberTier" class="search-input" aria-label="Filter by Membership Tier" style="min-width: 160px; flex: 1 1 160px;">
+                            <option value="all">All Tiers</option>
+                            <option value="6-Month Membership">6-Month Membership</option>
+                            <option value="12-Month Membership">12-Month Membership</option>
+                            <option value="18-Month Membership">18-Month Membership</option>
+                        </select>
+
+                        <select id="sortMemberBy" class="search-input" aria-label="Sort Members" style="min-width: 170px; flex: 1 1 170px;">
+                            <option value="joined-desc">Date Joined (Newest)</option>
+                            <option value="joined-asc">Date Joined (Oldest)</option>
+                            <option value="name-asc">Name (A – Z)</option>
+                            <option value="name-desc">Name (Z – A)</option>
+                            <option value="exp-asc">Expiration (Soonest)</option>
+                            <option value="exp-desc">Expiration (Furthest)</option>
+                        </select>
+
+                        <button type="button" id="resetMemberFilters" class="btn-filter-reset" title="Reset all filters">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            Reset
+                        </button>
+                    </div>
+                </section>
+
                 <section class="content-section">
                     <div class="tier-info-banner">
                         <h3>Membership Tiers Info</h3>
                         <p><strong>6-Month Membership:</strong> 6-month commitment (₱2,500/mo). | <strong>12-Month Membership:</strong> 12-month commitment (₱2,200/mo). | <strong>18-Month Membership:</strong> 18-month commitment (₱1,950/mo).</p>
                     </div>
 
-                    <div class="search-bar-container" style="margin-top: 16px;">
-                        <input type="text" id="searchCustomer" placeholder="Search members by name, tier, key fob, or status..." class="search-input">
-                    </div>
-
-                    <div class="table-wrap">
+                    <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>

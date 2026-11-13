@@ -448,18 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Real-Time Table Search Filter
-    const searchInput = document.getElementById("searchCustomer");
-    if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
-            const term = e.target.value.toLowerCase();
-            const rows = customerTableBody.getElementsByTagName("tr");
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(term) ? "" : "none";
-            });
-        });
+    // Customer Directory Filters & Real-Time Search
+    if (document.getElementById("customerTableBody") && typeof initCustomerDirectoryFilters === "function") {
+        initCustomerDirectoryFilters();
     }
 
     // Pipeline Kanban: Modal, Seed, Render, Search & Filters

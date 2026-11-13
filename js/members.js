@@ -249,22 +249,207 @@ window.unfreezeMember = function(id) {
 
 // js-split:file=members.js part=12of14
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
+
+function getCustomerDirectoryFilters() {
+    const searchEl = document.getElementById("searchCustomer");
+    const statusEl = document.getElementById("filterMemberStatus");
+    const tierEl = document.getElementById("filterMemberTier");
+    const sortEl = document.getElementById("sortMemberBy");
+
+    return {
+        search: (searchEl ? searchEl.value : "").trim().toLowerCase(),
+        status: statusEl ? statusEl.value : "all",
+        tier: tierEl ? tierEl.value : "all",
+        sortBy: sortEl ? sortEl.value : "joined-desc"
+    };
+}
+window.getCustomerDirectoryFilters = getCustomerDirectoryFilters;
+
+window.resetCustomerDirectoryFilters = function() {
+    const searchEl = document.getElementById("searchCustomer");
+    const statusEl = document.getElementById("filterMemberStatus");
+    const tierEl = document.getElementById("filterMemberTier");
+    const sortEl = document.getElementById("sortMemberBy");
+    const topbar = document.getElementById("topbarSearch");
+
+    if (searchEl) searchEl.value = "";
+    if (topbar) topbar.value = "";
+    if (statusEl) statusEl.value = "all";
+    if (tierEl) tierEl.value = "all";
+    if (sortEl) sortEl.value = "joined-desc";
+
+    renderCustomerDirectory();
+};
+
+function initCustomerDirectoryFilters() {
+    const tableBody = document.getElementById("customerTableBody");
+    if (!tableBody) return;
+
+    const filterIds = ["searchCustomer", "filterMemberStatus", "filterMemberTier", "sortMemberBy"];
+    filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.filterBound === "1") return;
+        el.dataset.filterBound = "1";
+        const evt = el.tagName === "INPUT" ? "input" : "change";
+        el.addEventListener(evt, () => renderCustomerDirectory());
+    });
+
+    const resetBtn = document.getElementById("resetMemberFilters");
+    if (resetBtn && resetBtn.dataset.filterBound !== "1") {
+        resetBtn.dataset.filterBound = "1";
+        resetBtn.addEventListener("click", () => window.resetCustomerDirectoryFilters());
+    }
+
+    // Interactive stat cards filter
+    document.querySelectorAll(".stat-card[data-status-filter]").forEach(card => {
+        if (card.dataset.statBound === "1") return;
+        card.dataset.statBound = "1";
+        card.addEventListener("click", () => {
+            const targetStatus = card.dataset.statusFilter || "all";
+            const statusEl = document.getElementById("filterMemberStatus");
+            if (statusEl) {
+                statusEl.value = targetStatus;
+                renderCustomerDirectory();
+            }
+        });
+        card.addEventListener("keydown", e => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+}
+window.initCustomerDirectoryFilters = initCustomerDirectoryFilters;
+
 function renderCustomerDirectory() {
     const tbody = document.getElementById("customerTableBody");
     if (!tbody) return;
 
-    const today = todayStart();
+    initCustomerDirectoryFilters();
 
-    // Archived members are past members: they live in the archive table below
-    // this one, never in the active directory.
-    const rows = getActiveDirectoryCustomers();
+    const today = todayStart();
+    const allRows = getActiveDirectoryCustomers();
+    const filters = getCustomerDirectoryFilters();
+
+    // Filter rows by search, status, and tier
+    const filteredRows = allRows.filter(c => {
+        const memberStatus = getMemberStatus(c, today);
+
+        // Status filter
+        if (filters.status !== "all" && memberStatus !== filters.status) {
+            return false;
+        }
+
+        // Tier filter
+        if (filters.tier !== "all" && (c.tier || "") !== filters.tier) {
+            return false;
+        }
+
+        // Search query filter
+        if (filters.search) {
+            const query = filters.search;
+            const genderDisplay = c.gender === "Other" && c.genderIdentity
+                ? `other (${c.genderIdentity})`
+                : (c.gender || "");
+            const haystack = [
+                c.name,
+                c.firstName,
+                c.middleName,
+                c.lastName,
+                c.suffix,
+                genderDisplay,
+                c.birthday,
+                c.email,
+                c.phone,
+                c.contact,
+                c.address,
+                c.keyFob,
+                c.tier,
+                c.joined,
+                c.updatedExpirationDate || c.exp,
+                memberStatus
+            ].filter(Boolean).join(" ").toLowerCase();
+
+            if (!haystack.includes(query)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    // Sort filtered rows
+    filteredRows.sort((a, b) => {
+        switch (filters.sortBy) {
+            case "joined-asc": {
+                const dateA = a.joined && a.joined !== "—" ? new Date(a.joined + "T00:00:00").getTime() : 0;
+                const dateB = b.joined && b.joined !== "—" ? new Date(b.joined + "T00:00:00").getTime() : 0;
+                return dateA - dateB;
+            }
+            case "joined-desc": {
+                const dateA = a.joined && a.joined !== "—" ? new Date(a.joined + "T00:00:00").getTime() : 0;
+                const dateB = b.joined && b.joined !== "—" ? new Date(b.joined + "T00:00:00").getTime() : 0;
+                return dateB - dateA;
+            }
+            case "name-asc": {
+                const nameA = (a.name || `${a.firstName || ""} ${a.lastName || ""}`).trim();
+                const nameB = (b.name || `${b.firstName || ""} ${b.lastName || ""}`).trim();
+                return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+            }
+            case "name-desc": {
+                const nameA = (a.name || `${a.firstName || ""} ${a.lastName || ""}`).trim();
+                const nameB = (b.name || `${b.firstName || ""} ${b.lastName || ""}`).trim();
+                return nameB.localeCompare(nameA, undefined, { sensitivity: "base" });
+            }
+            case "exp-asc": {
+                const expA = a.updatedExpirationDate || a.exp || "";
+                const expB = b.updatedExpirationDate || b.exp || "";
+                const timeA = expA ? new Date(expA + "T00:00:00").getTime() : Infinity;
+                const timeB = expB ? new Date(expB + "T00:00:00").getTime() : Infinity;
+                return timeA - timeB;
+            }
+            case "exp-desc": {
+                const expA = a.updatedExpirationDate || a.exp || "";
+                const expB = b.updatedExpirationDate || b.exp || "";
+                const timeA = expA ? new Date(expA + "T00:00:00").getTime() : 0;
+                const timeB = expB ? new Date(expB + "T00:00:00").getTime() : 0;
+                return timeB - timeA;
+            }
+            default:
+                return 0;
+        }
+    });
+
+    // Update Result Counter
+    const countEl = document.getElementById("customerResultCount");
+    if (countEl) {
+        if (allRows.length === 0) {
+            countEl.textContent = "0 members";
+        } else if (filteredRows.length === allRows.length) {
+            countEl.textContent = `Showing all ${allRows.length} member${allRows.length === 1 ? "" : "s"}`;
+        } else {
+            countEl.textContent = `Showing ${filteredRows.length} of ${allRows.length} member${allRows.length === 1 ? "" : "s"}`;
+        }
+    }
+
+    // Highlight active stat card
+    document.querySelectorAll(".stat-card[data-status-filter]").forEach(card => {
+        card.classList.toggle("is-active", card.dataset.statusFilter === filters.status);
+    });
+
     tbody.innerHTML = "";
-    if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15">No customers found.</td></tr>';
+    if (allRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No customers found.</td></tr>';
         return;
     }
 
-    rows.forEach(c => {
+    if (filteredRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No members match your filter criteria. <button type="button" onclick="resetCustomerDirectoryFilters()" style="color: var(--primary); text-decoration: underline; background: none; border: none; font-weight: 600; cursor: pointer;">Reset filters</button> to view all members.</td></tr>';
+        return;
+    }
+
+    filteredRows.forEach(c => {
         const memberStatus = getMemberStatus(c, today);
         const cls = memberStatus === "Active" ? "active" : memberStatus === "Frozen" ? "warning" : (memberStatus === "Expired" ? "danger" : (memberStatus === "Expiring Soon" ? "warning" : "active"));
         const renewBtn = memberStatus !== "Frozen" && membershipNeedsRenewal(c, today)
