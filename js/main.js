@@ -836,6 +836,31 @@ document.addEventListener("DOMContentLoaded", () => {
         const regGenderEl = document.getElementById("regGender");
         const regGenderIdentityEl = document.getElementById("regGenderIdentity");
         const genderIdentityGroup = document.getElementById("genderIdentityGroup");
+        const regBirthdayEl = document.getElementById("regBirthday");
+
+        // The calendar is bounded to the last 100 years and can never reach the
+        // future, and the minimum age of 18 is enforced again on submit.
+        const birthdayBounds = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const earliest = new Date(today);
+            earliest.setFullYear(earliest.getFullYear() - 100);
+            return { min: localISODate(earliest), max: localISODate(today) };
+        };
+        const calculateAge = (value) => {
+            const birth = new Date(String(value) + "T00:00:00");
+            if (isNaN(birth.getTime())) return null;
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const monthDiff = today.getMonth() - birth.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age -= 1;
+            return age;
+        };
+        if (regBirthdayEl) {
+            const bounds = birthdayBounds();
+            regBirthdayEl.min = bounds.min;
+            regBirthdayEl.max = bounds.max;
+        }
 
         // The optional gender identity only applies when "Other" is chosen, so
         // it is revealed on demand and cleared again when another option is
@@ -933,6 +958,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const address = document.getElementById("regAddress").value.trim();
             const tier = regTierEl ? regTierEl.value : "";
             const keyFob = regFobEl ? regFobEl.value.trim() : "";
+            const birthday = regBirthdayEl ? regBirthdayEl.value : "";
             const password = document.getElementById("regPassword").value;
             const confirm = document.getElementById("regConfirm").value;
             const errorEl = document.getElementById("regError");
@@ -949,6 +975,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (nameParts.middleName && !isValidPersonName(nameParts.middleName)) {
                 errorEl.textContent = "Middle name may only contain letters and spaces. Numbers and special characters are not allowed, except ñ or Ñ.";
+                return;
+            }
+
+            if (!birthday) {
+                errorEl.textContent = "Please enter your birthday.";
+                return;
+            }
+
+            const bounds = birthdayBounds();
+            if (birthday > bounds.max) {
+                errorEl.textContent = "Your birthday cannot be in the future.";
+                return;
+            }
+
+            if (birthday < bounds.min) {
+                errorEl.textContent = "Your birthday cannot be more than 100 years ago.";
+                return;
+            }
+
+            if (calculateAge(birthday) < 18) {
+                errorEl.textContent = "You must be at least 18 years old to register.";
                 return;
             }
 
@@ -1001,6 +1048,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 suffix,
                 gender,
                 genderIdentity,
+                birthday,
                 email,
                 phone,
                 address,
