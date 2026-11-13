@@ -255,8 +255,13 @@ function getDirectoryCustomers() {
                 firstName: parts.firstName,
                 middleName: parts.middleName,
                 lastName: parts.lastName,
+                suffix: d.suffix || "—",
                 gender: d.gender || "—",
-                genderIdentity: d.genderIdentity || ""
+                genderIdentity: d.genderIdentity || "",
+                birthday: d.birthday || "—",
+                email: d.email || (d.contact && d.contact.includes("@") ? d.contact : "—"),
+                phone: d.phone || (d.contact && !d.contact.includes("@") ? d.contact : "—"),
+                address: d.address || "—"
             };
         });
     const registered = JSON.parse(localStorage.getItem("crmCustomers") || "[]")
@@ -264,31 +269,38 @@ function getDirectoryCustomers() {
             const months = tierDurationMonths(c.tier);
             const exp = c.exp || (months && c.joined ? computeExpirationDate(months, new Date(c.joined + "T00:00:00")) : "");
             const parts = namePartsFromRecord(c);
-                return {
-                    id: "reg-" + c.username,
-                    name: c.name,
-                    firstName: parts.firstName,
-                    middleName: parts.middleName,
-                    lastName: parts.lastName,
-                    gender: c.gender || "—",
-                    genderIdentity: c.genderIdentity || "",
-                    contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
-                    keyFob: c.keyFob || c.username,
-                    tier: c.tier,
-                    joined: c.joined || "—",
-                    exp,
-                    status: c.status || "Active",
-                    freezeStartDate: c.freezeStartDate || null,
-                    freezeEndDate: c.freezeEndDate || null,
-                    freezeMonths: c.freezeMonths || null,
-                    originalExpirationDate: c.originalExpirationDate || c.exp || null,
-                    updatedExpirationDate: c.updatedExpirationDate || exp || null,
-                    // Archived is part of the projection: a registered account is
-                    // whitelisted field by field here, so leaving it out would
-                    // silently un-archive the member everywhere it is read.
-                    archived: Boolean(c.archived),
-                    archivedAt: c.archivedAt || null
-                };
+            const { password, ...safeC } = c;
+            return {
+                ...safeC,
+                id: "reg-" + c.username,
+                name: c.name,
+                firstName: parts.firstName,
+                middleName: parts.middleName,
+                lastName: parts.lastName,
+                suffix: c.suffix || "—",
+                gender: c.gender || "—",
+                genderIdentity: c.genderIdentity || "",
+                birthday: c.birthday || "—",
+                email: c.email || "—",
+                phone: c.phone || "—",
+                address: c.address || "—",
+                contact: [c.email, c.phone].filter(Boolean).join(" / ") || "—",
+                keyFob: c.keyFob || c.username,
+                tier: c.tier,
+                joined: c.joined || "—",
+                exp,
+                status: c.status || "Active",
+                freezeStartDate: c.freezeStartDate || null,
+                freezeEndDate: c.freezeEndDate || null,
+                freezeMonths: c.freezeMonths || null,
+                originalExpirationDate: c.originalExpirationDate || c.exp || null,
+                updatedExpirationDate: c.updatedExpirationDate || exp || null,
+                // Archived is part of the projection: a registered account is
+                // whitelisted field by field here, so leaving it out would
+                // silently un-archive the member everywhere it is read.
+                archived: Boolean(c.archived),
+                archivedAt: c.archivedAt || null
+            };
         });
     return [...staff, ...registered];
 }

@@ -260,7 +260,7 @@ function renderCustomerDirectory() {
     const rows = getActiveDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11">No customers found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15">No customers found.</td></tr>';
         return;
     }
 
@@ -287,10 +287,14 @@ function renderCustomerDirectory() {
             <td>${escapeHtml(c.firstName || "—")}</td>
             <td>${escapeHtml(c.middleName || "—")}</td>
             <td>${escapeHtml(c.lastName || "—")}</td>
+            <td>${escapeHtml(c.suffix || "—")}</td>
             <td>${escapeHtml(genderDisplay)}</td>
-            <td>${escapeHtml(c.contact || "—")}</td>
+            <td>${escapeHtml(c.birthday || "—")}</td>
+            <td>${escapeHtml(c.email || "—")}</td>
+            <td>${escapeHtml(c.phone || "—")}</td>
+            <td class="cell-address">${escapeHtml(c.address || "—")}</td>
             <td>${escapeHtml(c.keyFob || "—")}</td>
-            <td>${escapeHtml(c.tier)}</td>
+            <td>${escapeHtml(c.tier || "—")}</td>
             <td>${escapeHtml(c.joined || "—")}</td>
             <td>${escapeHtml(expDisplay)}</td>
             <td>${statusHtml}</td>

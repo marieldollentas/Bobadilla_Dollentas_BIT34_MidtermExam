@@ -303,10 +303,21 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("customerFirstName").value = nameParts.firstName || "—";
         document.getElementById("customerMiddleName").value = nameParts.middleName || "—";
         document.getElementById("customerLastName").value = nameParts.lastName || "—";
+        const suffixEl = document.getElementById("customerSuffix");
+        if (suffixEl) suffixEl.value = customer.suffix || "—";
         document.getElementById("customerGender").value = customer.gender === "Other" && customer.genderIdentity
             ? `Other (${customer.genderIdentity})`
             : (customer.gender || "—");
-        document.getElementById("customerContact").value = customer.contact || "—";
+        const bdayEl = document.getElementById("customerBirthday");
+        if (bdayEl) bdayEl.value = customer.birthday || "—";
+        const emailEl = document.getElementById("customerEmail");
+        if (emailEl) emailEl.value = customer.email || "—";
+        const phoneEl = document.getElementById("customerPhone");
+        if (phoneEl) phoneEl.value = customer.phone || "—";
+        const addrEl = document.getElementById("customerAddress");
+        if (addrEl) addrEl.value = customer.address || "—";
+        const contactEl = document.getElementById("customerContact");
+        if (contactEl) contactEl.value = customer.contact || "—";
         document.getElementById("customerKeyFob").value = customer.keyFob || "—";
         document.getElementById("customerJoined").value = customer.joined || "";
 

@@ -35,15 +35,104 @@
                 <input type="text" id="loginUsername" class="search-input" placeholder="Staff username or Key Fob Number" required>
             </div>
             <div class="form-group">
-                <label for="loginPassword">Password</label>
+                <div class="form-label-row" style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <label for="loginPassword">Password</label>
+                    <a href="#" id="forgotPasswordLink" class="auth-link" style="font-size: 12.5px; font-weight: 500;">Forgot password?</a>
+                </div>
                 <input type="password" id="loginPassword" class="search-input" placeholder="Enter password" required>
             </div>
             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px;">Sign In</button>
             <p class="error-msg" id="loginError"></p>
-            <p class="info-note" id="customerHint" style="display: none;">Customers must <a href="register.html" class="auth-link">register</a> first before logging in.</p>
+            <p class="info-note" id="customerHint" style="display: none;">
+                Customers must <a href="register.html" class="auth-link">register</a> first before logging in.
+                <span style="display: block; margin-top: 4px;">Forgot your password? <a href="#" id="forgotPasswordCustomerHintLink" class="auth-link">Reset password</a></span>
+            </p>
         </form>
 
         <p class="auth-switch">New member? <a href="register.html" class="auth-link">Create an account</a></p>
+    </div>
+
+    <!-- Customer Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal" role="dialog" aria-labelledby="forgotPasswordTitle" aria-modal="true">
+        <div class="modal-content modal-small">
+            <span class="close-btn" id="closeForgotModalBtn" aria-label="Close dialog">&times;</span>
+            <div class="modal-header-icon" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span class="brand-mark" style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; background: #f4f3ff; color: var(--primary); border-radius: 9px; flex-shrink: 0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <div>
+                    <h2 id="forgotPasswordTitle" style="font-size: 18px; margin: 0;">Reset Customer Password</h2>
+                </div>
+            </div>
+            <p class="card-meta" style="margin-bottom: 16px;">Verify your registered membership details to reset your customer account password.</p>
+
+            <!-- Step 1: Verification Form -->
+            <form id="forgotStepVerify">
+                <div class="form-group">
+                    <label for="forgotIdentifier">Key Fob Number or Registered Email <span style="color: var(--danger);">*</span></label>
+                    <input type="text" id="forgotIdentifier" class="search-input" placeholder="e.g. 12345678 or name@example.com" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="forgotBirthday">Date of Birth <span style="color: var(--danger);">*</span></label>
+                    <input type="date" id="forgotBirthday" class="search-input" required autocomplete="bday">
+                    <p class="card-meta" style="margin-top: 4px;">Enter the birthdate used during member registration.</p>
+                </div>
+                <div class="form-group">
+                    <label for="forgotPhone">Registered Phone (Optional)</label>
+                    <div class="phone-field">
+                        <span class="phone-prefix" aria-hidden="true">
+                            <span>+63</span>
+                        </span>
+                        <input type="tel" id="forgotPhone" class="search-input" placeholder="912 345 6789" inputmode="numeric">
+                    </div>
+                    <p class="card-meta" style="margin-top: 4px;">Optional alternate verification if your birthday cannot be verified.</p>
+                </div>
+                <p class="error-msg" id="forgotVerifyError" style="margin-top: 6px;"></p>
+                <div class="modal-actions" style="margin-top: 16px; padding-top: 14px;">
+                    <button type="button" class="btn-secondary" id="btnCancelForgot">Cancel</button>
+                    <button type="submit" class="btn-primary" id="btnSubmitVerify">Verify Account</button>
+                </div>
+            </form>
+
+            <!-- Step 2: New Password Form -->
+            <form id="forgotStepReset" style="display: none;">
+                <div class="forgot-badge" id="forgotMemberBadge">
+                    <div class="forgot-badge-title">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Account Verified</span>
+                    </div>
+                    <div id="forgotVerifiedMemberName" style="font-weight: 600;">Member: —</div>
+                    <div id="forgotVerifiedKeyFob" class="forgot-badge-detail">Key Fob Number: —</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="forgotNewPassword">New Password <span style="color: var(--danger);">*</span></label>
+                    <input type="password" id="forgotNewPassword" class="search-input" placeholder="Enter new password (min. 4 characters)" minlength="4" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="forgotConfirmPassword">Confirm New Password <span style="color: var(--danger);">*</span></label>
+                    <input type="password" id="forgotConfirmPassword" class="search-input" placeholder="Re-enter new password" minlength="4" required autocomplete="new-password">
+                </div>
+                <p class="error-msg" id="forgotResetError" style="margin-top: 6px;"></p>
+                <div class="modal-actions" style="margin-top: 16px; padding-top: 14px;">
+                    <button type="button" class="btn-secondary" id="btnBackToVerify">Back</button>
+                    <button type="submit" class="btn-primary" id="btnSubmitReset">Reset Password</button>
+                </div>
+            </form>
+
+            <!-- Step 3: Success Confirmation -->
+            <div id="forgotStepSuccess" style="display: none; text-align: center; padding: 8px 0;">
+                <div class="forgot-success-icon">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 class="forgot-success-title">Password Successfully Reset!</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+                    Your customer portal password has been updated. You can now sign in using your Key Fob Number and your new password.
+                </p>
+                <div class="fob-display" id="forgotSuccessFob" style="margin: 12px 0 16px; font-size: 24px; padding: 12px;"></div>
+                <button type="button" class="btn-primary" id="btnForgotGoLogin" style="width: 100%;">Proceed to Sign In</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/utils.js" defer></script>
