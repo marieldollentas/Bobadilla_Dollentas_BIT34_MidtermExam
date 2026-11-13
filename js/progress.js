@@ -7,17 +7,17 @@
     const WORKOUT_EXERCISE_MAX = 50;
     const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const MEASUREMENT_FIELDS = [
-        { key: "chest", id: "progressMeasureChest", label: "Chest", min: 1, max: 300 },
-        { key: "waist", id: "progressMeasureWaist", label: "Waist", min: 1, max: 300 },
-        { key: "hips", id: "progressMeasureHips", label: "Hips", min: 1, max: 300 },
-        { key: "shoulders", id: "progressMeasureShoulders", label: "Shoulders", min: 1, max: 300 },
-        { key: "armLeft", id: "progressMeasureArmLeft", label: "Left arm", min: 1, max: 150 },
-        { key: "armRight", id: "progressMeasureArmRight", label: "Right arm", min: 1, max: 150 },
-        { key: "thighLeft", id: "progressMeasureThighLeft", label: "Left thigh", min: 1, max: 150 },
-        { key: "thighRight", id: "progressMeasureThighRight", label: "Right thigh", min: 1, max: 150 },
-        { key: "calfLeft", id: "progressMeasureCalfLeft", label: "Left calf", min: 1, max: 150 },
-        { key: "calfRight", id: "progressMeasureCalfRight", label: "Right calf", min: 1, max: 150 },
-        { key: "neck", id: "progressMeasureNeck", label: "Neck", min: 1, max: 100 }
+        { key: "chest", id: "progressMeasureChest", label: "Chest", min: 10, max: 300 },
+        { key: "waist", id: "progressMeasureWaist", label: "Waist", min: 10, max: 300 },
+        { key: "hips", id: "progressMeasureHips", label: "Hips", min: 10, max: 300 },
+        { key: "shoulders", id: "progressMeasureShoulders", label: "Shoulders", min: 10, max: 300 },
+        { key: "armLeft", id: "progressMeasureArmLeft", label: "Left arm", min: 5, max: 150 },
+        { key: "armRight", id: "progressMeasureArmRight", label: "Right arm", min: 5, max: 150 },
+        { key: "thighLeft", id: "progressMeasureThighLeft", label: "Left thigh", min: 5, max: 180 },
+        { key: "thighRight", id: "progressMeasureThighRight", label: "Right thigh", min: 5, max: 180 },
+        { key: "calfLeft", id: "progressMeasureCalfLeft", label: "Left calf", min: 5, max: 120 },
+        { key: "calfRight", id: "progressMeasureCalfRight", label: "Right calf", min: 5, max: 120 },
+        { key: "neck", id: "progressMeasureNeck", label: "Neck", min: 5, max: 150 }
     ];
     const MEASUREMENT_SECTIONS = [
         { label: "Torso & Neck", keys: ["chest", "waist", "hips", "shoulders", "neck"] },
