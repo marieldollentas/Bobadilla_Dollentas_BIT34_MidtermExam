@@ -50,6 +50,23 @@
         return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
 
+    function isoDateValue(date) {
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return date.getFullYear() + "-" + month + "-" + day;
+    }
+
+    function monthOffsetBetween(date, base) {
+        return (date.getFullYear() - base.getFullYear()) * 12 + (date.getMonth() - base.getMonth());
+    }
+
+    function timeLabel(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return "";
+        return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    }
+
     function todayValue() {
         if (typeof todayISO === "function") return todayISO();
         const now = new Date();
@@ -263,6 +280,46 @@
         return (Number.isFinite(number) ? number.toFixed(1).replace(/\.0$/, "") : value) + " kg";
     }
 
+    function aggregateWeightEntries(weights, mode) {
+        const buckets = {};
+
+        weights.forEach(function (entry) {
+            const date = String(entry.date || "");
+            if (!date) return;
+
+            const key = mode === "yearly"
+                ? date.slice(0, 4)
+                : (mode === "monthly" ? date.slice(0, 7) : date);
+
+            if (!buckets[key]) {
+                buckets[key] = { key: key, total: 0, count: 0, date: date };
+            }
+            buckets[key].total += Number(entry.weight);
+            buckets[key].count += 1;
+            if (date > buckets[key].date) buckets[key].date = date;
+        });
+
+        return Object.keys(buckets).sort().map(function (key) {
+            const bucket = buckets[key];
+            let label = shortDate(bucket.date);
+
+            if (mode === "yearly") {
+                label = key;
+            } else if (mode === "monthly") {
+                const parts = key.split("-");
+                label = new Date(Number(parts[0]), Number(parts[1]) - 1, 1)
+                    .toLocaleDateString("en-US", { month: "short", year: "numeric" });
+            }
+
+            return {
+                date: bucket.date,
+                label: label,
+                weight: Math.round((bucket.total / bucket.count) * 10) / 10,
+                count: bucket.count
+            };
+        });
+    }
+
     function resizePhotoFile(file) {
         return new Promise(function (resolve, reject) {
             const reader = new FileReader();
@@ -375,7 +432,11 @@
                 return;
             }
 
-            const sorted = weights.slice().sort(sortByDateAsc).slice(-60);
+            const rangeSelect = byId("progressWeightChartRange");
+            const mode = rangeSelect && ["daily", "monthly", "yearly"].indexOf(rangeSelect.value) > -1
+                ? rangeSelect.value
+                : "daily";
+            const sorted = aggregateWeightEntries(weights, mode).slice(-60);
             const values = sorted.map(function (entry) { return entry.weight; });
             let min = Math.min.apply(null, values);
             let max = Math.max.apply(null, values);
@@ -430,15 +491,16 @@
             const step = Math.max(1, Math.ceil(sorted.length / 5));
             const xLabels = sorted.map(function (entry, index) {
                 if (index !== 0 && index !== sorted.length - 1 && index % step !== 0) return "";
-                return '<text class="progress-tick" x="' + xFor(index).toFixed(1) + '" y="' + (height - 10) + '" text-anchor="middle">' + escapeValue(shortDate(entry.date)) + '</text>';
+                return '<text class="progress-tick" x="' + xFor(index).toFixed(1) + '" y="' + (height - 10) + '" text-anchor="middle">' + escapeValue(entry.label) + '</text>';
             }).join("");
 
             const circles = sorted.map(function (entry, index) {
                 const point = points[index];
-                return '<circle class="progress-point" cx="' + point[0].toFixed(1) + '" cy="' + point[1].toFixed(1) + '" r="4"><title>' + escapeValue(shortDate(entry.date)) + ": " + escapeValue(entry.weight) + ' kg</title></circle>';
+                const averageNote = entry.count > 1 ? " (avg of " + entry.count + " entries)" : "";
+                return '<circle class="progress-point" cx="' + point[0].toFixed(1) + '" cy="' + point[1].toFixed(1) + '" r="4"><title>' + escapeValue(entry.label) + ": " + escapeValue(entry.weight) + ' kg' + averageNote + '</title></circle>';
             }).join("");
 
-            container.innerHTML = '<svg viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weight history chart">' +
+            container.innerHTML = '<svg viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="Weight history chart (' + escapeValue(mode) + ')">' +
                 grid.join("") + area +
                 '<polyline class="progress-line" points="' + linePoints + '"></polyline>' +
                 circles + xLabels + '</svg>';
@@ -476,9 +538,30 @@
             }
             renderWeightChart(weights);
             renderWeightHistory();
+            renderProgressCalendar("weight");
+        }
+
+        function measurementValuesHtml(entry) {
+            return MEASUREMENT_SECTIONS.map(function (section) {
+                const items = MEASUREMENT_FIELDS.filter(function (field) {
+                    return section.keys.indexOf(field.key) > -1;
+                }).map(function (field) {
+                    const value = entry[field.key];
+                    if (value === null || value === undefined) return "";
+                    return '<span>' + escapeValue(field.label) + ": <b>" + escapeValue(value) + ' cm</b></span>';
+                }).filter(Boolean);
+
+                if (!items.length) return "";
+                return '<div class="progress-log-section">' +
+                    '<h5>' + escapeValue(section.label) + '</h5>' +
+                    '<div class="progress-log-values">' + items.join("") + '</div>' +
+                    '</div>';
+            }).join("");
         }
 
         function renderMeasurements() {
+            renderProgressCalendar("measurements");
+
             const container = byId("progressMeasureHistory");
             if (!container) return;
 
@@ -489,24 +572,8 @@
             }
 
             container.innerHTML = '<h4>Measurement history</h4>' + measurements.map(function (entry) {
-                const values = MEASUREMENT_SECTIONS.map(function (section) {
-                    const items = MEASUREMENT_FIELDS.filter(function (field) {
-                        return section.keys.indexOf(field.key) > -1;
-                    }).map(function (field) {
-                        const value = entry[field.key];
-                        if (value === null || value === undefined) return "";
-                        return '<span>' + escapeValue(field.label) + ": <b>" + escapeValue(value) + ' cm</b></span>';
-                    }).filter(Boolean);
-
-                    if (!items.length) return "";
-                    return '<div class="progress-log-section">' +
-                        '<h5>' + escapeValue(section.label) + '</h5>' +
-                        '<div class="progress-log-values">' + items.join("") + '</div>' +
-                        '</div>';
-                }).join("");
-
                 return '<div class="progress-log-row">' +
-                    '<div class="progress-log-main"><strong>' + escapeValue(dateLabel(entry.date)) + '</strong>' + values + '</div>' +
+                    '<div class="progress-log-main"><strong>' + escapeValue(dateLabel(entry.date)) + '</strong>' + measurementValuesHtml(entry) + '</div>' +
                     '<button type="button" class="btn-delete" data-remove-measurement="' + escapeValue(entry.id) + '">Remove</button>' +
                     '</div>';
             }).join("");
@@ -540,6 +607,8 @@
         }
 
         function renderPhotos() {
+            renderProgressCalendar("photos");
+
             const gallery = byId("progressPhotoGallery");
             if (!gallery) return;
 
@@ -559,6 +628,256 @@
                     '</figure>';
             }).join("");
         }
+
+        const progressCalendarState = {
+            weight: { offset: 0, selectedDate: "", year: "" },
+            measurements: { offset: 0, selectedDate: "", year: "" },
+            photos: { offset: 0, selectedDate: "", year: "" }
+        };
+
+        const progressCalendarConfig = {
+            weight: {
+                containerId: "progressWeightCalendar",
+                historyId: "progressWeightHistory",
+                entrySingular: "weight entry",
+                entryPlural: "weight entries",
+                entries: function () { return record.weights; },
+                detail: function (entries) {
+                    return '<div class="progress-calendar-entries">' + entries.slice().sort(sortByDateAsc).map(function (entry) {
+                        const time = timeLabel(entry.at);
+                        return '<div class="progress-calendar-entry"><strong>' + escapeValue(formatWeight(entry.weight)) + '</strong>' +
+                            (time ? '<span>' + escapeValue(time) + '</span>' : '') + '</div>';
+                    }).join("") + '</div>';
+                }
+            },
+            measurements: {
+                containerId: "progressMeasureCalendar",
+                historyId: "progressMeasureHistory",
+                entrySingular: "measurement",
+                entryPlural: "measurements",
+                entries: function () { return record.measurements; },
+                detail: function (entries) {
+                    return '<div class="progress-calendar-entries">' + entries.slice().sort(sortByDateAsc).map(function (entry) {
+                        return '<div class="progress-calendar-measurement">' + measurementValuesHtml(entry) + '</div>';
+                    }).join("") + '</div>';
+                }
+            },
+            photos: {
+                containerId: "progressPhotoCalendar",
+                historyId: "progressPhotoGallery",
+                entrySingular: "photo",
+                entryPlural: "photos",
+                entries: function () { return record.photos; },
+                detail: function (entries) {
+                    return '<div class="progress-calendar-photos">' + entries.slice().sort(sortByDateAsc).map(function (photo) {
+                        return '<button type="button" class="progress-calendar-photo" data-photo-id="' + escapeValue(photo.id) + '" aria-label="View progress photo from ' + escapeValue(dateLabel(photo.date)) + '">' +
+                            '<img src="' + photo.dataUrl + '" alt="Progress photo from ' + escapeValue(dateLabel(photo.date)) + '" loading="lazy">' +
+                            '</button>';
+                    }).join("") + '</div>';
+                }
+            }
+        };
+
+        function groupProgressEntries(entries) {
+            const grouped = {};
+            entries.forEach(function (entry) {
+                if (!entry || !entry.date) return;
+                if (!grouped[entry.date]) grouped[entry.date] = [];
+                grouped[entry.date].push(entry);
+            });
+            return grouped;
+        }
+
+        function renderProgressCalendar(type) {
+            const config = progressCalendarConfig[type];
+            const container = config ? byId(config.containerId) : null;
+            if (!container) return;
+
+            const state = progressCalendarState[type];
+            const today = todayValue();
+            const minDate = dateWithYearOffset(-10);
+            const now = new Date();
+            const minYear = Number(minDate.slice(0, 4));
+            const currentYear = now.getFullYear();
+            const baseMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const globalMinMonth = new Date(minYear, Number(minDate.slice(5, 7)) - 1, 1);
+
+            if (state.year && (!/^\d{4}$/.test(state.year) || Number(state.year) < minYear || Number(state.year) > currentYear)) {
+                state.year = "";
+            }
+
+            let rangeMinMonth = globalMinMonth;
+            let rangeMaxMonth = baseMonth;
+            if (state.year) {
+                const year = Number(state.year);
+                const yearStart = new Date(year, 0, 1);
+                const yearEnd = new Date(year, 11, 1);
+                if (yearStart > rangeMinMonth) rangeMinMonth = yearStart;
+                if (yearEnd < rangeMaxMonth) rangeMaxMonth = yearEnd;
+            }
+
+            const minOffset = monthOffsetBetween(rangeMinMonth, baseMonth);
+            const maxOffset = monthOffsetBetween(rangeMaxMonth, baseMonth);
+            state.offset = Math.max(minOffset, Math.min(maxOffset, state.offset));
+
+            if (state.selectedDate && (state.selectedDate < minDate || state.selectedDate > today || (state.year && state.selectedDate.slice(0, 4) !== state.year))) {
+                state.selectedDate = "";
+            }
+
+            const trackedEntries = config.entries().filter(function (entry) {
+                return entry.date &&
+                    entry.date >= minDate &&
+                    entry.date <= today &&
+                    (!state.year || entry.date.slice(0, 4) === state.year);
+            });
+            const grouped = groupProgressEntries(trackedEntries);
+            const month = new Date(now.getFullYear(), now.getMonth() + state.offset, 1);
+            const monthIndex = month.getMonth();
+            const monthLabel = month.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            const daysInMonth = new Date(month.getFullYear(), monthIndex + 1, 0).getDate();
+            const leadingBlanks = month.getDay();
+            const canPrev = state.offset > minOffset;
+            const canNext = state.offset < maxOffset;
+
+            const yearOptions = ['<option value="">All years</option>'];
+            for (let year = currentYear; year >= minYear; year -= 1) {
+                yearOptions.push('<option value="' + year + '"' + (state.year === String(year) ? " selected" : "") + '>' + year + '</option>');
+            }
+            const yearSelectId = config.containerId + "Year";
+
+            const cells = [];
+            for (let blank = 0; blank < leadingBlanks; blank += 1) {
+                cells.push('<span class="calendar-day is-empty" aria-hidden="true"></span>');
+            }
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const iso = isoDateValue(new Date(month.getFullYear(), monthIndex, day));
+                const dayEntries = grouped[iso] || [];
+                const count = dayEntries.length;
+                const disabled = iso < minDate || iso > today;
+                const classes = ["calendar-day", "progress-calendar-day"];
+                if (iso === state.selectedDate) classes.push("active");
+                if (iso === today) classes.push("is-today");
+                if (count) classes.push("has-entries");
+
+                const spokenDate = dateLabel(iso) + (count ? ", " + count + " " + (count === 1 ? config.entrySingular : config.entryPlural) : ", no entries");
+                cells.push('<button type="button" class="' + classes.join(" ") + '" data-progress-calendar-type="' + type + '" data-progress-calendar-date="' + iso + '" aria-pressed="' + (iso === state.selectedDate ? "true" : "false") + '" aria-label="' + escapeValue(spokenDate) + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '>' +
+                    '<span class="calendar-date">' + day + '</span>' +
+                    (count ? '<span class="progress-calendar-count">' + count + '</span>' : '') +
+                    '</button>');
+            }
+
+            const rangeLabel = state.year ? "Showing " + state.year + " only." : "Showing the past 10 years.";
+            let detail = '<p class="progress-calendar-hint">' + escapeValue(rangeLabel) + ' Select a highlighted date to see that day\'s entries.</p>';
+            if (state.selectedDate) {
+                const selectedEntries = grouped[state.selectedDate] || [];
+                detail = '<div class="progress-calendar-detail">' +
+                    '<h5>' + escapeValue(dateLabel(state.selectedDate)) + '</h5>' +
+                    (selectedEntries.length ? config.detail(selectedEntries) : '<p class="card-meta">No ' + escapeValue(config.entryPlural) + ' recorded on this date.</p>') +
+                    '</div>';
+            }
+
+            container.innerHTML =
+                '<div class="progress-calendar-filter">' +
+                    '<label for="' + yearSelectId + '">Year</label>' +
+                    '<select id="' + yearSelectId + '" class="search-input progress-calendar-year" data-progress-calendar-year="' + type + '">' + yearOptions.join("") + '</select>' +
+                '</div>' +
+                '<div class="calendar-nav">' +
+                    '<button type="button" class="calendar-nav-btn" data-progress-calendar-nav="prev" data-progress-calendar-type="' + type + '" aria-label="Previous month"' + (canPrev ? "" : " disabled") + '><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg></button>' +
+                    '<span class="calendar-month-label">' + escapeValue(monthLabel) + '</span>' +
+                    '<button type="button" class="calendar-nav-btn" data-progress-calendar-nav="next" data-progress-calendar-type="' + type + '" aria-label="Next month"' + (canNext ? "" : " disabled") + '><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>' +
+                '</div>' +
+                '<div class="calendar-weekdays">' + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(function (label) { return '<span>' + label + '</span>'; }).join("") + '</div>' +
+                '<div class="calendar-grid">' + cells.join("") + '</div>' +
+                detail;
+        }
+
+        function setProgressView(type, mode) {
+            const config = progressCalendarConfig[type];
+            if (!config) return;
+            const history = byId(config.historyId);
+            const calendar = byId(config.containerId);
+            const showCalendar = mode === "calendar";
+
+            if (history) history.hidden = showCalendar;
+            if (calendar) calendar.hidden = !showCalendar;
+
+            document.querySelectorAll('[data-progress-view="' + type + '"]').forEach(function (button) {
+                const active = button.getAttribute("data-progress-view-mode") === mode;
+                button.classList.toggle("is-active", active);
+                button.setAttribute("aria-pressed", active ? "true" : "false");
+            });
+
+            if (showCalendar) renderProgressCalendar(type);
+        }
+
+        document.querySelectorAll("[data-progress-view]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                setProgressView(button.getAttribute("data-progress-view"), button.getAttribute("data-progress-view-mode"));
+            });
+        });
+
+        function offsetForCalendarYear(type, year) {
+            const config = progressCalendarConfig[type];
+            const now = new Date();
+            const baseMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const today = todayValue();
+            const latest = config.entries()
+                .filter(function (entry) {
+                    return entry.date && Number(entry.date.slice(0, 4)) === year && entry.date <= today;
+                })
+                .sort(sortByDateDesc)[0];
+
+            if (latest) {
+                const date = new Date(Number(latest.date.slice(0, 4)), Number(latest.date.slice(5, 7)) - 1, 1);
+                return monthOffsetBetween(date, baseMonth);
+            }
+
+            if (year === now.getFullYear()) return 0;
+            return monthOffsetBetween(new Date(year, 0, 1), baseMonth);
+        }
+
+        Object.keys(progressCalendarConfig).forEach(function (type) {
+            const container = byId(progressCalendarConfig[type].containerId);
+            if (!container) return;
+            container.addEventListener("click", function (event) {
+                const nav = event.target.closest("[data-progress-calendar-nav]");
+                if (nav) {
+                    const state = progressCalendarState[type];
+                    state.offset += nav.getAttribute("data-progress-calendar-nav") === "next" ? 1 : -1;
+                    state.selectedDate = "";
+                    renderProgressCalendar(type);
+                    return;
+                }
+
+                const dayButton = event.target.closest("[data-progress-calendar-date]");
+                if (dayButton) {
+                    const state = progressCalendarState[type];
+                    const date = dayButton.getAttribute("data-progress-calendar-date");
+                    state.selectedDate = state.selectedDate === date ? "" : date;
+                    renderProgressCalendar(type);
+                    return;
+                }
+
+                if (type === "photos") {
+                    const photoButton = event.target.closest("[data-photo-id]");
+                    if (!photoButton) return;
+                    const photo = record.photos.find(function (entry) {
+                        return entry.id === photoButton.getAttribute("data-photo-id");
+                    });
+                    openLightbox(photo);
+                }
+            });
+
+            container.addEventListener("change", function (event) {
+                const select = event.target.closest("[data-progress-calendar-year]");
+                if (!select) return;
+                const state = progressCalendarState[type];
+                state.year = select.value;
+                state.selectedDate = "";
+                state.offset = state.year ? offsetForCalendarYear(type, Number(state.year)) : 0;
+                renderProgressCalendar(type);
+            });
+        });
 
         function renderAll() {
             renderGoal();
@@ -606,6 +925,13 @@
                 showProgressPanel(progressPanelSelect.value);
             });
             showProgressPanel(progressPanelSelect.value);
+        }
+
+        const weightChartRange = byId("progressWeightChartRange");
+        if (weightChartRange) {
+            weightChartRange.addEventListener("change", function () {
+                renderWeightChart(record.weights);
+            });
         }
 
         const goalTypeSelect = byId("progressGoalType");

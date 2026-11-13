@@ -512,7 +512,23 @@
                                     </div>
                                 </form>
                                 <p id="progressWeightMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                <div class="progress-chart-toolbar">
+                                    <label for="progressWeightChartRange">Graph view</label>
+                                    <select id="progressWeightChartRange" class="search-input progress-chart-select">
+                                        <option value="daily">Daily</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
                                 <div id="progressWeightChart" class="progress-chart"></div>
+                                <div class="progress-view-bar">
+                                    <span class="progress-view-label">Browse by</span>
+                                    <div class="progress-view-toggle" role="group" aria-label="Weight history view">
+                                        <button type="button" class="progress-view-btn is-active" data-progress-view="weight" data-progress-view-mode="list" aria-pressed="true">List</button>
+                                        <button type="button" class="progress-view-btn" data-progress-view="weight" data-progress-view-mode="calendar" aria-pressed="false">Calendar</button>
+                                    </div>
+                                </div>
+                                <div id="progressWeightCalendar" class="progress-calendar-view" hidden></div>
                                 <div id="progressWeightHistory" class="progress-history"></div>
                             </div>
 
@@ -594,6 +610,14 @@
                                     <button type="submit" class="btn-primary">Save Measurements</button>
                                     <p id="progressMeasureMsg" class="success-msg" role="status" aria-live="polite"></p>
                                 </form>
+                                <div class="progress-view-bar">
+                                    <span class="progress-view-label">Browse by</span>
+                                    <div class="progress-view-toggle" role="group" aria-label="Measurement history view">
+                                        <button type="button" class="progress-view-btn is-active" data-progress-view="measurements" data-progress-view-mode="list" aria-pressed="true">List</button>
+                                        <button type="button" class="progress-view-btn" data-progress-view="measurements" data-progress-view-mode="calendar" aria-pressed="false">Calendar</button>
+                                    </div>
+                                </div>
+                                <div id="progressMeasureCalendar" class="progress-calendar-view" hidden></div>
                                 <div id="progressMeasureHistory" class="progress-history"></div>
                             </div>
 
@@ -657,6 +681,14 @@
                                     </div>
                                 </div>
                                 <p id="progressPhotoMsg" class="success-msg" role="status" aria-live="polite"></p>
+                                <div class="progress-view-bar">
+                                    <span class="progress-view-label">Browse by</span>
+                                    <div class="progress-view-toggle" role="group" aria-label="Progress photo view">
+                                        <button type="button" class="progress-view-btn is-active" data-progress-view="photos" data-progress-view-mode="list" aria-pressed="true">Gallery</button>
+                                        <button type="button" class="progress-view-btn" data-progress-view="photos" data-progress-view-mode="calendar" aria-pressed="false">Calendar</button>
+                                    </div>
+                                </div>
+                                <div id="progressPhotoCalendar" class="progress-calendar-view" hidden></div>
                                 <div id="progressPhotoGallery" class="progress-gallery"></div>
                             </div>
                         </section>
