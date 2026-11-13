@@ -2503,6 +2503,52 @@ select.search-input {
     user-select: all;
 }
 
+/* ---------- Terms & Conditions disclaimer ---------- */
+.terms-group {
+    margin-top: 14px;
+    margin-bottom: 14px;
+}
+
+.terms-disclaimer-box {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: #fbfaff;
+    border: 1px solid var(--border-soft);
+}
+
+.terms-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+}
+
+.terms-label input[type="checkbox"] {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.terms-text {
+    flex: 1;
+}
+
+.terms-disclaimer-note {
+    margin-top: 6px;
+    margin-left: 26px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
 /* ---------- 25. Responsive ---------- */
 @media (max-width: 1280px) {
     .span-4,

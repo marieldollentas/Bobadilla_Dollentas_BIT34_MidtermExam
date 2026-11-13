@@ -123,8 +123,19 @@
                 <label for="regConfirm">Confirm Password</label>
                 <input type="password" id="regConfirm" class="search-input" placeholder="Re-enter password" required>
             </div>
+            <div class="form-group terms-group">
+                <div class="terms-disclaimer-box">
+                    <label class="terms-label" for="regTerms">
+                        <input type="checkbox" id="regTerms" name="agreeTerms" required>
+                        <span class="terms-text">I have read and agree to the <a href="#termsModal" id="openTermsLink" class="auth-link">Terms and Conditions</a> and Membership Agreement.</span>
+                    </label>
+                    <p class="terms-disclaimer-note">
+                        By checking this box, you confirm that you are at least 18 years old, agree to Anytime Fitness branch policies, 24/7 key fob usage terms, and facility safety regulations.
+                    </p>
+                </div>
+            </div>
             <p class="error-msg" id="regError"></p>
-            <button type="submit" class="btn-primary" style="width: 100%;">Register</button>
+            <button type="submit" class="btn-primary" id="regSubmitBtn" style="width: 100%;">Register</button>
         </form>
 
         <p class="auth-switch">Already registered? <a href="login.html" class="auth-link">Sign in</a></p>
@@ -141,6 +152,35 @@
             <div class="modal-actions">
                 <button id="fobCopyBtn" class="btn-secondary">Copy</button>
                 <button id="fobGoLoginBtn" class="btn-primary">Go to Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terms and Conditions Modal -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close-btn" id="closeTermsBtn">&times;</span>
+            <h2>Terms and Conditions &amp; Membership Agreement</h2>
+            <div class="terms-modal-body" style="max-height: 380px; overflow-y: auto; padding-right: 8px; margin: 16px 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary);">
+                <p>Welcome to Anytime Fitness. By creating an account and registering as a member, you agree to comply with and be bound by the following Terms and Conditions:</p>
+
+                <h4 style="margin: 14px 0 4px; color: var(--text-primary); font-size: 14px;">1. Membership &amp; Key Fob Access</h4>
+                <p>Your automatically generated Key Fob Number serves as your unique membership identifier and sign-in credential. Key fobs are strictly personal and non-transferable. Allowing another individual to use your key fob is grounds for immediate membership termination.</p>
+
+                <h4 style="margin: 14px 0 4px; color: var(--text-primary); font-size: 14px;">2. Facility Access &amp; Club Rules</h4>
+                <p>Members have round-the-clock access to the gym facilities. Members must wear proper athletic attire, wipe down equipment after use, re-rack all free weights, and follow safety instructions provided by Anytime Fitness staff.</p>
+
+                <h4 style="margin: 14px 0 4px; color: var(--text-primary); font-size: 14px;">3. Health &amp; Safety Disclaimer</h4>
+                <p>You certify that you are at least 18 years of age and in adequate physical health to engage in cardiovascular and strength training. You acknowledge that physical exercise carries inherent risks and assume responsibility for your personal safety.</p>
+
+                <h4 style="margin: 14px 0 4px; color: var(--text-primary); font-size: 14px;">4. Membership Plans &amp; Expiration</h4>
+                <p>Membership terms (6-Month, 12-Month, or 18-Month) begin on the date of registration. Membership expiration is tracked in the system and renewal requests can be submitted via the Member Portal or front desk.</p>
+
+                <h4 style="margin: 14px 0 4px; color: var(--text-primary); font-size: 14px;">5. Privacy &amp; Data Security</h4>
+                <p>All personal details and portal activity logs are handled with care and used exclusively for branch operations, attendance tracking, and communication regarding your membership.</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" id="acceptTermsModalBtn">I Agree &amp; Accept</button>
             </div>
         </div>
     </div>

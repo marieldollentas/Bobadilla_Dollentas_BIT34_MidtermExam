@@ -931,6 +931,47 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        // Terms and Conditions disclaimer & modal
+        const regTermsEl = document.getElementById("regTerms");
+        const termsModal = document.getElementById("termsModal");
+        const openTermsLink = document.getElementById("openTermsLink");
+        const closeTermsBtn = document.getElementById("closeTermsBtn");
+        const acceptTermsModalBtn = document.getElementById("acceptTermsModalBtn");
+
+        if (termsModal) {
+            const showTermsModal = (e) => {
+                if (e) e.preventDefault();
+                termsModal.style.display = "flex";
+            };
+            const hideTermsModal = () => {
+                termsModal.style.display = "none";
+            };
+            if (openTermsLink) openTermsLink.addEventListener("click", showTermsModal);
+            if (closeTermsBtn) closeTermsBtn.addEventListener("click", hideTermsModal);
+            if (acceptTermsModalBtn) {
+                acceptTermsModalBtn.addEventListener("click", () => {
+                    if (regTermsEl) regTermsEl.checked = true;
+                    hideTermsModal();
+                    const errorEl = document.getElementById("regError");
+                    if (errorEl && errorEl.textContent.includes("Terms and Conditions")) {
+                        errorEl.textContent = "";
+                    }
+                });
+            }
+            window.addEventListener("click", (e) => {
+                if (e.target === termsModal) hideTermsModal();
+            });
+        }
+
+        if (regTermsEl) {
+            regTermsEl.addEventListener("change", () => {
+                const errorEl = document.getElementById("regError");
+                if (errorEl && errorEl.textContent.includes("Terms and Conditions")) {
+                    errorEl.textContent = "";
+                }
+            });
+        }
+
         // Expiration Date is automatically derived from the selected tier
         const setRegExpiration = () => {
             const months = tierDurationMonths(regTierEl ? regTierEl.value : "");
@@ -1021,6 +1062,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!keyFob) {
                 errorEl.textContent = "A Key Fob Number could not be generated. Please reload and try again.";
+                return;
+            }
+
+            if (!regTermsEl || !regTermsEl.checked) {
+                errorEl.textContent = "Please agree to the Terms and Conditions before registering.";
+                if (regTermsEl) regTermsEl.focus();
                 return;
             }
 
