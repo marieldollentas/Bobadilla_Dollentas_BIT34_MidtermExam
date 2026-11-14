@@ -121,6 +121,15 @@
                     </div>
                 </section>
 
+                <!-- SECTION 1: KEY METRICS / OPERATIONAL OVERVIEW -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Operational Metrics</span>
+                        <h2>Coaching Overview &amp; Key Metrics</h2>
+                        <p class="section-sub">Real-time coaching staff capacity, active trainer count, current availability, and today's session volume.</p>
+                    </div>
+                </header>
+
                 <!-- Coach statistics (real values rendered by the js/ modules) -->
                 <section class="stats-grid">
                     <article class="stat-card">
@@ -168,10 +177,25 @@
                     </article>
                 </section>
 
-                <!-- Coach Directory: search, filters and the coach table -->
-                <section class="filter-section">
-                    <h3>Search &amp; Filter Coaches</h3>
-                    <div class="ticket-filter-bar">
+                <!-- SECTION 2: COACH DIRECTORY & ROSTER -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Staff Management</span>
+                        <h2>Coach Directory &amp; Roster</h2>
+                        <p class="section-sub">Search, filter, and inspect registered coaches, their contact information, fitness specializations, and client workload.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="coachDirectorySection">
+                    <div class="card-head">
+                        <div>
+                            <h2>Coach Directory</h2>
+                            <p class="card-sub">Every registered coach with contact details, specializations and workload</p>
+                        </div>
+                        <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
+                    </div>
+
+                    <div class="ticket-filter-bar" style="margin-top: 18px; margin-bottom: 8px;">
                         <input type="text" id="coachSearch" class="search-input" placeholder="Search by name, email, phone or specialization...">
                         <select id="filterCoachStatus" class="search-input">
                             <option value="all">All Statuses</option>
@@ -182,16 +206,7 @@
                             <option value="all">All Specializations</option>
                         </select>
                     </div>
-                </section>
 
-                <section class="content-section">
-                    <div class="card-head">
-                        <div>
-                            <h2>Coach Directory</h2>
-                            <p class="card-sub">Every registered coach with contact details, specializations and workload</p>
-                        </div>
-                        <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
-                    </div>
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
@@ -209,12 +224,20 @@
                     </div>
                 </section>
 
-                <!-- Availability grid + upcoming appointments -->
-                <section class="content-section">
+                <!-- SECTION 3: AVAILABILITY & WEEKLY SCHEDULE -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Work Shifts &amp; Time Slots</span>
+                        <h2>Coach Availability &amp; Weekly Schedule</h2>
+                        <p class="section-sub">Inspect weekly working days, active shifts, and hourly time slots (6:00 AM – 8:00 PM) for each trainer to coordinate sessions.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="coachScheduleSection">
                     <div class="card-head">
                         <div>
-                            <h2>Coach Availability &amp; Schedule</h2>
-                            <p class="card-sub">Weekly working hours (grid shows 6:00 AM – 8:00 PM slots), booked slots and the next appointments</p>
+                            <h2>Weekly Timetable &amp; Shifts</h2>
+                            <p class="card-sub">Weekly working hours, booked slots, and hourly availability per coach</p>
                         </div>
                         <div class="head-actions">
                             <select id="scheduleCoach" class="search-input select-compact" aria-label="Select a coach schedule"></select>
@@ -244,10 +267,21 @@
                             <tbody id="scheduleBody"></tbody>
                         </table>
                     </div>
+                </section>
 
-                    <div class="card-head" style="margin-top:22px;">
+                <!-- SECTION 4: UPCOMING APPOINTMENTS -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Confirmed Bookings</span>
+                        <h2>Upcoming Training Appointments</h2>
+                        <p class="section-sub">All personal training appointments scheduled from today onwards across all coaches and assigned members.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="upcomingSection">
+                    <div class="card-head">
                         <div>
-                            <h3>Upcoming Appointments</h3>
+                            <h2>Upcoming Appointments</h2>
                             <p class="card-sub">Scheduled sessions from today onwards</p>
                         </div>
                         <span class="card-chip" id="upcomingCount">0 upcoming</span>
@@ -270,8 +304,16 @@
                     </div>
                 </section>
 
-                <!-- Client assignment: who trains with which coach -->
-                <section class="content-section">
+                <!-- SECTION 5: CLIENT ASSIGNMENTS -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Client Allocation</span>
+                        <h2>Coach-to-Client Assignments</h2>
+                        <p class="section-sub">Pair customer directory members with personal trainers to organize customized training programs and balance coach workloads.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="clientAssignmentSection">
                     <div class="card-head">
                         <div>
                             <h2>Client Assignment</h2>
@@ -298,8 +340,16 @@
                     </div>
                 </section>
 
-                <!-- Session tracking: create, update and annotate every session -->
-                <section class="content-section">
+                <!-- SECTION 6: SESSION TRACKING -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Session Logs</span>
+                        <h2>Session Tracking &amp; History</h2>
+                        <p class="section-sub">Create, update, and annotate training sessions with attendance statuses, trainer progress notes, and monthly scheduling guardrails.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="sessionTrackingSection">
                     <div class="card-head">
                         <div>
                             <h2>Session Tracking</h2>
@@ -308,9 +358,9 @@
                         <button id="openSessionModal" class="btn-primary">+ Create Session</button>
                     </div>
 
-                    <p class="info-note">Sessions should only be scheduled within the current month. Past days and dates outside this month are unavailable.</p>
+                    <p class="info-note" style="margin-top: 14px;">Sessions should only be scheduled within the current month. Past days and dates outside this month are unavailable.</p>
 
-                    <div class="ticket-filter-bar" style="margin-top:16px;">
+                    <div class="ticket-filter-bar" style="margin-top: 16px; margin-bottom: 16px;">
                         <input type="text" id="sessionSearch" class="search-input" placeholder="Search by client, coach or training type...">
                         <select id="filterSessionCoach" class="search-input">
                             <option value="all">All Coaches</option>
@@ -342,8 +392,16 @@
                     </div>
                 </section>
 
-                <!-- Performance overview with reporting period -->
-                <section class="content-section">
+                <!-- SECTION 7: PERFORMANCE & ATTENDANCE ANALYTICS -->
+                <header class="coach-section-header">
+                    <div class="section-title-wrap">
+                        <span class="eyebrow">Performance &amp; Analytics</span>
+                        <h2>Coaching &amp; Member Analytics</h2>
+                        <p class="section-sub">Attendance ratios, completion rates, and workload analytics across coaches and members for any reporting period.</p>
+                    </div>
+                </header>
+
+                <section class="content-section coach-container" id="coachPerformanceSection">
                     <div class="card-head">
                         <div>
                             <h2>Coach Performance Overview</h2>
@@ -364,7 +422,7 @@
                     <div class="dashboard-grid coach-perf-grid" id="performanceGrid"></div>
                 </section>
 
-                <section class="content-section">
+                <section class="content-section coach-container" id="memberPerformanceSection">
                     <div class="card-head">
                         <div>
                             <h2>Member Performance Overview</h2>
