@@ -5571,7 +5571,9 @@ textarea.input-invalid {
 .member-select-checkbox,
 #selectAllMembers,
 .staff-select-checkbox,
-#selectAllStaff {
+#selectAllStaff,
+.coach-select-checkbox,
+#selectAllCoaches {
     width: 16px;
     height: 16px;
     accent-color: var(--primary);
@@ -5615,11 +5617,14 @@ textarea.input-invalid {
     background-color: #f0eefa !important;
 }
 
-#staffTableBody tr {
+#staffTableBody tr,
+#coachTableBody tr {
     cursor: pointer;
 }
 #staffTableBody tr button,
-#staffTableBody tr a {
+#staffTableBody tr a,
+#coachTableBody tr button,
+#coachTableBody tr a {
     cursor: pointer;
 }
 

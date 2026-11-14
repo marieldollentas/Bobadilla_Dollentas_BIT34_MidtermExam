@@ -207,10 +207,44 @@
                         </select>
                     </div>
 
+                    <!-- Bulk Actions Bar for Coach Directory -->
+                    <div id="coachBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 0; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="coachBulkSelectedCount">0</span>
+                                <span id="coachBulkSelectedLabel">coaches selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="coachBulkSelectAllMatchingBtn">Select all matching (<span id="coachBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="coachBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-status" id="bulkCoachStatusBtn" title="Change employment status of selected coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Change Status</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-tier" id="bulkCoachSpecBtn" title="Update specializations of selected coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                <span>Specializations</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-reassign" id="bulkCoachReassignBtn" title="Reassign clients from selected coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                                <span>Reassign Clients</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-archive" id="bulkCoachArchiveBtn" title="Archive selected coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+                                <span>Archive Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="coachBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllCoaches" title="Select all visible coaches" aria-label="Select all visible coaches">
+                                    </th>
                                     <th>Coach</th>
                                     <th>Contact Information</th>
                                     <th>Specializations</th>
@@ -730,6 +764,91 @@
                 <a class="btn-secondary" id="clientDirectoryLink" href="members.html">Open in Customer Directory</a>
                 <button type="button" class="btn-primary" id="closeClientDetailsBtn">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Bulk Change Coach Status Modal -->
+    <div id="bulkCoachStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkCoachStatusTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkCoachStatusModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkCoachStatusTitle">Change Coach Status in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update employment status for all selected coaches.</p>
+            <form id="bulkCoachStatusForm" onsubmit="event.preventDefault(); window.confirmBulkCoachStatus();">
+                <div class="bulk-summary-card" id="bulkCoachStatusSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkCoachStatusSelect">New Employment Status <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkCoachStatusSelect" class="search-input" required>
+                        <option value="Active">Active</option>
+                        <option value="On Leave">On Leave</option>
+                    </select>
+                    <p class="card-meta" style="margin-top: 6px;">Coaches marked "On Leave" remain in records but are barred from accepting new training sessions until reactivated.</p>
+                </div>
+
+                <p class="error-msg" id="bulkCoachStatusError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkCoachStatusModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkCoachStatusBtn">Apply Status Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Update Coach Specializations Modal -->
+    <div id="bulkCoachSpecModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkCoachSpecTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkCoachSpecModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkCoachSpecTitle">Update Specializations in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Assign fitness training specializations to selected coaches.</p>
+            <form id="bulkCoachSpecForm" onsubmit="event.preventDefault(); window.confirmBulkCoachSpec();">
+                <div class="bulk-summary-card" id="bulkCoachSpecSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkCoachSpecMode">Update Mode <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkCoachSpecMode" class="search-input" required>
+                        <option value="replace">Replace existing specializations with selection</option>
+                        <option value="append">Add selection to existing specializations</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Select Fitness Specializations <span style="color: var(--primary);">*</span></label>
+                    <div class="day-grid" id="bulkCoachSpecGrid" style="margin-top: 8px;"></div>
+                </div>
+
+                <p class="error-msg" id="bulkCoachSpecError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkCoachSpecModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkCoachSpecBtn">Apply Specializations</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Reassign Clients Modal -->
+    <div id="bulkCoachReassignModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkCoachReassignTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkCoachReassignModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkCoachReassignTitle">Reassign Clients in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Transfer assigned client workloads from selected coaches to another active trainer or unassign them.</p>
+            <form id="bulkCoachReassignForm" onsubmit="event.preventDefault(); window.confirmBulkCoachReassign();">
+                <div class="bulk-summary-card" id="bulkCoachReassignSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkCoachReassignTarget">Reassign All Clients To <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkCoachReassignTarget" class="search-input" required></select>
+                    <p class="card-meta" style="margin-top: 6px;">Select an active coach to take over training programs, or choose Unassign to clear trainer pairings.</p>
+                </div>
+
+                <p class="error-msg" id="bulkCoachReassignError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkCoachReassignModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkCoachReassignBtn">Reassign Clients</button>
+                </div>
+            </form>
         </div>
     </div>
 

@@ -631,11 +631,552 @@ function fillSpecializationFilter() {
 
 
 
+// ============================================================================
+// Coach Directory Bulk Actions
+// ============================================================================
+
+window.selectedCoachIds = window.selectedCoachIds || new Set();
+
+function getFilteredCoachList() {
+    const filters = coachDirectoryFilters();
+    return getActiveCoaches().filter(coach => {
+        if (filters.status !== "all" && coach.status !== filters.status) return false;
+        if (filters.specialization !== "all" && !coachHasSpecialization(coach, filters.specialization)) return false;
+        if (filters.search) {
+            const haystack = [coach.name, coach.email, coach.phone, ...coachSpecializations(coach), coach.status]
+                .filter(Boolean).join(" ").toLowerCase();
+            if (!haystack.includes(filters.search)) return false;
+        }
+        return true;
+    });
+}
+window.getFilteredCoachList = getFilteredCoachList;
+
+function getSelectedCoachList() {
+    const all = getActiveCoaches();
+    const selectedIds = window.selectedCoachIds || new Set();
+    return all.filter(c => selectedIds.has(String(c.id)));
+}
+window.getSelectedCoachList = getSelectedCoachList;
+
+function updateCoachBulkActionBar(filteredCoaches) {
+    const bar = document.getElementById("coachBulkActionBar");
+    const countEl = document.getElementById("coachBulkSelectedCount");
+    const labelEl = document.getElementById("coachBulkSelectedLabel");
+    const totalMatchingEl = document.getElementById("coachBulkTotalMatchingCount");
+    const selectAllCheckbox = document.getElementById("selectAllCoaches");
+
+    if (!bar) return;
+
+    const filtered = Array.isArray(filteredCoaches) ? filteredCoaches : getFilteredCoachList();
+    const selectedCount = window.selectedCoachIds ? window.selectedCoachIds.size : 0;
+    const visibleCount = filtered.length;
+
+    if (totalMatchingEl) totalMatchingEl.textContent = String(visibleCount);
+
+    if (selectedCount > 0) {
+        bar.hidden = false;
+        bar.style.display = "flex";
+        bar.classList.add("visible");
+        if (countEl) countEl.textContent = String(selectedCount);
+        if (labelEl) labelEl.textContent = selectedCount === 1 ? "coach selected" : "coaches selected";
+    } else {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    if (selectAllCheckbox) {
+        let matchingSelectedCount = 0;
+        filtered.forEach(c => {
+            if (window.selectedCoachIds && window.selectedCoachIds.has(String(c.id))) {
+                matchingSelectedCount++;
+            }
+        });
+
+        if (visibleCount > 0 && matchingSelectedCount === visibleCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (matchingSelectedCount > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+window.updateCoachBulkActionBar = updateCoachBulkActionBar;
+
+function initCoachBulkActions() {
+    const bar = document.getElementById("coachBulkActionBar");
+    const tbody = document.getElementById("coachTableBody");
+    const selectAllCheckbox = document.getElementById("selectAllCoaches");
+
+    if (!bar || bar.dataset.bulkBound === "1") return;
+    bar.dataset.bulkBound = "1";
+
+    if (!window.selectedCoachIds || window.selectedCoachIds.size === 0) {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    // Master checkbox toggles all visible rows
+    if (selectAllCheckbox && selectAllCheckbox.dataset.bound !== "1") {
+        selectAllCheckbox.dataset.bound = "1";
+        selectAllCheckbox.addEventListener("change", () => {
+            const filtered = getFilteredCoachList();
+            if (selectAllCheckbox.checked) {
+                filtered.forEach(c => window.selectedCoachIds.add(String(c.id)));
+            } else {
+                filtered.forEach(c => window.selectedCoachIds.delete(String(c.id)));
+            }
+            if (tbody) {
+                const checkboxes = tbody.querySelectorAll(".coach-select-checkbox");
+                checkboxes.forEach(cb => {
+                    const id = decodeURIComponent(cb.dataset.coachId || "");
+                    const checked = window.selectedCoachIds.has(id);
+                    cb.checked = checked;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.toggle("is-selected", checked);
+                });
+            }
+            updateCoachBulkActionBar(filtered);
+        });
+    }
+
+    // Row selection delegation on coachTableBody
+    if (tbody && tbody.dataset.bulkDelegated !== "1") {
+        tbody.dataset.bulkDelegated = "1";
+
+        tbody.addEventListener("change", e => {
+            if (e.target.classList.contains("coach-select-checkbox")) {
+                const id = decodeURIComponent(e.target.dataset.coachId || "");
+                if (e.target.checked) {
+                    window.selectedCoachIds.add(id);
+                } else {
+                    window.selectedCoachIds.delete(id);
+                }
+                const row = e.target.closest("tr");
+                if (row) row.classList.toggle("is-selected", e.target.checked);
+                updateCoachBulkActionBar();
+            }
+        });
+
+        // Click anywhere on a row toggles row selection (except on action buttons, links, or inputs)
+        tbody.addEventListener("click", e => {
+            if (e.target.closest("button, a, select, textarea, label")) return;
+            if (e.target.tagName === "INPUT") return;
+
+            const row = e.target.closest("tr");
+            if (!row) return;
+
+            const cb = row.querySelector(".coach-select-checkbox");
+            if (cb) {
+                cb.checked = !cb.checked;
+                const id = decodeURIComponent(cb.dataset.coachId || "");
+                if (cb.checked) {
+                    window.selectedCoachIds.add(id);
+                } else {
+                    window.selectedCoachIds.delete(id);
+                }
+                row.classList.toggle("is-selected", cb.checked);
+                updateCoachBulkActionBar();
+            }
+        });
+    }
+
+    // Quick selection buttons
+    const selectAllMatchingBtn = document.getElementById("coachBulkSelectAllMatchingBtn");
+    if (selectAllMatchingBtn) {
+        selectAllMatchingBtn.addEventListener("click", () => {
+            const filtered = getFilteredCoachList();
+            filtered.forEach(c => window.selectedCoachIds.add(String(c.id)));
+            if (tbody) {
+                tbody.querySelectorAll(".coach-select-checkbox").forEach(cb => {
+                    cb.checked = true;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.add("is-selected");
+                });
+            }
+            updateCoachBulkActionBar(filtered);
+        });
+    }
+
+    const deselectBtn = document.getElementById("coachBulkDeselectBtn");
+    if (deselectBtn) {
+        deselectBtn.addEventListener("click", () => {
+            window.selectedCoachIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".coach-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateCoachBulkActionBar();
+        });
+    }
+
+    const closeBarBtn = document.getElementById("coachBulkBarCloseBtn");
+    if (closeBarBtn) {
+        closeBarBtn.addEventListener("click", () => {
+            window.selectedCoachIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".coach-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateCoachBulkActionBar();
+        });
+    }
+
+    // Bulk action toolbar buttons
+    const statusBtn = document.getElementById("bulkCoachStatusBtn");
+    if (statusBtn) statusBtn.addEventListener("click", () => window.openBulkCoachStatusModal());
+
+    const specBtn = document.getElementById("bulkCoachSpecBtn");
+    if (specBtn) specBtn.addEventListener("click", () => window.openBulkCoachSpecModal());
+
+    const reassignBtn = document.getElementById("bulkCoachReassignBtn");
+    if (reassignBtn) reassignBtn.addEventListener("click", () => window.openBulkCoachReassignModal());
+
+    const archiveBtn = document.getElementById("bulkCoachArchiveBtn");
+    if (archiveBtn) archiveBtn.addEventListener("click", () => window.bulkArchiveCoaches());
+
+    // Modal close & backdrop handlers
+    const setupModalDismiss = (modalId, closeBtnId, cancelBtnId) => {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(closeBtnId);
+        const cancelBtn = document.getElementById(cancelBtnId);
+        const hide = () => { if (modal) modal.style.display = "none"; };
+        if (closeBtn) closeBtn.addEventListener("click", hide);
+        if (cancelBtn) cancelBtn.addEventListener("click", hide);
+        if (modal) {
+            modal.addEventListener("click", e => {
+                if (e.target === modal) hide();
+            });
+        }
+    };
+
+    setupModalDismiss("bulkCoachStatusModal", "closeBulkCoachStatusModal", "cancelBulkCoachStatusModal");
+    setupModalDismiss("bulkCoachSpecModal", "closeBulkCoachSpecModal", "cancelBulkCoachSpecModal");
+    setupModalDismiss("bulkCoachReassignModal", "closeBulkCoachReassignModal", "cancelBulkCoachReassignModal");
+}
+window.initCoachBulkActions = initCoachBulkActions;
+
+// Bulk Action: Status Change
+window.openBulkCoachStatusModal = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("Please select at least one coach to change status.");
+        return;
+    }
+    const summaryEl = document.getElementById("bulkCoachStatusSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(c => escapeHtml(c.name)).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` and ${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `Updating employment status for <strong>${selected.length}</strong> coach${selected.length === 1 ? "" : "es"}: <em>${namesPreview}${moreCount}</em>.`;
+    }
+    const errEl = document.getElementById("bulkCoachStatusError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkCoachStatusModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkCoachStatus = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("No coaches selected.");
+        return;
+    }
+    const selectEl = document.getElementById("bulkCoachStatusSelect");
+    const newStatus = selectEl ? selectEl.value : "Active";
+    const errEl = document.getElementById("bulkCoachStatusError");
+
+    const validStatuses = ["Active", "On Leave"];
+    if (!validStatuses.includes(newStatus)) {
+        if (errEl) errEl.textContent = "Please select a valid employment status.";
+        return;
+    }
+
+    const list = getCoaches();
+    const selectedIds = new Set(selected.map(c => String(c.id)));
+    list.forEach(c => {
+        if (selectedIds.has(String(c.id))) {
+            c.status = newStatus;
+        }
+    });
+
+    saveCoaches(list);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Updated status to "${newStatus}" for ${selected.length} coach${selected.length === 1 ? "" : "es"}`,
+            meta: selected.map(c => c.name).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkCoachStatusModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedCoachIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Specializations Update
+window.openBulkCoachSpecModal = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("Please select at least one coach to update specializations.");
+        return;
+    }
+    const summaryEl = document.getElementById("bulkCoachSpecSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(c => escapeHtml(c.name)).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` and ${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `Updating specializations for <strong>${selected.length}</strong> coach${selected.length === 1 ? "" : "es"}: <em>${namesPreview}${moreCount}</em>.`;
+    }
+    const grid = document.getElementById("bulkCoachSpecGrid");
+    if (grid && typeof COACH_SPECIALIZATIONS !== "undefined") {
+        grid.innerHTML = COACH_SPECIALIZATIONS.map(spec => `
+            <label class="day-chip">
+                <input type="checkbox" name="bulkCoachSpecOption" value="${escapeHtml(spec)}">
+                ${escapeHtml(spec)}
+            </label>
+        `).join("");
+    }
+    const errEl = document.getElementById("bulkCoachSpecError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkCoachSpecModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkCoachSpec = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("No coaches selected.");
+        return;
+    }
+    const grid = document.getElementById("bulkCoachSpecGrid");
+    const checked = grid ? Array.from(grid.querySelectorAll('input[name="bulkCoachSpecOption"]:checked')).map(cb => cb.value) : [];
+    const errEl = document.getElementById("bulkCoachSpecError");
+
+    if (checked.length === 0) {
+        if (errEl) errEl.textContent = "Please select at least one specialization.";
+        return;
+    }
+
+    const modeEl = document.getElementById("bulkCoachSpecMode");
+    const mode = modeEl ? modeEl.value : "replace";
+
+    const list = getCoaches();
+    const selectedIds = new Set(selected.map(c => String(c.id)));
+    list.forEach(c => {
+        if (selectedIds.has(String(c.id))) {
+            if (mode === "append") {
+                const current = coachSpecializations(c);
+                c.specializations = Array.from(new Set([...current, ...checked]));
+            } else {
+                c.specializations = [...checked];
+            }
+        }
+    });
+
+    saveCoaches(list);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Updated specializations (${mode === 'append' ? 'appended' : 'replaced'}) for ${selected.length} coach${selected.length === 1 ? "" : "es"}`,
+            meta: checked.join(", "),
+            href: "coach.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkCoachSpecModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedCoachIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Reassign Clients
+window.openBulkCoachReassignModal = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("Please select at least one coach to reassign clients.");
+        return;
+    }
+
+    const selectedIdSet = new Set(selected.map(c => String(c.id)));
+    const allAssignments = getCoachAssignments();
+    const affectedAssignments = allAssignments.filter(row => selectedIdSet.has(String(row.coachId)));
+
+    const summaryEl = document.getElementById("bulkCoachReassignSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(c => escapeHtml(c.name)).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` +${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `
+            <div style="font-size: 13px; line-height: 1.5;">
+                <div>Selected coaches: <strong>${selected.length}</strong> (${namesPreview}${moreCount})</div>
+                <div style="margin-top: 4px;">Assigned clients affected: <strong>${affectedAssignments.length}</strong></div>
+            </div>
+        `;
+    }
+
+    const targetSelect = document.getElementById("bulkCoachReassignTarget");
+    if (targetSelect) {
+        targetSelect.innerHTML = "";
+        const unassignOpt = document.createElement("option");
+        unassignOpt.value = "unassign";
+        unassignOpt.textContent = "Unassign Clients (Remove from Coach)";
+        targetSelect.appendChild(unassignOpt);
+
+        const otherCoaches = getActiveCoaches().filter(c => !selectedIdSet.has(String(c.id)));
+        if (otherCoaches.length > 0) {
+            const optgroup = document.createElement("optgroup");
+            optgroup.label = "Available Active Coaches";
+            otherCoaches.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.status} • ${coachClientCount(c.id)} client${coachClientCount(c.id) === 1 ? "" : "s"})`;
+                optgroup.appendChild(opt);
+            });
+            targetSelect.appendChild(optgroup);
+        }
+    }
+
+    const errEl = document.getElementById("bulkCoachReassignError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkCoachReassignModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkCoachReassign = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("No coaches selected.");
+        return;
+    }
+
+    const targetSelect = document.getElementById("bulkCoachReassignTarget");
+    const targetValue = targetSelect ? targetSelect.value : "";
+    const errEl = document.getElementById("bulkCoachReassignError");
+
+    if (!targetValue) {
+        if (errEl) errEl.textContent = "Please select a destination for the clients.";
+        return;
+    }
+
+    const selectedIdSet = new Set(selected.map(c => String(c.id)));
+    const allAssignments = getCoachAssignments();
+
+    let reassignedCount = 0;
+    if (targetValue === "unassign") {
+        const remaining = allAssignments.filter(row => {
+            const matches = selectedIdSet.has(String(row.coachId));
+            if (matches) reassignedCount++;
+            return !matches;
+        });
+        saveCoachAssignments(remaining);
+
+        if (typeof logActivity === "function") {
+            logActivity({
+                type: "coach",
+                title: `Unassigned ${reassignedCount} client${reassignedCount === 1 ? "" : "s"} from ${selected.length} coach${selected.length === 1 ? "" : "es"}`,
+                meta: `Cleared coach pairings`,
+                href: "coach.html"
+            });
+        }
+    } else {
+        const targetCoach = coachById(targetValue);
+        allAssignments.forEach(row => {
+            if (selectedIdSet.has(String(row.coachId))) {
+                row.coachId = targetValue;
+                reassignedCount++;
+            }
+        });
+        saveCoachAssignments(allAssignments);
+
+        if (typeof logActivity === "function") {
+            logActivity({
+                type: "coach",
+                title: `Reassigned ${reassignedCount} client${reassignedCount === 1 ? "" : "s"} to ${targetCoach ? targetCoach.name : "new coach"}`,
+                meta: `Transferred from ${selected.length} coach${selected.length === 1 ? "" : "es"}`,
+                href: "coach.html"
+            });
+        }
+    }
+
+    const modal = document.getElementById("bulkCoachReassignModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedCoachIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Archive Selected Coaches
+window.bulkArchiveCoaches = function() {
+    const selected = getSelectedCoachList();
+    if (selected.length === 0) {
+        alert("Please select at least one coach to archive.");
+        return;
+    }
+
+    const totalClients = selected.reduce((sum, c) => sum + coachClientCount(c.id), 0);
+    const extraMsg = totalClients > 0
+        ? `\n\nThey currently have ${totalClients} assigned client${totalClients === 1 ? "" : "s"}. Their client history and assignments will remain on file.`
+        : "";
+
+    if (!confirm(`Are you sure you want to archive ${selected.length} selected coach${selected.length === 1 ? "" : "es"}? They will leave the directory and schedule but stay on file and can be restored later.${extraMsg}`)) {
+        return;
+    }
+
+    selected.forEach(c => {
+        archiveCoachById(c.id);
+    });
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `${selected.length} coach${selected.length === 1 ? "" : "es"} were archived`,
+            meta: selected.map(c => c.name).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    window.selectedCoachIds.clear();
+    refreshCoachViews();
+};
+
 // js-split:file=coaches.js part=34of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function renderCoachDirectory() {
     const tbody = document.getElementById("coachTableBody");
     if (!tbody) return;
+
+    if (typeof initCoachBulkActions === "function") {
+        initCoachBulkActions();
+    }
+
+    // Prune stale IDs
+    if (window.selectedCoachIds) {
+        const activeIds = new Set(getActiveCoaches().map(c => String(c.id)));
+        for (const id of Array.from(window.selectedCoachIds)) {
+            if (!activeIds.has(id)) {
+                window.selectedCoachIds.delete(id);
+            }
+        }
+    }
 
     const filters = coachDirectoryFilters();
     const coaches = getActiveCoaches().filter(coach => {
@@ -657,14 +1198,20 @@ function renderCoachDirectory() {
 
     tbody.innerHTML = "";
     if (coaches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No coaches match your filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">No coaches match your filters.</td></tr>';
+        updateCoachBulkActionBar(coaches);
         return;
     }
 
     coaches.forEach(coach => {
         const id = encodeURIComponent(coach.id);
+        const isChecked = window.selectedCoachIds && window.selectedCoachIds.has(String(coach.id));
         const tr = document.createElement("tr");
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="coach-select-checkbox" data-coach-id="${id}" ${isChecked ? "checked" : ""} title="Select ${escapeHtml(coach.name)}" aria-label="Select ${escapeHtml(coach.name)}">
+            </td>
             <td><strong>${escapeHtml(coach.name)}</strong><small>${escapeHtml(coachShiftLabel(coach))}</small></td>
             <td>
                 ${escapeHtml(coach.phone || "—")}
@@ -681,6 +1228,8 @@ function renderCoachDirectory() {
         `;
         tbody.appendChild(tr);
     });
+
+    updateCoachBulkActionBar(coaches);
 }
 
 // Archive a coach: they leave the directory, schedule pickers and reports,
@@ -742,6 +1291,10 @@ window.archiveCoach = (encodedId) => {
         href: activityHref("coach.html", coach.name)
     });
 
+    if (window.selectedCoachIds) {
+        window.selectedCoachIds.delete(String(id));
+    }
+
     refreshCoachViews();
 };
 
@@ -765,6 +1318,10 @@ window.restoreCoach = (encodedId) => {
         meta: coachSpecializationLabel(coach),
         href: activityHref("coach.html", coach.name)
     });
+
+    if (window.selectedCoachIds) {
+        window.selectedCoachIds.delete(String(id));
+    }
 
     refreshCoachViews();
 };
@@ -793,6 +1350,10 @@ window.permanentlyDeleteCoach = (encodedId) => {
         meta: coachSpecializationLabel(coach),
         href: "archive.html"
     });
+
+    if (window.selectedCoachIds) {
+        window.selectedCoachIds.delete(String(id));
+    }
 
     refreshCoachViews();
 };
@@ -2810,3 +3371,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Another tab editing coaches refreshes this one
     window.addEventListener("storage", renderCoachTracker);
 });
+
+// Global exposure for Coach Directory Bulk Actions
+window.updateCoachBulkActionBar = updateCoachBulkActionBar;
+window.initCoachBulkActions = initCoachBulkActions;
+window.openBulkCoachStatusModal = openBulkCoachStatusModal;
+window.confirmBulkCoachStatus = confirmBulkCoachStatus;
+window.openBulkCoachSpecModal = openBulkCoachSpecModal;
+window.confirmBulkCoachSpec = confirmBulkCoachSpec;
+window.openBulkCoachReassignModal = openBulkCoachReassignModal;
+window.confirmBulkCoachReassign = confirmBulkCoachReassign;
+window.bulkArchiveCoaches = bulkArchiveCoaches;
+window.getFilteredCoachList = getFilteredCoachList;
+window.getSelectedCoachList = getSelectedCoachList;
