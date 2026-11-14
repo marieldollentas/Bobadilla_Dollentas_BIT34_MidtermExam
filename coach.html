@@ -68,6 +68,34 @@
                 <span class="topbar-meta" id="topbarDate"></span>
 
                 <div class="topbar-right">
+                    <!-- Collapsible Notification Bell for Recent Activity -->
+                    <div class="notification-wrap" id="notificationWrap">
+                        <button type="button" class="notification-btn" id="notificationBellBtn" aria-label="Recent Activity Notifications" aria-expanded="false" aria-haspopup="true" title="Recent Activity">
+                            <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span class="notification-badge" id="notificationBadge" hidden>0</span>
+                        </button>
+
+                        <div class="notification-dropdown" id="notificationDropdown" role="region" aria-label="Recent Activity Notifications" hidden>
+                            <div class="notification-dropdown-head">
+                                <div class="notification-head-left">
+                                    <div class="notification-title-row">
+                                        <h3 class="notification-heading">Recent Activity</h3>
+                                        <span class="notification-count-pill" id="notificationCountPill">0</span>
+                                    </div>
+                                    <p class="notification-sub" id="notificationSub">Latest actions across the CRM</p>
+                                </div>
+                                <div class="notification-head-actions">
+                                    <button type="button" id="activityClearAll" class="activity-clear-btn" title="Clear all notifications">Clear All</button>
+                                    <button type="button" id="activityViewAll" class="activity-view-all" aria-expanded="false" hidden>View All →</button>
+                                </div>
+                            </div>
+                            <div id="recentActivityList" class="activity-list"></div>
+                        </div>
+                    </div>
+
                     <div class="user-chip">
                         <span class="avatar" id="userAvatar">AF</span>
                         <span class="user-chip-text">

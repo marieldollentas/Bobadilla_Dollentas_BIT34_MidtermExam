@@ -753,6 +753,9 @@ function logActivity(entry) {
             ...(entry || {})
         });
         localStorage.setItem(ACTIVITY_KEY, JSON.stringify(list.slice(0, ACTIVITY_LOG_LIMIT)));
+        if (typeof renderRecentActivity === "function") {
+            renderRecentActivity();
+        }
     } catch (e) { /* the activity feed must never block a CRM action */ }
 }
 
@@ -867,15 +870,96 @@ function membershipExpiryActivities() {
         }));
 }
 
+const DISMISSED_ACTIVITIES_KEY = "crmDismissedActivities";
+const LAST_READ_KEY = "crmNotificationsLastReadAt";
+
+function getDismissedActivityIds() {
+    try {
+        const raw = localStorage.getItem(DISMISSED_ACTIVITIES_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr : []);
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function saveDismissedActivityIds(set) {
+    try {
+        const arr = Array.from(set || []);
+        localStorage.setItem(DISMISSED_ACTIVITIES_KEY, JSON.stringify(arr.slice(-200)));
+    } catch (e) {}
+}
+
+function getUnreadNotificationCount(feed) {
+    const list = Array.isArray(feed) ? feed : recentActivityFeed();
+    const lastReadAtStr = localStorage.getItem(LAST_READ_KEY);
+    if (!lastReadAtStr) {
+        return list.length;
+    }
+    const lastReadAt = new Date(lastReadAtStr).getTime();
+    return list.filter(entry => {
+        if (!entry || !entry.at) return false;
+        const entryTime = new Date(entry.at).getTime();
+        return !isNaN(entryTime) && entryTime > lastReadAt;
+    }).length;
+}
+
+function markNotificationsAsRead() {
+    try {
+        localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
+    } catch (e) {}
+
+    const badge = document.getElementById("notificationBadge");
+    if (badge) {
+        badge.hidden = true;
+        badge.textContent = "0";
+    }
+}
+
+function clearAllActivities() {
+    try {
+        const rawFeed = recentActivityFeed(true);
+        const dismissed = getDismissedActivityIds();
+        rawFeed.forEach(item => {
+            const key = item.id || `${item.type}-${item.at}-${item.title}`;
+            if (key) dismissed.add(key);
+        });
+        saveDismissedActivityIds(dismissed);
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify([]));
+        localStorage.setItem("crmActivitiesClearedAt", new Date().toISOString());
+        localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
+    } catch (e) {}
+
+    activityExpanded = false;
+    renderRecentActivity();
+}
+
+function dismissActivity(id) {
+    if (!id) return;
+    try {
+        const dismissed = getDismissedActivityIds();
+        dismissed.add(id);
+        saveDismissedActivityIds(dismissed);
+
+        const list = getActivities().filter(entry => {
+            const key = entry.id || `${entry.type}-${entry.at}-${entry.title}`;
+            return key !== id;
+        });
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(list));
+    } catch (e) {}
+
+    renderRecentActivity();
+}
+
 // Logged actions plus the derived renewal nudges, newest first
 
 
 // js-split:file=dashboard.js part=26of30
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function recentActivityFeed() {
+function recentActivityFeed(raw) {
     const seen = new Set();
 
-    return [...membershipExpiryActivities(), ...getActivities()]
+    const all = [...membershipExpiryActivities(), ...getActivities()]
         .filter(entry => {
             const key = entry.id || `${entry.type}-${entry.at}-${entry.title}`;
             if (seen.has(key)) return false;
@@ -883,6 +967,22 @@ function recentActivityFeed() {
             return true;
         })
         .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+
+    if (raw) return all;
+
+    const dismissed = getDismissedActivityIds();
+    const clearedAtStr = localStorage.getItem("crmActivitiesClearedAt");
+    const clearedAt = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
+
+    return all.filter(entry => {
+        const key = entry.id || `${entry.type}-${entry.at}-${entry.title}`;
+        if (key && dismissed.has(key)) return false;
+        if (clearedAt && entry.at) {
+            const entryTime = new Date(entry.at).getTime();
+            if (entryTime <= clearedAt) return false;
+        }
+        return true;
+    });
 }
 
 
@@ -896,15 +996,58 @@ let activityExpanded = false;
 // js-split:file=dashboard.js part=28of30
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function renderRecentActivity() {
+    const feed = recentActivityFeed();
+    const count = feed.length;
+
+    // Live update for the topbar notification bell badge: shows unread notification count
+    const unreadCount = getUnreadNotificationCount(feed);
+    const badge = document.getElementById("notificationBadge");
+    if (badge) {
+        const dropdown = document.getElementById("notificationDropdown");
+        const isDropdownOpen = dropdown && !dropdown.hidden;
+
+        if (unreadCount > 0 && !isDropdownOpen) {
+            badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+            badge.hidden = false;
+        } else {
+            badge.hidden = true;
+            badge.textContent = "0";
+        }
+    }
+
+    // Live update for dropdown header count pill
+    const countPill = document.getElementById("notificationCountPill");
+    if (countPill) {
+        countPill.textContent = String(count);
+        countPill.classList.toggle("is-zero", count === 0);
+    }
+
+    // Live update for dropdown header subtitle
+    const sub = document.getElementById("notificationSub");
+    if (sub) {
+        sub.textContent = count === 0
+            ? "No new notifications"
+            : `${count} notification${count === 1 ? "" : "s"}`;
+    }
+
+    // Clear All button visibility
+    const clearBtn = document.getElementById("activityClearAll");
+    if (clearBtn) {
+        clearBtn.hidden = count === 0;
+    }
+
     const list = document.getElementById("recentActivityList");
     if (!list) return;
 
-    const feed = recentActivityFeed();
     const visible = feed.slice(0, activityExpanded ? ACTIVITY_FULL_COUNT : ACTIVITY_PREVIEW_COUNT);
 
     list.innerHTML = "";
     if (visible.length === 0) {
-        list.innerHTML = '<p class="card-meta">No activity recorded yet.</p>';
+        list.innerHTML = `
+            <div class="notification-empty">
+                <svg viewBox="0 0 24 24" class="notification-empty-icon" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <p class="card-meta">No activity recorded yet.</p>
+            </div>`;
     } else {
         visible.forEach(activity => {
             const row = document.createElement("div");
@@ -919,6 +1062,86 @@ function renderRecentActivity() {
         viewAllBtn.textContent = activityExpanded ? "Show Less ↑" : "View All →";
         viewAllBtn.setAttribute("aria-expanded", String(activityExpanded));
     }
+}
+
+// Collapsible Notification Bell in the Admin Portal topbar
+function initNotificationBell() {
+    const btn = document.getElementById("notificationBellBtn");
+    const dropdown = document.getElementById("notificationDropdown");
+    const wrap = document.getElementById("notificationWrap");
+    if (!btn || !dropdown) return;
+
+    function toggleNotification(open) {
+        const isOpen = typeof open === "boolean" ? open : dropdown.hidden;
+        dropdown.hidden = !isOpen;
+        btn.setAttribute("aria-expanded", String(isOpen));
+        if (isOpen) {
+            btn.classList.add("active");
+            markNotificationsAsRead();
+            renderRecentActivity();
+        } else {
+            btn.classList.remove("active");
+        }
+    }
+
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleNotification();
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!dropdown.hidden && wrap && !wrap.contains(e.target)) {
+            toggleNotification(false);
+        }
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !dropdown.hidden) {
+            toggleNotification(false);
+            btn.focus();
+        }
+    });
+
+    dropdown.addEventListener("click", (e) => {
+        // Individual notification dismiss
+        const dismissBtn = e.target.closest(".activity-dismiss-btn");
+        if (dismissBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const id = dismissBtn.getAttribute("data-activity-id");
+            if (id && typeof dismissActivity === "function") {
+                dismissActivity(id);
+            }
+            return;
+        }
+
+        // Clear All notifications
+        const clearBtn = e.target.closest("#activityClearAll");
+        if (clearBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof clearAllActivities === "function") {
+                clearAllActivities();
+            }
+            return;
+        }
+
+        // View All / Show Less
+        const viewAllBtn = e.target.closest("#activityViewAll");
+        if (viewAllBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            activityExpanded = !activityExpanded;
+            renderRecentActivity();
+            return;
+        }
+
+        // Click on activity link
+        const link = e.target.closest("a.activity-item-main") || e.target.closest("a.activity-item");
+        if (link) {
+            toggleNotification(false);
+        }
+    });
 }
 
 // Activity links carry ?q= so the module page opens with its own search box
@@ -949,16 +1172,10 @@ document.addEventListener("DOMContentLoaded", () => {
     initAdminAnnouncement();
     window.addEventListener("storage", syncAdminAnnouncementFromStorage);
 
-    if (document.getElementById("recentActivityList")) {
-        renderRecentActivity();
+    initNotificationBell();
 
-        const viewAllBtn = document.getElementById("activityViewAll");
-        if (viewAllBtn) {
-            viewAllBtn.addEventListener("click", () => {
-                activityExpanded = !activityExpanded;
-                renderRecentActivity();
-            });
-        }
+    if (document.getElementById("recentActivityList") || document.getElementById("notificationBadge")) {
+        renderRecentActivity();
 
         // Another tab logging an action refreshes this feed
         window.addEventListener("storage", renderRecentActivity);

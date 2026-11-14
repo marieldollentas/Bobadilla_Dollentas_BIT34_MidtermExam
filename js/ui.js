@@ -790,7 +790,7 @@ function renderStageBars(containerId, items, options) {
 function activityRowHtml(activity) {
     const type = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.ticket;
     const time = activity.timeLabel || relativeTime(activity.at);
-    const body = `
+    const content = `
         <span class="activity-icon ${type.tone}" aria-hidden="true">${type.icon}</span>
         <span class="activity-body">
             <span class="activity-title">${escapeHtml(activity.title)}</span>
@@ -799,9 +799,14 @@ function activityRowHtml(activity) {
         </span>
     `;
 
-    return activity.href
-        ? `<a class="activity-item" href="${escapeHtml(activity.href)}">${body}</a>`
-        : `<div class="activity-item">${body}</div>`;
+    const mainPart = activity.href
+        ? `<a class="activity-item-main" href="${escapeHtml(activity.href)}">${content}</a>`
+        : `<div class="activity-item-main">${content}</div>`;
+
+    const actId = activity.id || `${activity.type}-${activity.at}-${activity.title}`;
+    const dismissBtn = `<button type="button" class="activity-dismiss-btn" data-activity-id="${escapeHtml(actId)}" title="Dismiss notification" aria-label="Dismiss notification">&times;</button>`;
+
+    return `<div class="activity-item" data-id="${escapeHtml(actId)}">${mainPart}${dismissBtn}</div>`;
 }
 
 
