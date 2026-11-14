@@ -3567,6 +3567,58 @@ a.activity-item-main:focus-visible .activity-title {
     margin-bottom: 18px;
 }
 
+/* Archive section headers and container spacing improvements */
+.archive-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 44px;
+    margin-bottom: 18px;
+    padding-left: 2px;
+}
+
+.archive-section-header:first-of-type {
+    margin-top: 24px;
+}
+
+.archive-section-header .section-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.archive-section-header .eyebrow {
+    margin-bottom: 4px;
+    align-self: flex-start;
+}
+
+.archive-section-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.35px;
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin: 0;
+}
+
+.archive-section-header .section-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    max-width: 82ch;
+    margin: 0;
+}
+
+.archive-container {
+    padding: 26px 28px;
+    margin-bottom: 32px;
+}
+
+.archive-container .table-wrap {
+    margin-top: 18px;
+}
+
 .head-actions {
     display: flex;
     align-items: center;
@@ -4181,14 +4233,19 @@ a.activity-item-main:focus-visible .activity-title {
     .select-compact { min-width: 0; width: 100%; }
     .date-compact { width: 100%; }
     .card-head .head-actions { width: 100%; }
-    .coach-container { padding: 20px 18px; margin-bottom: 22px; }
-    .coach-section-header { margin-top: 32px; margin-bottom: 14px; }
+    .coach-container,
+    .archive-container { padding: 20px 18px; margin-bottom: 22px; }
+    .coach-section-header,
+    .archive-section-header { margin-top: 32px; margin-bottom: 14px; }
 }
 
 @media (max-width: 560px) {
-    .coach-section-header { margin-top: 28px; margin-bottom: 12px; }
-    .coach-section-header h2 { font-size: 16.5px; }
-    .coach-container { padding: 18px 14px; margin-bottom: 20px; }
+    .coach-section-header,
+    .archive-section-header { margin-top: 28px; margin-bottom: 12px; }
+    .coach-section-header h2,
+    .archive-section-header h2 { font-size: 16.5px; }
+    .coach-container,
+    .archive-container { padding: 18px 14px; margin-bottom: 20px; }
     .perf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .perf-rates { grid-template-columns: 1fr; }
     .mini-list-row { flex-direction: column; align-items: flex-start; gap: 6px; }
