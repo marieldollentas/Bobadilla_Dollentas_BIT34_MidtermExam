@@ -555,13 +555,7 @@ function renderStaffDirectory() {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
-                <div class="staff-profile-chip">
-                    <span class="avatar">${escapeHtml(getStaffInitials(staffName))}</span>
-                    <div class="staff-profile-info">
-                        <strong>${escapeHtml(staffName)}</strong>
-                        <small>${escapeHtml(staffRole)}</small>
-                    </div>
-                </div>
+                <strong>${escapeHtml(staffName)}</strong>
             </td>
             <td><strong>${escapeHtml(staffRole)}</strong></td>
             <td>
@@ -608,6 +602,7 @@ function openAddStaff() {
     if (form) form.reset();
     document.getElementById("staffId").value = "";
     document.getElementById("staffStatus").value = "Active";
+
     document.getElementById("staffModalTitle").textContent = "Add Sales Staff Member";
     const saveBtn = document.getElementById("saveStaffBtn");
     if (saveBtn) saveBtn.textContent = "Save Staff Member";
@@ -657,7 +652,7 @@ function validateAndSaveStaff(e) {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     clearStaffFormErrors();
 
-    const id = (document.getElementById("staffId").value || "").trim();
+    const id = String(document.getElementById("staffId") ? document.getElementById("staffId").value : "").trim();
     const names = (typeof readNameInputs === "function")
         ? readNameInputs("staff")
         : {
