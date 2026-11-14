@@ -378,6 +378,11 @@ function updateBulkActionBar(filteredRows) {
     const labelEl = document.getElementById("bulkSelectedLabel");
     const totalMatchingEl = document.getElementById("bulkTotalMatchingCount");
     const selectAllCheckbox = document.getElementById("selectAllMembers");
+    const exportBtn = document.getElementById("bulkExportBtn");
+    const exportMenu = document.getElementById("bulkExportMenu");
+    const exportBtnText = document.getElementById("bulkExportBtnText");
+    const exportCsvText = document.getElementById("bulkExportCsvText");
+    const exportPdfText = document.getElementById("bulkExportPdfText");
 
     const selectedCount = window.selectedMemberIds ? window.selectedMemberIds.size : 0;
     const visibleCount = Array.isArray(filteredRows) ? filteredRows.length : 0;
@@ -391,11 +396,27 @@ function updateBulkActionBar(filteredRows) {
     if (selectedCount === 0) {
         bar.hidden = true;
         bar.style.display = "none";
+        if (exportMenu) exportMenu.hidden = true;
+        if (exportBtn) exportBtn.setAttribute("aria-expanded", "false");
     } else {
         bar.hidden = false;
         bar.style.display = "flex";
         if (countEl) countEl.textContent = selectedCount;
         if (labelEl) labelEl.textContent = selectedCount === 1 ? "member selected" : "members selected";
+
+        // Dynamically update export button & dropdown items with current count
+        if (exportBtnText) {
+            exportBtnText.textContent = `Export (${selectedCount})`;
+        }
+        if (exportBtn) {
+            exportBtn.title = `Export ${selectedCount} selected member${selectedCount === 1 ? "" : "s"}`;
+        }
+        if (exportCsvText) {
+            exportCsvText.textContent = selectedCount === 1 ? "Export 1 Member as CSV" : `Export ${selectedCount} Members as CSV`;
+        }
+        if (exportPdfText) {
+            exportPdfText.textContent = selectedCount === 1 ? "Export 1 Member as PDF" : `Export ${selectedCount} Members as PDF`;
+        }
     }
 
     // Sync header checkbox
@@ -528,7 +549,8 @@ function initCustomerDirectoryBulkActions() {
     // Export dropdown
     const exportBtn = document.getElementById("bulkExportBtn");
     const exportMenu = document.getElementById("bulkExportMenu");
-    if (exportBtn && exportMenu) {
+    if (exportBtn && exportMenu && !exportBtn.dataset.boundDropdown) {
+        exportBtn.dataset.boundDropdown = "1";
         exportBtn.addEventListener("click", e => {
             e.stopPropagation();
             const isHidden = exportMenu.hidden;
@@ -542,20 +564,32 @@ function initCustomerDirectoryBulkActions() {
                 exportBtn.setAttribute("aria-expanded", "false");
             }
         });
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape" && !exportMenu.hidden) {
+                exportMenu.hidden = true;
+                exportBtn.setAttribute("aria-expanded", "false");
+                exportBtn.focus();
+            }
+        });
     }
 
     const exportCsvBtn = document.getElementById("bulkExportCsvBtn");
-    if (exportCsvBtn) {
+    if (exportCsvBtn && !exportCsvBtn.dataset.boundExport) {
+        exportCsvBtn.dataset.boundExport = "1";
         exportCsvBtn.addEventListener("click", () => {
             if (exportMenu) exportMenu.hidden = true;
+            if (exportBtn) exportBtn.setAttribute("aria-expanded", "false");
             window.bulkExportMembersCsv();
         });
     }
 
     const exportPdfBtn = document.getElementById("bulkExportPdfBtn");
-    if (exportPdfBtn) {
+    if (exportPdfBtn && !exportPdfBtn.dataset.boundExport) {
+        exportPdfBtn.dataset.boundExport = "1";
         exportPdfBtn.addEventListener("click", () => {
             if (exportMenu) exportMenu.hidden = true;
+            if (exportBtn) exportBtn.setAttribute("aria-expanded", "false");
             window.bulkExportMembersPdf(exportBtn || exportPdfBtn);
         });
     }
