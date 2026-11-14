@@ -948,6 +948,19 @@ function fillCoachSelect(selectId, includeAll, selectedId) {
         const suffix = coach.status === "Active" ? "" : ` (${coach.status})`;
         options.push(`<option value="${escapeHtml(coach.id)}">${escapeHtml(coach.name + suffix)}</option>`);
     });
+
+    // If an existing record was assigned to an archived or inactive coach, keep that coach
+    // visible in the dropdown so editing shows the true state rather than
+    // silently jumping to another coach.
+    const wanted = String(selectedId !== undefined && selectedId !== null ? selectedId : "");
+    if (wanted && wanted !== "all" && !getActiveCoaches().some(coach => String(coach.id) === wanted)) {
+        const coach = coachById(wanted);
+        if (coach) {
+            const label = coach.archived ? `${coach.name} (Archived)` : `${coach.name} (${coach.status || "Inactive"})`;
+            options.push(`<option value="${escapeHtml(coach.id)}">${escapeHtml(label)}</option>`);
+        }
+    }
+
     select.innerHTML = options.join("");
 
     // The options are rebuilt on every render, so the current choice is
@@ -957,7 +970,8 @@ function fillCoachSelect(selectId, includeAll, selectedId) {
         if (includeAll) select.value = "all";
         return;
     }
-    if (getActiveCoaches().some(coach => String(coach.id) === String(selectedId))) select.value = selectedId;
+    const allKnown = getCoaches();
+    if (allKnown.some(coach => String(coach.id) === String(selectedId))) select.value = selectedId;
 }
 
 
@@ -1214,6 +1228,7 @@ function renderUpcomingAppointments() {
             <td>${sessionStatusBadge(session.status)}</td>
             <td>
                 <button class="btn-view" onclick="openSessionModal('${id}')">Edit / Notes</button>
+                <button class="btn-archive" onclick="cancelSessionPrompt('${id}')">Cancel</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -1545,6 +1560,7 @@ function renderSessions() {
     sessions.forEach(session => {
         const id = encodeURIComponent(session.id);
         const archivable = ["Completed", "Cancelled", "Missed"].includes(String(session.status));
+        const canCancel = session.status === "Scheduled";
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
@@ -1559,6 +1575,7 @@ function renderSessions() {
             <td>
                 <button class="btn-view" onclick="openSessionModal('${id}')">Edit / Notes</button>
                 <button class="btn-view" onclick="openClientDetails('${encodeURIComponent(session.clientId)}')">Client</button>
+                ${canCancel ? `<button class="btn-archive" onclick="cancelSessionPrompt('${id}')">Cancel</button>` : ""}
                 ${archivable ? `<button class="btn-archive" onclick="archiveSession('${id}')">Archive</button>` : ""}
             </td>
         `;
@@ -1567,6 +1584,33 @@ function renderSessions() {
 }
 
 
+
+function cancelSessionPrompt(encodedId) {
+    const id = decodeURIComponent(encodedId || "");
+    const sessions = getCoachSessions();
+    const session = sessions.find(s => String(s.id) === String(id));
+    if (!session) return;
+
+    const clientName = sessionClientName(session);
+    const coachName = coachNameById(session.coachId);
+    if (!confirm(`Cancel the ${session.type || "training"} session for ${clientName} with ${coachName} on ${sessionDayLabel(session.date)} at ${formatClock(session.time)}?`)) {
+        return;
+    }
+
+    session.status = "Cancelled";
+    session.updatedAt = new Date().toISOString();
+    saveCoachSessions(sessions);
+
+    logActivity({
+        type: "coach",
+        title: `${clientName}'s session was cancelled`,
+        meta: `${coachName} • ${sessionDayLabel(session.date)} ${formatClock(session.time)} • Cancelled`,
+        href: "coach.html"
+    });
+
+    renderCoachTracker();
+}
+window.cancelSessionPrompt = cancelSessionPrompt;
 
 // Archive a finished session (Completed / Cancelled / Missed only): it leaves
 // the schedule but stays on file in the Archive page, where it can be restored
@@ -1688,6 +1732,13 @@ function sessionDateBounds() {
 // js-split:file=coaches.js part=51of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function sessionConflictMessage(session, editingId) {
+    // If an existing session is being cancelled, marked missed, or updated as completed,
+    // scheduling conflict checks (such as active coach/client status, shift hours, and double-booking)
+    // should not block updating or recording the session outcome.
+    if (editingId && (session.status === "Cancelled" || session.status === "Missed" || session.status === "Completed")) {
+        return "";
+    }
+
     const coach = coachById(session.coachId);
     if (!coach) return "Please select a coach for this session.";
     if (!session.clientId) return "Please select the client attending this session.";
@@ -1756,9 +1807,13 @@ function sessionConflictMessage(session, editingId) {
     }
 
     const start = clockToMinutes(session.time);
-    const hour = Math.floor(start / 60);
-    if (hour < Number(coach.shiftStart) || hour >= Number(coach.shiftEnd)) {
-        return `Scheduling Conflict: ${formatClock(session.time)} is outside ${coach.name}'s working hours (${coachShiftLabel(coach)}).`;
+    const shiftStartMin = Number(coach.shiftStart) * 60;
+    const shiftEndMin = Number(coach.shiftEnd) * 60;
+    if (start < shiftStartMin || start + COACH_SESSION_MINUTES > shiftEndMin) {
+        if (start < shiftStartMin) {
+            return `Scheduling Conflict: ${formatClock(session.time)} is outside ${coach.name}'s working hours (${coachShiftLabel(coach)}).`;
+        }
+        return `Scheduling Conflict: A ${COACH_SESSION_MINUTES}-minute session starting at ${formatClock(session.time)} extends past ${coach.name}'s working hours (${coachShiftLabel(coach)}).`;
     }
 
     const blocking = session =>
