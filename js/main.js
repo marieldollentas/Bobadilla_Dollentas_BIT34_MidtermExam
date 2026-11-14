@@ -1535,8 +1535,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderMyInquiries();
 
         // Ratings come from the member side only: the handler is scoped to this
-        // page so the coach directory has no way to submit one, and it refuses a
-        // second rating from the same member for the same coach.
+        // page so the coach directory has no way to submit one, and it enforces
+        // a single rating per member (updating their existing review if already rated).
         window.rateCoach = coachId => {
             const coach = coachById(coachId || window.portalCoachId);
             const select = document.getElementById("portalCoachRating");
@@ -1567,9 +1567,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const clientId = "reg-" + (customer.username || "");
             const ratings = Array.isArray(target.ratings) ? target.ratings : [];
-            if (ratings.some(row => String(row.clientId) === clientId)) {
-                msg.className = "error-msg";
-                msg.textContent = `You have already rated ${target.name}. Each member can rate their coach once.`;
+            const existingIndex = ratings.findIndex(row => String(row.clientId) === clientId);
+
+            if (existingIndex >= 0) {
+                // Member has already rated this coach: update existing rating in place
+                // rather than creating a duplicate entry or inflating ratingCount.
+                const oldRating = ratings[existingIndex];
+                const oldStars = Number(oldRating.stars) || 0;
+                oldRating.stars = stars;
+                oldRating.comment = comment;
+                oldRating.updatedAt = new Date().toISOString();
+                target.ratings = ratings;
+                target.ratingSum = Math.max(0, (Number(target.ratingSum) || 0) - oldStars + stars);
+                // ratingCount remains unchanged on update
+                saveCoaches(coaches);
+
+                logActivity({
+                    type: "coach",
+                    title: `${target.name}'s rating was updated by ${customer.name} (${stars} stars)`,
+                    meta: `${shortenLabel(comment, 68)} • ${coachRatingAverage(target).toFixed(1)}/5 based on ${target.ratingCount} rating${Number(target.ratingCount) === 1 ? "" : "s"}`,
+                    href: "coach.html"
+                });
+
+                renderPortalCoachSection(customer);
+                const done = document.getElementById("portalRatingMsg");
+                if (done) {
+                    done.className = "success-msg";
+                    done.textContent = "Thank you! Your rating and feedback were updated.";
+                }
                 return;
             }
 

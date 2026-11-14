@@ -75,7 +75,35 @@ function seedCoaches() {
 // js-split:file=coaches.js part=3of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachById(id) {
-    return getCoaches().find(coach => String(coach.id) === String(id)) || null;
+    if (!id && id !== 0) return null;
+    const strId = String(id).trim();
+    if (!strId) return null;
+
+    const coaches = getCoaches();
+    // 1. Direct ID match
+    const byId = coaches.find(coach => String(coach.id) === strId);
+    if (byId) return byId;
+
+    // 2. Case-insensitive Name match
+    const lower = strId.toLowerCase();
+    const byName = coaches.find(coach => String(coach.name || "").trim().toLowerCase() === lower);
+    if (byName) return byName;
+
+    // 3. Fallback match via staff directory
+    if (typeof getPipelineStaffList === "function") {
+        const staff = getPipelineStaffList().find(s =>
+            String(s.id) === strId ||
+            String(s.name || "").trim().toLowerCase() === lower
+        );
+        if (staff) {
+            const coachByStaff = coaches.find(c =>
+                String(c.name || "").trim().toLowerCase() === String(staff.name || "").trim().toLowerCase()
+            );
+            if (coachByStaff) return coachByStaff;
+            return { id: staff.id, name: staff.name, status: staff.status || "Active" };
+        }
+    }
+    return null;
 }
 
 
@@ -83,7 +111,20 @@ function coachById(id) {
 // js-split:file=coaches.js part=4of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachAssignmentsFor(coachId) {
-    return getCoachAssignments().filter(row => String(row.coachId) === String(coachId));
+    if (!coachId && coachId !== 0) return [];
+    const coach = coachById(coachId);
+    const idStr = String(coachId).trim();
+    const nameLower = coach && coach.name ? coach.name.trim().toLowerCase() : idStr.toLowerCase();
+    const canonicalId = coach ? String(coach.id) : idStr;
+
+    return getCoachAssignments().filter(row => {
+        if (!row) return false;
+        const rowCoachId = String(row.coachId || "").trim();
+        const rowCoachName = String(row.coachName || "").trim().toLowerCase();
+        if (rowCoachId === canonicalId || rowCoachId === idStr) return true;
+        if (nameLower && (rowCoachId.toLowerCase() === nameLower || rowCoachName === nameLower)) return true;
+        return false;
+    });
 }
 
 
@@ -232,8 +273,16 @@ function sessionClientName(session) {
 // js-split:file=coaches.js part=19of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachNameById(coachId) {
+    if (!coachId && coachId !== 0) return "Unassigned";
     const coach = coachById(coachId);
-    return coach ? coach.name : "Unassigned";
+    if (coach && coach.name) return coach.name;
+
+    const str = String(coachId).trim();
+    // If coachId was saved directly as a readable name string, preserve it
+    if (str && !str.startsWith("coach-") && isNaN(Number(str))) {
+        return str;
+    }
+    return "Unassigned";
 }
 
 
@@ -253,7 +302,7 @@ function coachRatingAverage(coach) {
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function coachFeedbackList(coach) {
     const rows = Array.isArray(coach && coach.ratings) ? coach.ratings : [];
-    return rows.slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+    return rows.slice().sort((a, b) => String(b.updatedAt || b.at || "").localeCompare(String(a.updatedAt || a.at || "")));
 }
 
 
@@ -267,7 +316,7 @@ function coachFeedbackHtml(coach, emptyText) {
         <div class="feedback-item">
             <div class="feedback-head">
                 <span class="stars">${ratingStarsHtml(row.stars)}</span>
-                <span class="card-meta">${escapeHtml(row.clientName || "Member")} • ${escapeHtml(formatDateLogged(row.at))}</span>
+                <span class="card-meta">${escapeHtml(row.clientName || "Member")} • ${escapeHtml(formatDateLogged(row.updatedAt || row.at))}${row.updatedAt ? " (edited)" : ""}</span>
             </div>
             <p class="feedback-text">${escapeHtml(row.comment || "")}</p>
         </div>
@@ -448,8 +497,21 @@ function submitPortalRenewalRequest(customer, exp) {
 function portalCoachForCustomer(customer) {
     if (!customer) return null;
     const clientId = "reg-" + (customer.username || "");
-    const assignment = getCoachAssignments().find(row => String(row.clientId) === String(clientId));
-    if (!assignment) return null;
+    const rawUsername = String(customer.username || "").toLowerCase();
+    const customerNameLower = String(customer.name || "").trim().toLowerCase();
+
+    const matches = getCoachAssignments().filter(row => {
+        if (!row) return false;
+        const rId = String(row.clientId || "").trim();
+        const rName = String(row.clientName || "").trim().toLowerCase();
+        if (rId === clientId) return true;
+        if (rawUsername && rId.toLowerCase() === rawUsername) return true;
+        if (customerNameLower && (rName === customerNameLower || rId.toLowerCase() === customerNameLower)) return true;
+        return false;
+    });
+
+    if (!matches.length) return null;
+    const assignment = matches[matches.length - 1];
     return { assignment, coach: coachById(assignment.coachId) };
 }
 
@@ -505,9 +567,9 @@ function renderPortalCoachSection(customer) {
     renderPortalCoachRating(coach, customer);
 }
 
-// Rating is the one part of the coach profile a member owns: the form lives in
-// the portal and is replaced by the submitted review once a member has rated,
-// so a single member can never stack ratings on their own coach.
+// Rating is member-owned: a member can rate their coach once and can edit
+// their rating at any time, preventing duplicate reviews while ensuring reviews
+// stay accurate and up-to-date.
 
 
 // js-split:file=coaches.js part=30of70
@@ -520,11 +582,9 @@ function renderPortalCoachRating(coach, customer) {
     const feedbackBox = document.getElementById("portalFeedbackBox");
     if (!box || !done || !list) return;
 
-    const msg = document.getElementById("portalRatingMsg");
-    if (msg) msg.textContent = "";
-
     window.portalCoachId = coach ? coach.id : null;
-    feedbackInput.value = "";
+    window.currentPortalCustomer = customer || window.currentPortalCustomer || null;
+    if (feedbackInput) feedbackInput.value = "";
 
     if (!coach) {
         box.style.display = "none";
@@ -539,17 +599,81 @@ function renderPortalCoachRating(coach, customer) {
     const clientId = "reg-" + ((customer && customer.username) || "");
     const mine = coachFeedbackList(coach).find(row => String(row.clientId) === clientId);
 
+    const submitBtn = document.getElementById("portalSubmitRatingBtn");
+    const cancelBtn = document.getElementById("portalCancelRatingBtn");
+    const labelRating = document.getElementById("portalCoachRatingLabel");
+    const labelFeedback = document.getElementById("portalCoachFeedbackLabel");
+
     if (mine) {
-        done.innerHTML = `You rated ${escapeHtml(coach.name)} ${ratingStarsHtml(mine.stars)}. <em>${escapeHtml(mine.comment || "")}</em> — submitted ${escapeHtml(formatDateLogged(mine.at))}.`;
+        const editedTag = mine.updatedAt ? ` <span class="card-meta" style="font-size: 11px;">(edited ${escapeHtml(formatDateLogged(mine.updatedAt))})</span>` : "";
+        done.innerHTML = `
+            <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--background); border: 1px solid var(--border-soft); width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-weight: 600; color: var(--text-primary);">Your Review:</span>
+                            <span class="stars">${ratingStarsHtml(mine.stars)}</span>
+                        </div>
+                        <p style="margin-top: 6px; font-style: italic; color: var(--text-secondary); word-break: break-word;">"${escapeHtml(mine.comment || "")}"</p>
+                        <div class="card-meta" style="margin-top: 6px;">Submitted ${escapeHtml(formatDateLogged(mine.at))}${editedTag}</div>
+                    </div>
+                    <button type="button" class="btn-view" onclick="openEditCoachRating()">Edit Review</button>
+                </div>
+            </div>
+        `;
         done.style.display = "block";
         box.style.display = "none";
     } else {
+        if (submitBtn) submitBtn.textContent = "Submit Rating";
+        if (cancelBtn) cancelBtn.style.display = "none";
+        if (labelRating) labelRating.textContent = "Rate your coach";
+        if (labelFeedback) labelFeedback.textContent = "Your feedback";
         done.style.display = "none";
         box.style.display = "block";
     }
 
     list.innerHTML = coachFeedbackHtml(coach, "No member feedback written yet.");
 }
+
+window.openEditCoachRating = function() {
+    const coach = coachById(window.portalCoachId);
+    const customer = window.currentPortalCustomer;
+    const box = document.getElementById("portalRatingBox");
+    const done = document.getElementById("portalRatingDone");
+    const select = document.getElementById("portalCoachRating");
+    const feedbackInput = document.getElementById("portalCoachFeedbackInput");
+    const submitBtn = document.getElementById("portalSubmitRatingBtn");
+    const cancelBtn = document.getElementById("portalCancelRatingBtn");
+    const labelRating = document.getElementById("portalCoachRatingLabel");
+    const labelFeedback = document.getElementById("portalCoachFeedbackLabel");
+    const msg = document.getElementById("portalRatingMsg");
+    if (!coach || !box || !done) return;
+
+    const clientId = "reg-" + ((customer && customer.username) || "");
+    const mine = coachFeedbackList(coach).find(row => String(row.clientId) === clientId);
+    if (!mine) return;
+
+    if (select) select.value = String(mine.stars);
+    if (feedbackInput) feedbackInput.value = mine.comment || "";
+    if (submitBtn) submitBtn.textContent = "Update Rating";
+    if (cancelBtn) cancelBtn.style.display = "inline-block";
+    if (labelRating) labelRating.textContent = "Edit your rating";
+    if (labelFeedback) labelFeedback.textContent = "Edit your feedback";
+    if (msg) msg.textContent = "";
+
+    done.style.display = "none";
+    box.style.display = "block";
+    if (feedbackInput) feedbackInput.focus();
+};
+
+window.cancelEditCoachRating = function() {
+    const box = document.getElementById("portalRatingBox");
+    const done = document.getElementById("portalRatingDone");
+    const msg = document.getElementById("portalRatingMsg");
+    if (box) box.style.display = "none";
+    if (done) done.style.display = "block";
+    if (msg) msg.textContent = "";
+};
 
 
 
@@ -1469,7 +1593,13 @@ function openCoachDetails(encodedId) {
         clientList.innerHTML = '<p class="card-meta">No clients assigned yet.</p>';
     } else {
         assignments.forEach(row => {
-            const member = members.find(c => String(c.id) === String(row.clientId));
+            const rowClientId = String(row.clientId || "").trim();
+            const rowClientName = String(row.clientName || "").trim().toLowerCase();
+            const member = members.find(c =>
+                String(c.id) === rowClientId ||
+                (c.username && ("reg-" + c.username === rowClientId || c.username === rowClientId)) ||
+                (c.name && String(c.name).trim().toLowerCase() === rowClientName)
+            );
             const name = member ? member.name : (row.clientName || "Removed member");
             const status = member ? memberMembershipStatus(member, today) : "Inactive";
             const item = document.createElement("div");
@@ -2283,7 +2413,13 @@ function renderAssignments() {
 
     rows.forEach(row => {
         const id = encodeURIComponent(row.id);
-        const member = members.find(c => String(c.id) === String(row.clientId));
+        const rowClientId = String(row.clientId || "").trim();
+        const rowClientName = String(row.clientName || "").trim().toLowerCase();
+        const member = members.find(c =>
+            String(c.id) === rowClientId ||
+            (c.username && ("reg-" + c.username === rowClientId || c.username === rowClientId)) ||
+            (c.name && String(c.name).trim().toLowerCase() === rowClientName)
+        );
         const name = member ? member.name : (row.clientName || "Removed member");
         const status = member ? memberMembershipStatus(member, today) : "Inactive";
         // Clients whose membership is expiring or expired can be renewed from
@@ -2424,35 +2560,60 @@ function saveAssignment() {
     const rows = getCoachAssignments();
     const existingRow = assignmentId ? rows.find(row => String(row.id) === String(assignmentId)) : null;
 
+    const memberRegId = member.username ? "reg-" + member.username : "";
+    const memberRawId = String(member.id || "").replace(/^reg-/, "");
+    const memberNameLower = String(member.name || "").trim().toLowerCase();
+
+    const isClientMatch = row => {
+        if (!row) return false;
+        const rId = String(row.clientId || "").trim();
+        const rName = String(row.clientName || "").trim().toLowerCase();
+        if (rId === String(clientId) || rId === String(member.id)) return true;
+        if (memberRegId && rId === memberRegId) return true;
+        if (memberRawId && rId === memberRawId) return true;
+        if (memberNameLower && (rName === memberNameLower || rId.toLowerCase() === memberNameLower)) return true;
+        return false;
+    };
+
     // Duplicate guard: the same client must not land on the same coach twice
     const duplicate = rows.find(row =>
-        String(row.clientId) === String(clientId) &&
-        String(row.coachId) === String(coachId) &&
+        isClientMatch(row) &&
+        (String(row.coachId) === String(coach.id) || String(row.coachId).trim().toLowerCase() === coach.name.trim().toLowerCase()) &&
         (!existingRow || String(row.id) !== String(existingRow.id))
     );
     if (duplicate) return fail(`${member.name} is already assigned to ${coach.name}.`);
 
     // One active coach per client: a move has to be confirmed
     const other = rows.find(row =>
-        String(row.clientId) === String(clientId) &&
+        isClientMatch(row) &&
         (!existingRow || String(row.id) !== String(existingRow.id))
     );
     if (other && !confirm(`${member.name} is currently assigned to ${coachNameById(other.coachId)}. Reassign to ${coach.name}?`)) {
         return false;
     }
 
+    // Keep all assignments except any previous assignments for this client,
+    // ensuring exactly 1 clean assignment per client.
+    const cleanRows = rows.filter(row => {
+        if (existingRow && String(row.id) === String(existingRow.id)) return false;
+        if (other && String(row.id) === String(other.id)) return false;
+        if (isClientMatch(row)) return false;
+        return true;
+    });
+
     const target = existingRow || { id: `assign-${Date.now().toString(36)}` };
     target.coachId = coach.id;
+    target.coachName = coach.name;
     target.clientId = member.id;
     target.clientName = member.name;
     target.assignedAt = todayISO();
 
-    if (!existingRow) rows.push(target);
-    saveCoachAssignments(rows);
+    cleanRows.push(target);
+    saveCoachAssignments(cleanRows);
 
     logActivity({
         type: "coach",
-        title: existingRow
+        title: existingRow || other
             ? `${member.name} was reassigned to ${coach.name}`
             : `${member.name} was assigned to ${coach.name}`,
         meta: `${member.tier || "Membership"} • ${coachSpecializationLabel(coach)}`,
@@ -3442,7 +3603,12 @@ function openClientDetails(encodedClientId) {
     if (!modal) return;
 
     const clientId = decodeURIComponent(encodedClientId);
-    const member = getDirectoryCustomers().find(c => String(c.id) === String(clientId));
+    const directory = getDirectoryCustomers();
+    const member = directory.find(c =>
+        String(c.id) === String(clientId) ||
+        (c.username && ("reg-" + c.username === String(clientId) || c.username === String(clientId))) ||
+        (c.name && String(c.name).trim().toLowerCase() === String(clientId).trim().toLowerCase())
+    );
     if (!member) {
         alert("This client is no longer in the Customer Directory.");
         return;
@@ -3450,7 +3616,25 @@ function openClientDetails(encodedClientId) {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const assignment = getCoachAssignments().find(row => String(row.clientId) === String(member.id));
+
+    const memberRegId = member.username ? "reg-" + member.username : "";
+    const memberRawId = String(member.id || "").replace(/^reg-/, "");
+    const memberNameLower = String(member.name || "").trim().toLowerCase();
+
+    // Match assignment using id, reg-id, username, or clientName, picking the latest active assignment
+    const assignments = getCoachAssignments();
+    const matches = assignments.filter(row => {
+        if (!row) return false;
+        const rClientId = String(row.clientId || "").trim();
+        const rClientName = String(row.clientName || "").trim().toLowerCase();
+        if (rClientId === String(member.id)) return true;
+        if (memberRegId && rClientId === memberRegId) return true;
+        if (memberRawId && rClientId === memberRawId) return true;
+        if (memberNameLower && (rClientName === memberNameLower || rClientId.toLowerCase() === memberNameLower)) return true;
+        return false;
+    });
+
+    const assignment = matches.length > 0 ? matches[matches.length - 1] : null;
 
     // Remembered the same way as the coach dialog, so the renewal button can
     // act on the client this dialog is showing.
@@ -3461,7 +3645,11 @@ function openClientDetails(encodedClientId) {
     document.getElementById("clientDetailsTier").textContent = member.tier || "—";
     document.getElementById("clientDetailsFob").textContent = member.keyFob || "—";
     document.getElementById("clientDetailsContact").textContent = member.contact || "—";
-    document.getElementById("clientDetailsCoach").textContent = assignment ? coachNameById(assignment.coachId) : "Unassigned";
+
+    const assignedCoachName = assignment
+        ? (assignment.coachName || coachNameById(assignment.coachId))
+        : "Unassigned";
+    document.getElementById("clientDetailsCoach").textContent = assignedCoachName || "Unassigned";
     document.getElementById("clientDetailsJoined").textContent = member.joined || "—";
 
     const link = document.getElementById("clientDirectoryLink");
