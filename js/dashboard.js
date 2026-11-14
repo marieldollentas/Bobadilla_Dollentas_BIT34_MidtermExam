@@ -1190,9 +1190,9 @@ document.addEventListener("DOMContentLoaded", () => {
 const ANNOUNCEMENT_STORAGE_KEY = "crmAdminAnnouncement";
 
 const DEFAULT_ADMIN_ANNOUNCEMENT = {
-    text: "Maintenance Notice: High-intensity area will be sanitized tonight from 10:00 PM to 12:00 AM. Free weights will remain open.",
+    text: "No announcement as of the moment.",
     type: "notice", // notice | urgent | warning | info
-    updatedAt: "2026-11-13T08:00:00.000Z",
+    updatedAt: "2026-11-14T08:00:00.000Z",
     updatedBy: "Admin Staff",
     visible: true
 };
@@ -1226,6 +1226,9 @@ function getAdminAnnouncement() {
         if (!raw) return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== "object" || !parsed.text) {
+            return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
+        }
+        if (parsed.text.includes("Maintenance Notice: High-intensity area will be sanitized")) {
             return { ...DEFAULT_ADMIN_ANNOUNCEMENT };
         }
         return {
