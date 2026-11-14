@@ -14,9 +14,9 @@ const MEMBERSHIP_REPORT_TIER_COLORS = [
     [150, 150, 165]
 ];
 
-function membershipReportData() {
+function membershipReportData(customRows) {
     const today = todayStart();
-    const rows = getActiveDirectoryCustomers();
+    const rows = Array.isArray(customRows) ? customRows : getActiveDirectoryCustomers();
 
     const counts = {};
     MEMBERSHIP_REPORT_STATUS_ORDER.forEach(status => { counts[status] = 0; });
@@ -314,7 +314,7 @@ function membershipReportDrawFooter(doc, pageWidth, pageHeight) {
     }
 }
 
-async function exportMembershipReportPdf(button) {
+async function exportMembershipReportPdf(button, customRows, customTitle) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
         alert("The PDF library could not be loaded. Check your connection and try again.");
         return;
@@ -338,20 +338,22 @@ async function exportMembershipReportPdf(button) {
             hour: "numeric", minute: "2-digit"
         });
 
-        const data = membershipReportData();
+        const data = membershipReportData(customRows);
 
         membershipReportDrawHeader(doc, pageWidth, generatedAt);
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(15.5);
         doc.setTextColor(23, 23, 53);
-        doc.text("Anytime Fitness \u2013 Customer Directory & Membership Report", margin, 41);
+        const headingText = customTitle ? `Anytime Fitness \u2013 ${customTitle}` : "Anytime Fitness \u2013 Customer Directory & Membership Report";
+        doc.text(headingText, margin, 41);
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8.3);
         doc.setTextColor(95, 95, 116);
         doc.text(`Generated on ${generatedAt}`, margin, 47);
-        doc.text("Membership status, tier distribution and complete member directory", margin, 52);
+        const subText = customRows ? `Export of ${data.total} selected member record${data.total === 1 ? "" : "s"}` : "Membership status, tier distribution and complete member directory";
+        doc.text(subText, margin, 52);
 
         let y = 60;
         const gap = 3;
@@ -425,7 +427,8 @@ async function exportMembershipReportPdf(button) {
         membershipReportDrawFooter(doc, pageWidth, pageHeight);
 
         const stamp = new Date().toISOString().slice(0, 10);
-        doc.save(`Anytime-Fitness-Membership-Report-${stamp}.pdf`);
+        const fileName = customRows ? `Anytime-Fitness-Selected-Members-${stamp}.pdf` : `Anytime-Fitness-Membership-Report-${stamp}.pdf`;
+        doc.save(fileName);
     } catch (error) {
         console.error("Membership PDF export failed:", error);
         alert("The membership report could not be generated. Please try again.");
@@ -436,6 +439,7 @@ async function exportMembershipReportPdf(button) {
         }
     }
 }
+window.exportMembershipReportPdf = exportMembershipReportPdf;
 
 document.addEventListener("DOMContentLoaded", () => {
     const button = document.getElementById("exportMembersPdfBtn");

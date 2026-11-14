@@ -230,10 +230,65 @@
                         <p><strong>6-Month Membership:</strong> 6-month commitment (₱2,500/mo). | <strong>12-Month Membership:</strong> 12-month commitment (₱2,200/mo). | <strong>18-Month Membership:</strong> 18-month commitment (₱1,950/mo).</p>
                     </div>
 
+                    <!-- Bulk Actions Bar (surfaced when 1 or more members are selected) -->
+                    <div id="customerBulkActionBar" class="bulk-action-bar" hidden>
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="bulkSelectedCount">0</span>
+                                <span id="bulkSelectedLabel">members selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="bulkSelectAllMatchingBtn">Select all matching (<span id="bulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="bulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-renew" id="bulkRenewBtn" title="Renew eligible memberships (Expiring Soon &amp; Expired)">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Renew</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-freeze" id="bulkFreezeBtn" title="Freeze active memberships">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 4v16M4 12h16"/></svg>
+                                <span>Freeze</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-unfreeze" id="bulkUnfreezeBtn" title="Unfreeze currently frozen memberships">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l4 4 9-9"/><circle cx="12" cy="12" r="8.5"/></svg>
+                                <span>Unfreeze</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-tier" id="bulkChangeTierBtn" title="Change membership tier">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                <span>Change Tier</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-archive" id="bulkArchiveBtn" title="Archive selected members to Past Members archive">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="4" rx="1.2"/><path d="M5 8.5v10a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-10"/><path d="M10 12.5h4"/></svg>
+                                <span>Archive</span>
+                            </button>
+                            <div class="bulk-dropdown-wrap">
+                                <button type="button" class="btn-bulk btn-bulk-export" id="bulkExportBtn" aria-haspopup="true" aria-expanded="false" title="Export selected members">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4.5 16.5v1.5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-1.5"/></svg>
+                                    <span>Export</span>
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                                <div class="bulk-dropdown-menu" id="bulkExportMenu" hidden>
+                                    <button type="button" class="bulk-dropdown-item" id="bulkExportCsvBtn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+                                        <span>Export CSV Spreadsheet</span>
+                                    </button>
+                                    <button type="button" class="bulk-dropdown-item" id="bulkExportPdfBtn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+                                        <span>Export PDF Report</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="bulk-close-btn" id="bulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllMembers" title="Select all visible members" aria-label="Select all visible members">
+                                    </th>
                                     <th>First Name</th>
                                     <th>Middle Name</th>
                                     <th>Last Name</th>
@@ -370,6 +425,73 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelFreezeModal">Cancel</button>
                     <button type="submit" class="btn-primary">Confirm Freeze</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Freeze Memberships Modal -->
+    <div id="bulkFreezeModal" class="modal">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkFreezeModal">&times;</span>
+            <h2>Freeze Memberships in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Apply a temporary membership freeze to all eligible selected members.</p>
+            <form id="bulkFreezeForm" onsubmit="event.preventDefault(); window.confirmBulkFreeze();">
+                <div class="bulk-modal-summary" id="bulkFreezeSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkFreezeMonths">Freeze Duration</label>
+                    <select id="bulkFreezeMonths" class="search-input" required>
+                        <option value="">Select months...</option>
+                        <option value="1">1 Month</option>
+                        <option value="2">2 Months</option>
+                        <option value="3">3 Months</option>
+                        <option value="4">4 Months</option>
+                        <option value="5">5 Months</option>
+                        <option value="6">6 Months</option>
+                    </select>
+                    <p class="card-meta" style="margin-top: 6px;">Each eligible member's expiration date will be extended by the selected duration.</p>
+                </div>
+
+                <p class="error-msg" id="bulkFreezeError"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkFreezeModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkFreezeBtn">Confirm Freeze</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Membership Tier Modal -->
+    <div id="bulkChangeTierModal" class="modal">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkTierModal">&times;</span>
+            <h2>Change Membership Tier in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update the membership tier and recalculate expiration dates for selected members.</p>
+            <form id="bulkTierForm" onsubmit="event.preventDefault(); window.confirmBulkChangeTier();">
+                <div class="bulk-modal-summary" id="bulkTierSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkTierSelect">New Membership Tier</label>
+                    <select id="bulkTierSelect" class="search-input" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="bulkTierExpPolicy">Expiration Date Calculation</label>
+                    <select id="bulkTierExpPolicy" class="search-input">
+                        <option value="recalculate-join">Recalculate term from Date Joined (Recommended)</option>
+                        <option value="extend-current">Extend from Current Expiration</option>
+                        <option value="reset-today">Reset term starting from Today</option>
+                    </select>
+                    <p class="card-meta" id="bulkTierExpPolicyNote" style="margin-top: 6px;">Computes new expiration dates based on each member's start date and new commitment length.</p>
+                </div>
+
+                <p class="error-msg" id="bulkTierError"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkTierModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkTierBtn">Apply Tier Change</button>
                 </div>
             </form>
         </div>
