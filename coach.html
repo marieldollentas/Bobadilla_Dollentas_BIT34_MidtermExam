@@ -358,10 +358,37 @@
                             <button id="openAssignModal" class="btn-primary">+ Assign Client</button>
                         </div>
                     </div>
+
+                    <!-- Bulk Actions Bar for Client Assignment -->
+                    <div id="assignmentBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="assignmentBulkSelectedCount">0</span>
+                                <span id="assignmentBulkSelectedLabel">assignments selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="assignmentBulkSelectAllMatchingBtn">Select all matching (<span id="assignmentBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="assignmentBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-reassign" id="bulkAssignTransferBtn" title="Reassign selected clients to another coach">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                                <span>Reassign Coach</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkAssignRemoveBtn" title="Unassign selected clients from their coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                <span>Unassign Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="assignmentBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllAssignments" title="Select all visible assignments" aria-label="Select all visible assignments">
+                                    </th>
                                     <th>Client</th>
                                     <th>Membership</th>
                                     <th>Assigned Coach</th>
@@ -847,6 +874,31 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelBulkCoachReassignModal">Cancel</button>
                     <button type="submit" class="btn-primary" id="confirmBulkCoachReassignBtn">Reassign Clients</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Reassign Client Assignments Modal -->
+    <div id="bulkAssignTransferModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkAssignTransferTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkAssignTransferModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkAssignTransferTitle">Reassign Clients in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Transfer all selected client assignments to an active coach.</p>
+            <form id="bulkAssignTransferForm" onsubmit="event.preventDefault(); window.confirmBulkAssignTransfer();">
+                <div class="bulk-summary-card" id="bulkAssignTransferSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkAssignTransferTarget">New Assigned Coach <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkAssignTransferTarget" class="search-input" required></select>
+                    <p class="card-meta" style="margin-top: 6px;">Only coaches with Active employment status are eligible to take on client assignments.</p>
+                </div>
+
+                <p class="error-msg" id="bulkAssignTransferError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkAssignTransferModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkAssignTransferBtn">Apply Coach Reassignment</button>
                 </div>
             </form>
         </div>

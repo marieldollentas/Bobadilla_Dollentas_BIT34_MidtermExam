@@ -1877,9 +1877,361 @@ function fillSessionClientOptions(coach, selectedId) {
 
 // js-split:file=coaches.js part=43of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
+// ============================================================================
+// Client Assignment Bulk Actions
+// ============================================================================
+
+window.selectedAssignmentIds = window.selectedAssignmentIds || new Set();
+
+function getFilteredAssignmentList() {
+    const coach = selectedAssignmentCoach();
+    return coach ? coachAssignmentsFor(coach.id) : [];
+}
+window.getFilteredAssignmentList = getFilteredAssignmentList;
+
+function getSelectedAssignmentList() {
+    const all = getCoachAssignments();
+    const selectedIds = window.selectedAssignmentIds || new Set();
+    return all.filter(a => selectedIds.has(String(a.id)));
+}
+window.getSelectedAssignmentList = getSelectedAssignmentList;
+
+function updateAssignmentBulkActionBar(visibleAssignments) {
+    const bar = document.getElementById("assignmentBulkActionBar");
+    const countEl = document.getElementById("assignmentBulkSelectedCount");
+    const labelEl = document.getElementById("assignmentBulkSelectedLabel");
+    const totalMatchingEl = document.getElementById("assignmentBulkTotalMatchingCount");
+    const selectAllCheckbox = document.getElementById("selectAllAssignments");
+
+    if (!bar) return;
+
+    const visible = Array.isArray(visibleAssignments) ? visibleAssignments : getFilteredAssignmentList();
+    const selectedCount = window.selectedAssignmentIds ? window.selectedAssignmentIds.size : 0;
+    const visibleCount = visible.length;
+
+    if (totalMatchingEl) totalMatchingEl.textContent = String(visibleCount);
+
+    if (selectedCount > 0) {
+        bar.hidden = false;
+        bar.style.display = "flex";
+        bar.classList.add("visible");
+        if (countEl) countEl.textContent = String(selectedCount);
+        if (labelEl) labelEl.textContent = selectedCount === 1 ? "assignment selected" : "assignments selected";
+    } else {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    if (selectAllCheckbox) {
+        let matchingSelectedCount = 0;
+        visible.forEach(a => {
+            if (window.selectedAssignmentIds && window.selectedAssignmentIds.has(String(a.id))) {
+                matchingSelectedCount++;
+            }
+        });
+
+        if (visibleCount > 0 && matchingSelectedCount === visibleCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (matchingSelectedCount > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+window.updateAssignmentBulkActionBar = updateAssignmentBulkActionBar;
+
+function initAssignmentBulkActions() {
+    const bar = document.getElementById("assignmentBulkActionBar");
+    const tbody = document.getElementById("assignmentTableBody");
+    const selectAllCheckbox = document.getElementById("selectAllAssignments");
+
+    if (!bar || bar.dataset.bulkBound === "1") return;
+    bar.dataset.bulkBound = "1";
+
+    if (!window.selectedAssignmentIds || window.selectedAssignmentIds.size === 0) {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    // Master checkbox toggles all visible rows
+    if (selectAllCheckbox && selectAllCheckbox.dataset.bound !== "1") {
+        selectAllCheckbox.dataset.bound = "1";
+        selectAllCheckbox.addEventListener("change", () => {
+            const visible = getFilteredAssignmentList();
+            if (selectAllCheckbox.checked) {
+                visible.forEach(a => window.selectedAssignmentIds.add(String(a.id)));
+            } else {
+                visible.forEach(a => window.selectedAssignmentIds.delete(String(a.id)));
+            }
+            if (tbody) {
+                const checkboxes = tbody.querySelectorAll(".assignment-select-checkbox");
+                checkboxes.forEach(cb => {
+                    const id = decodeURIComponent(cb.dataset.assignmentId || "");
+                    const checked = window.selectedAssignmentIds.has(id);
+                    cb.checked = checked;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.toggle("is-selected", checked);
+                });
+            }
+            updateAssignmentBulkActionBar(visible);
+        });
+    }
+
+    // Row selection delegation on assignmentTableBody
+    if (tbody && tbody.dataset.bulkDelegated !== "1") {
+        tbody.dataset.bulkDelegated = "1";
+
+        tbody.addEventListener("change", e => {
+            if (e.target.classList.contains("assignment-select-checkbox")) {
+                const id = decodeURIComponent(e.target.dataset.assignmentId || "");
+                if (e.target.checked) {
+                    window.selectedAssignmentIds.add(id);
+                } else {
+                    window.selectedAssignmentIds.delete(id);
+                }
+                const row = e.target.closest("tr");
+                if (row) row.classList.toggle("is-selected", e.target.checked);
+                updateAssignmentBulkActionBar();
+            }
+        });
+
+        // Click anywhere on a row toggles row selection (except on action buttons, links, or inputs)
+        tbody.addEventListener("click", e => {
+            if (e.target.closest("button, a, select, textarea, label")) return;
+            if (e.target.tagName === "INPUT") return;
+
+            const row = e.target.closest("tr");
+            if (!row) return;
+
+            const cb = row.querySelector(".assignment-select-checkbox");
+            if (cb) {
+                cb.checked = !cb.checked;
+                const id = decodeURIComponent(cb.dataset.assignmentId || "");
+                if (cb.checked) {
+                    window.selectedAssignmentIds.add(id);
+                } else {
+                    window.selectedAssignmentIds.delete(id);
+                }
+                row.classList.toggle("is-selected", cb.checked);
+                updateAssignmentBulkActionBar();
+            }
+        });
+    }
+
+    // Quick selection buttons
+    const selectAllMatchingBtn = document.getElementById("assignmentBulkSelectAllMatchingBtn");
+    if (selectAllMatchingBtn) {
+        selectAllMatchingBtn.addEventListener("click", () => {
+            const visible = getFilteredAssignmentList();
+            visible.forEach(a => window.selectedAssignmentIds.add(String(a.id)));
+            if (tbody) {
+                tbody.querySelectorAll(".assignment-select-checkbox").forEach(cb => {
+                    cb.checked = true;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.add("is-selected");
+                });
+            }
+            updateAssignmentBulkActionBar(visible);
+        });
+    }
+
+    const deselectBtn = document.getElementById("assignmentBulkDeselectBtn");
+    if (deselectBtn) {
+        deselectBtn.addEventListener("click", () => {
+            window.selectedAssignmentIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".assignment-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateAssignmentBulkActionBar();
+        });
+    }
+
+    const closeBarBtn = document.getElementById("assignmentBulkBarCloseBtn");
+    if (closeBarBtn) {
+        closeBarBtn.addEventListener("click", () => {
+            window.selectedAssignmentIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".assignment-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateAssignmentBulkActionBar();
+        });
+    }
+
+    // Bulk action toolbar buttons
+    const transferBtn = document.getElementById("bulkAssignTransferBtn");
+    if (transferBtn) transferBtn.addEventListener("click", () => window.openBulkAssignTransferModal());
+
+    const removeBtn = document.getElementById("bulkAssignRemoveBtn");
+    if (removeBtn) removeBtn.addEventListener("click", () => window.bulkUnassignAssignments());
+
+    // Modal close & backdrop handlers
+    const modal = document.getElementById("bulkAssignTransferModal");
+    const closeBtn = document.getElementById("closeBulkAssignTransferModal");
+    const cancelBtn = document.getElementById("cancelBulkAssignTransferModal");
+    const hide = () => { if (modal) modal.style.display = "none"; };
+    if (closeBtn) closeBtn.addEventListener("click", hide);
+    if (cancelBtn) cancelBtn.addEventListener("click", hide);
+    if (modal) {
+        modal.addEventListener("click", e => {
+            if (e.target === modal) hide();
+        });
+    }
+}
+window.initAssignmentBulkActions = initAssignmentBulkActions;
+
+// Bulk Action: Reassign Clients to another Coach
+window.openBulkAssignTransferModal = function() {
+    const selected = getSelectedAssignmentList();
+    if (selected.length === 0) {
+        alert("Please select at least one client assignment to reassign.");
+        return;
+    }
+
+    const summaryEl = document.getElementById("bulkAssignTransferSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(a => escapeHtml(a.clientName || "Client")).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` +${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `
+            <div style="font-size: 13px; line-height: 1.5;">
+                <div>Selected client assignments: <strong>${selected.length}</strong> (${namesPreview}${moreCount})</div>
+            </div>
+        `;
+    }
+
+    const targetSelect = document.getElementById("bulkAssignTransferTarget");
+    if (targetSelect) {
+        targetSelect.innerHTML = "";
+        const activeCoaches = getActiveCoaches().filter(c => c.status === "Active");
+        if (activeCoaches.length === 0) {
+            targetSelect.innerHTML = '<option value="" disabled selected>No active coaches available</option>';
+        } else {
+            activeCoaches.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${coachClientCount(c.id)} client${coachClientCount(c.id) === 1 ? "" : "s"})`;
+                targetSelect.appendChild(opt);
+            });
+        }
+    }
+
+    const errEl = document.getElementById("bulkAssignTransferError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkAssignTransferModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkAssignTransfer = function() {
+    const selected = getSelectedAssignmentList();
+    if (selected.length === 0) {
+        alert("No client assignments selected.");
+        return;
+    }
+
+    const targetSelect = document.getElementById("bulkAssignTransferTarget");
+    const targetCoachId = targetSelect ? targetSelect.value : "";
+    const errEl = document.getElementById("bulkAssignTransferError");
+
+    if (!targetCoachId) {
+        if (errEl) errEl.textContent = "Please select an active coach.";
+        return;
+    }
+
+    const targetCoach = coachById(targetCoachId);
+    if (!targetCoach) {
+        if (errEl) errEl.textContent = "Selected coach not found.";
+        return;
+    }
+
+    const allAssignments = getCoachAssignments();
+    const selectedIdSet = new Set(selected.map(a => String(a.id)));
+
+    allAssignments.forEach(row => {
+        if (selectedIdSet.has(String(row.id))) {
+            row.coachId = targetCoach.id;
+        }
+    });
+
+    saveCoachAssignments(allAssignments);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Reassigned ${selected.length} client(s) to ${targetCoach.name}`,
+            meta: selected.map(a => a.clientName).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkAssignTransferModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedAssignmentIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Unassign Clients
+window.bulkUnassignAssignments = function() {
+    const selected = getSelectedAssignmentList();
+    if (selected.length === 0) {
+        alert("Please select at least one client assignment to unassign.");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to unassign ${selected.length} selected client assignment${selected.length === 1 ? "" : "s"}? Their training program pairings will be removed.`)) {
+        return;
+    }
+
+    const selectedIdSet = new Set(selected.map(a => String(a.id)));
+    const allAssignments = getCoachAssignments();
+    const remaining = allAssignments.filter(a => !selectedIdSet.has(String(a.id)));
+    saveCoachAssignments(remaining);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Unassigned ${selected.length} client${selected.length === 1 ? "" : "s"} from coaching allocation`,
+            meta: selected.map(a => a.clientName).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    window.selectedAssignmentIds.clear();
+    refreshCoachViews();
+};
+
+
 function renderAssignments() {
     const tbody = document.getElementById("assignmentTableBody");
     if (!tbody) return;
+
+    if (typeof initAssignmentBulkActions === "function") {
+        initAssignmentBulkActions();
+    }
+
+    // Prune stale IDs
+    if (window.selectedAssignmentIds) {
+        const allIds = new Set(getCoachAssignments().map(a => String(a.id)));
+        for (const id of Array.from(window.selectedAssignmentIds)) {
+            if (!allIds.has(id)) {
+                window.selectedAssignmentIds.delete(id);
+            }
+        }
+    }
 
     const coach = selectedAssignmentCoach();
     const members = getDirectoryCustomers();
@@ -1887,7 +2239,8 @@ function renderAssignments() {
     today.setHours(0, 0, 0, 0);
 
     if (!coach) {
-        tbody.innerHTML = '<tr><td colspan="5">No coaches on record yet. Use "+ Add Coach" to create one.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">No coaches on record yet. Use "+ Add Coach" to create one.</td></tr>';
+        updateAssignmentBulkActionBar([]);
         return;
     }
 
@@ -1898,11 +2251,13 @@ function renderAssignments() {
     // rows and the same client looks assigned to both coaches at once.
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5">No clients assigned to ${escapeHtml(coach.name)} yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6">No clients assigned to ${escapeHtml(coach.name)} yet.</td></tr>`;
+        updateAssignmentBulkActionBar(rows);
         return;
     }
 
     rows.forEach(row => {
+        const id = encodeURIComponent(row.id);
         const member = members.find(c => String(c.id) === String(row.clientId));
         const name = member ? member.name : (row.clientName || "Removed member");
         const status = member ? memberMembershipStatus(member, today) : "Inactive";
@@ -1912,8 +2267,13 @@ function renderAssignments() {
         const renewBtn = member && !memberIsArchived(member) && membershipNeedsRenewal(member, today)
             ? `<button class="btn-renew" onclick="renewMemberById('${encodeURIComponent(row.clientId)}')">Renew</button>`
             : "";
+        const isChecked = window.selectedAssignmentIds && window.selectedAssignmentIds.has(String(row.id));
         const tr = document.createElement("tr");
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="assignment-select-checkbox" data-assignment-id="${id}" ${isChecked ? "checked" : ""} title="Select ${escapeHtml(name)}" aria-label="Select ${escapeHtml(name)}">
+            </td>
             <td>
                 <strong>${escapeHtml(name)}</strong>
                 <small>${escapeHtml(member ? member.keyFob || member.contact : "—")}</small>
@@ -1925,13 +2285,15 @@ function renderAssignments() {
                 <div class="row-actions">
                     ${renewBtn}
                     <button class="btn-view" onclick="openClientDetails('${encodeURIComponent(row.clientId)}')">View</button>
-                    <button class="btn-view" onclick="openAssignModal('${encodeURIComponent(coach.id)}', '${encodeURIComponent(row.id)}')">Reassign</button>
-                    <button class="btn-delete" onclick="unassignClient('${encodeURIComponent(row.id)}')">Unassign</button>
+                    <button class="btn-view" onclick="openAssignModal('${encodeURIComponent(coach.id)}', '${id}')">Reassign</button>
+                    <button class="btn-delete" onclick="unassignClient('${id}')">Unassign</button>
                 </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
+
+    updateAssignmentBulkActionBar(rows);
 }
 
 
@@ -1957,6 +2319,9 @@ function unassignClient(encodedId) {
     if (!confirm(`Remove ${row.clientName || "this client"} from ${coachNameById(row.coachId)}?`)) return;
 
     saveCoachAssignments(rows.filter(item => String(item.id) !== String(id)));
+    if (window.selectedAssignmentIds) {
+        window.selectedAssignmentIds.delete(String(id));
+    }
     logActivity({
         type: "coach",
         title: `${row.clientName || "A client"} was unassigned`,
@@ -3384,3 +3749,13 @@ window.confirmBulkCoachReassign = confirmBulkCoachReassign;
 window.bulkArchiveCoaches = bulkArchiveCoaches;
 window.getFilteredCoachList = getFilteredCoachList;
 window.getSelectedCoachList = getSelectedCoachList;
+
+// Global exposure for Client Assignment Bulk Actions
+window.selectedAssignmentIds = window.selectedAssignmentIds;
+window.updateAssignmentBulkActionBar = updateAssignmentBulkActionBar;
+window.initAssignmentBulkActions = initAssignmentBulkActions;
+window.openBulkAssignTransferModal = openBulkAssignTransferModal;
+window.confirmBulkAssignTransfer = confirmBulkAssignTransfer;
+window.bulkUnassignAssignments = bulkUnassignAssignments;
+window.getFilteredAssignmentList = getFilteredAssignmentList;
+window.getSelectedAssignmentList = getSelectedAssignmentList;
