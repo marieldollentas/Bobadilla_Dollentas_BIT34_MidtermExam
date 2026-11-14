@@ -1316,10 +1316,11 @@ select.search-input {
     background-size: 15px;
 }
 
-.search-input[readonly] {
+.search-input[readonly],
+.search-input:disabled {
     background: var(--background);
     color: var(--text-secondary);
-    cursor: default;
+    cursor: not-allowed;
 }
 
 .readonly-mono {

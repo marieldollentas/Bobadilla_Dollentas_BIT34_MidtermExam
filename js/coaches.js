@@ -1956,23 +1956,50 @@ function renderUpcomingAppointments() {
 
 // js-split:file=coaches.js part=41of70
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function fillClientOptions(select, selectedId) {
+function fillClientOptions(select, selectedId, clientName) {
+    if (!select) return;
     // Current members only: an archived member keeps their past sessions but
     // cannot be booked or assigned again without being restored first.
     const members = getActiveDirectoryCustomers().slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    select.innerHTML = members
+
+    const strSelected = selectedId !== undefined && selectedId !== null ? String(selectedId).trim() : "";
+    const rawSelected = strSelected.replace(/^reg-/, "").toLowerCase();
+    const nameLower = clientName ? String(clientName).trim().toLowerCase() : "";
+
+    let matchedMember = null;
+    if (strSelected || nameLower) {
+        matchedMember = members.find(m => {
+            if (strSelected && String(m.id) === strSelected) return true;
+            if (rawSelected && m.username && String(m.username).toLowerCase() === rawSelected) return true;
+            if (rawSelected && String(m.id).replace(/^reg-/, "").toLowerCase() === rawSelected) return true;
+            if (nameLower && String(m.name || "").trim().toLowerCase() === nameLower) return true;
+            return false;
+        });
+    }
+
+    let allOptions = members.slice();
+    if (!matchedMember && (strSelected || clientName)) {
+        allOptions.unshift({
+            id: strSelected || "client-" + Date.now(),
+            name: clientName || strSelected
+        });
+        matchedMember = allOptions[0];
+    }
+
+    select.innerHTML = allOptions
         .map(member => {
             // Frozen members stay listed so existing records keep rendering, but
             // the label spells out why a session cannot be booked for them.
-            const frozen = getMemberStatus(member) === "Frozen";
+            const frozen = typeof getMemberStatus === "function" && getMemberStatus(member) === "Frozen";
             const label = frozen ? `${member.name} (Frozen${member.freezeEndDate ? " until " + member.freezeEndDate : ""})` : member.name;
             return `<option value="${escapeHtml(member.id)}">${escapeHtml(label)}</option>`;
         })
         .join("");
 
-    if (selectedId !== undefined && selectedId !== null) {
-        const exists = members.some(member => String(member.id) === String(selectedId));
-        if (exists) select.value = selectedId;
+    if (matchedMember) {
+        select.value = matchedMember.id;
+    } else if (strSelected) {
+        select.value = strSelected;
     }
 }
 
@@ -2509,29 +2536,81 @@ function openAssignModal(encodedCoachId, encodedAssignmentId) {
         ? getCoachAssignments().find(row => String(row.id) === String(assignmentId))
         : null;
 
-    const coachId = encodedCoachId
-        ? decodeURIComponent(encodedCoachId)
-        : (existing ? existing.coachId : (selectedAssignmentCoach() || {}).id);
+    const isReassign = Boolean(existing);
+    const assignClientEl = document.getElementById("assignClient");
+    const assignCoachEl = document.getElementById("assignCoach");
+    const clientHelp = document.getElementById("assignClientHelp");
+    const clientLabel = document.getElementById("assignClientLabel");
+    const coachLabel = document.getElementById("assignCoachLabel");
+    const saveBtn = document.getElementById("saveAssignBtn");
+    const hint = document.getElementById("assignHint");
+
+    // Client dropdown: automatically refer to the client selected and being edited
+    fillClientOptions(assignClientEl, existing ? existing.clientId : null, existing ? existing.clientName : null);
+
+    const currentCoach = existing ? coachById(existing.coachId || encodedCoachId) : (encodedCoachId ? coachById(encodedCoachId) : null);
+    const currentCoachName = currentCoach ? currentCoach.name : (existing && existing.coachName ? existing.coachName : "Current Coach");
+
+    if (isReassign) {
+        // When reassigning, client is locked to the selected client being edited
+        if (assignClientEl) assignClientEl.disabled = true;
+        if (clientHelp) {
+            clientHelp.textContent = `Client is set to ${existing.clientName || "selected client"} and cannot be changed during coach reassignment.`;
+            clientHelp.style.display = "block";
+        }
+        if (clientLabel) clientLabel.textContent = "Client";
+        if (coachLabel) coachLabel.textContent = "Reassign to New Coach";
+        if (saveBtn) saveBtn.textContent = "Reassign Coach";
+
+        // Coach dropdown: only other active coaches are selectable options
+        const otherActiveCoaches = coaches.filter(c =>
+            c.status === "Active" &&
+            (!currentCoach || (String(c.id) !== String(currentCoach.id) && String(c.name).toLowerCase() !== String(currentCoach.name).toLowerCase()))
+        );
+
+        if (otherActiveCoaches.length === 0) {
+            assignCoachEl.innerHTML = `<option value="" disabled selected>No other active coaches available</option>`;
+        } else {
+            assignCoachEl.innerHTML = [
+                currentCoach ? `<option value="${escapeHtml(currentCoach.id)}" disabled>${escapeHtml(currentCoach.name)} (Current Coach)</option>` : "",
+                ...otherActiveCoaches.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+            ].filter(Boolean).join("");
+            assignCoachEl.value = otherActiveCoaches[0].id;
+        }
+    } else {
+        if (assignClientEl) assignClientEl.disabled = false;
+        if (clientHelp) clientHelp.style.display = "none";
+        if (clientLabel) clientLabel.textContent = "Client (from the Customer Directory)";
+        if (coachLabel) coachLabel.textContent = "Coach";
+        if (saveBtn) saveBtn.textContent = "Save Assignment";
+
+        const defaultCoachId = encodedCoachId ? decodeURIComponent(encodedCoachId) : (selectedAssignmentCoach() || {}).id;
+        assignCoachEl.innerHTML = coaches.map(coach => {
+            const disabled = coach.status !== "Active" && String(coach.id) !== String(defaultCoachId);
+            return `<option value="${escapeHtml(coach.id)}"${disabled ? " disabled" : ""}>${escapeHtml(coach.name + (coach.status === "Active" ? "" : ` (${coach.status})`))}</option>`;
+        }).join("");
+        assignCoachEl.value = defaultCoachId || (coaches[0] ? coaches[0].id : "");
+    }
 
     document.getElementById("assignId").value = existing ? existing.id : "";
-    document.getElementById("assignCoach").innerHTML = coaches.map(coach => {
-        const disabled = coach.status !== "Active" && String(coach.id) !== String(coachId);
-        return `<option value="${escapeHtml(coach.id)}"${disabled ? " disabled" : ""}>${escapeHtml(coach.name + (coach.status === "Active" ? "" : ` (${coach.status})`))}</option>`;
-    }).join("");
-    document.getElementById("assignCoach").value = coachId;
-
-    fillClientOptions(document.getElementById("assignClient"), existing ? existing.clientId : null);
-
-    document.getElementById("assignModalTitle").textContent = existing ? "Reassign Client" : "Assign Client to Coach";
+    document.getElementById("assignModalTitle").textContent = isReassign ? "Reassign Client to Another Coach" : "Assign Client to Coach";
     document.getElementById("assignError").textContent = "";
 
-    const hint = document.getElementById("assignHint");
-    const coach = coachById(coachId);
-    if (hint) {
-        hint.textContent = coach
-            ? `Clients come from the Customer Directory. ${coach.name} is ${coach.status} and works ${coachWorkingDayLabels(coach)} (${coachShiftLabel(coach)}).`
-            : "Clients come from the Customer Directory.";
-    }
+    const updateHint = () => {
+        if (!hint) return;
+        const selectedCoach = coachById(assignCoachEl.value);
+        if (isReassign) {
+            hint.textContent = selectedCoach
+                ? `Reassigning ${existing.clientName || "this client"} from ${currentCoachName} to ${selectedCoach.name} (${coachShiftLabel(selectedCoach)}, ${coachWorkingDayLabels(selectedCoach)}).`
+                : `Reassigning ${existing.clientName || "this client"} from ${currentCoachName} to a new coach.`;
+        } else {
+            hint.textContent = selectedCoach
+                ? `Clients come from the Customer Directory. ${selectedCoach.name} is ${selectedCoach.status} and works ${coachWorkingDayLabels(selectedCoach)} (${coachShiftLabel(selectedCoach)}).`
+                : "Clients come from the Customer Directory.";
+        }
+    };
+    assignCoachEl.onchange = updateHint;
+    updateHint();
 
     modal.style.display = "flex";
 }
@@ -2543,7 +2622,7 @@ function openAssignModal(encodedCoachId, encodedAssignmentId) {
 function saveAssignment() {
     const assignmentId = document.getElementById("assignId").value;
     const coachId = document.getElementById("assignCoach").value;
-    const clientId = document.getElementById("assignClient").value;
+    const assignClientEl = document.getElementById("assignClient");
     const errorEl = document.getElementById("assignError");
     const fail = message => {
         errorEl.textContent = message;
@@ -2554,21 +2633,29 @@ function saveAssignment() {
     if (!coach) return fail("Please select a coach.");
     if (coach.status !== "Active") return fail(`${coach.name} is ${coach.status} and cannot take new clients.`);
 
-    const member = getDirectoryCustomers().find(c => String(c.id) === String(clientId));
-    if (!member) return fail("Please select a client from the Customer Directory.");
-
     const rows = getCoachAssignments();
     const existingRow = assignmentId ? rows.find(row => String(row.id) === String(assignmentId)) : null;
+    const clientId = (assignClientEl ? assignClientEl.value : "") || (existingRow ? existingRow.clientId : "");
 
-    const memberRegId = member.username ? "reg-" + member.username : "";
-    const memberRawId = String(member.id || "").replace(/^reg-/, "");
-    const memberNameLower = String(member.name || "").trim().toLowerCase();
+    const directory = getDirectoryCustomers();
+    const member = directory.find(c =>
+        String(c.id) === String(clientId) ||
+        (c.username && ("reg-" + c.username === String(clientId) || c.username === String(clientId))) ||
+        (c.name && existingRow && String(c.name).trim().toLowerCase() === String(existingRow.clientName || "").trim().toLowerCase())
+    );
+    if (!member && !existingRow) return fail("Please select a client from the Customer Directory.");
+
+    const memberName = member ? member.name : (existingRow ? existingRow.clientName : "Client");
+    const memberId = member ? member.id : (existingRow ? existingRow.clientId : clientId);
+    const memberRegId = member && member.username ? "reg-" + member.username : "";
+    const memberRawId = String(memberId || "").replace(/^reg-/, "");
+    const memberNameLower = String(memberName || "").trim().toLowerCase();
 
     const isClientMatch = row => {
         if (!row) return false;
         const rId = String(row.clientId || "").trim();
         const rName = String(row.clientName || "").trim().toLowerCase();
-        if (rId === String(clientId) || rId === String(member.id)) return true;
+        if (rId === String(clientId) || rId === String(memberId)) return true;
         if (memberRegId && rId === memberRegId) return true;
         if (memberRawId && rId === memberRawId) return true;
         if (memberNameLower && (rName === memberNameLower || rId.toLowerCase() === memberNameLower)) return true;
@@ -2581,14 +2668,19 @@ function saveAssignment() {
         (String(row.coachId) === String(coach.id) || String(row.coachId).trim().toLowerCase() === coach.name.trim().toLowerCase()) &&
         (!existingRow || String(row.id) !== String(existingRow.id))
     );
-    if (duplicate) return fail(`${member.name} is already assigned to ${coach.name}.`);
+    if (duplicate) return fail(`${memberName} is already assigned to ${coach.name}.`);
+
+    // If reassignment is to the exact same coach:
+    if (existingRow && (String(existingRow.coachId) === String(coach.id) || String(existingRow.coachId).trim().toLowerCase() === coach.name.trim().toLowerCase())) {
+        return fail(`${memberName} is already assigned to ${coach.name}. Please choose a different coach to reassign.`);
+    }
 
     // One active coach per client: a move has to be confirmed
     const other = rows.find(row =>
         isClientMatch(row) &&
         (!existingRow || String(row.id) !== String(existingRow.id))
     );
-    if (other && !confirm(`${member.name} is currently assigned to ${coachNameById(other.coachId)}. Reassign to ${coach.name}?`)) {
+    if (other && !confirm(`${memberName} is currently assigned to ${coachNameById(other.coachId)}. Reassign to ${coach.name}?`)) {
         return false;
     }
 
@@ -2604,8 +2696,8 @@ function saveAssignment() {
     const target = existingRow || { id: `assign-${Date.now().toString(36)}` };
     target.coachId = coach.id;
     target.coachName = coach.name;
-    target.clientId = member.id;
-    target.clientName = member.name;
+    target.clientId = memberId;
+    target.clientName = memberName;
     target.assignedAt = todayISO();
 
     cleanRows.push(target);
@@ -2614,12 +2706,13 @@ function saveAssignment() {
     logActivity({
         type: "coach",
         title: existingRow || other
-            ? `${member.name} was reassigned to ${coach.name}`
-            : `${member.name} was assigned to ${coach.name}`,
-        meta: `${member.tier || "Membership"} • ${coachSpecializationLabel(coach)}`,
-        href: activityHref("coach.html", member.name)
+            ? `${memberName} was reassigned to ${coach.name}`
+            : `${memberName} was assigned to ${coach.name}`,
+        meta: `${member && member.tier ? member.tier : "Membership"} • ${coachSpecializationLabel(coach)}`,
+        href: activityHref("coach.html", memberName)
     });
 
+    if (assignClientEl) assignClientEl.disabled = false;
     document.getElementById("assignModal").style.display = "none";
     renderCoachTracker();
 }
@@ -4302,8 +4395,13 @@ document.addEventListener("DOMContentLoaded", () => {
             openAssignModal(coach ? encodeURIComponent(coach.id) : null);
         });
     }
-    if (closeAssignBtn) closeAssignBtn.addEventListener("click", () => { assignModal.style.display = "none"; });
-    if (cancelAssignBtn) cancelAssignBtn.addEventListener("click", () => { assignModal.style.display = "none"; });
+    const hideAssignDialog = () => {
+        const clientEl = document.getElementById("assignClient");
+        if (clientEl) clientEl.disabled = false;
+        assignModal.style.display = "none";
+    };
+    if (closeAssignBtn) closeAssignBtn.addEventListener("click", hideAssignDialog);
+    if (cancelAssignBtn) cancelAssignBtn.addEventListener("click", hideAssignDialog);
     if (assignForm) assignForm.addEventListener("submit", event => { event.preventDefault(); saveAssignment(); });
 
     // Session dialog

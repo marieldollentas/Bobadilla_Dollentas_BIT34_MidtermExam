@@ -707,18 +707,19 @@
             <form id="assignForm">
                 <input type="hidden" id="assignId">
                 <div class="form-group">
-                    <label for="assignCoach">Coach</label>
-                    <select id="assignCoach" class="search-input"></select>
+                    <label for="assignClient" id="assignClientLabel">Client (from the Customer Directory)</label>
+                    <select id="assignClient" class="search-input"></select>
+                    <p class="card-meta" id="assignClientHelp" style="margin-top: 4px; display: none;"></p>
                 </div>
                 <div class="form-group">
-                    <label for="assignClient">Client (from the Customer Directory)</label>
-                    <select id="assignClient" class="search-input"></select>
+                    <label for="assignCoach" id="assignCoachLabel">Coach</label>
+                    <select id="assignCoach" class="search-input"></select>
                 </div>
                 <p class="info-note" id="assignHint"></p>
                 <p class="error-msg" id="assignError"></p>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelAssignModal">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Assignment</button>
+                    <button type="submit" class="btn-primary" id="saveAssignBtn">Save Assignment</button>
                 </div>
             </form>
         </div>
