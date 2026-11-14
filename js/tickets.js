@@ -9,11 +9,97 @@ let pendingArchive = null;
 
 
 
+// Interactive stat cards filter for Support Tickets (Open, In Progress, Resolved)
+function updateTicketStatCardActiveState() {
+    const statusEl = document.getElementById("filterStatus");
+    const currentStatus = (statusEl ? statusEl.value : "all").toLowerCase();
+    document.querySelectorAll(".stats-grid .stat-card[data-status-filter]").forEach(card => {
+        const filterVal = (card.dataset.statusFilter || "").toLowerCase();
+        const isActive = (filterVal === currentStatus && currentStatus !== "all");
+        card.classList.toggle("is-active", isActive);
+    });
+}
+window.updateTicketStatCardActiveState = updateTicketStatCardActiveState;
+
+function initTicketStatFilters() {
+    const statusEl = document.getElementById("filterStatus");
+    if (!statusEl) return;
+
+    // Interactive stat cards filter (Open, In Progress, Resolved)
+    document.querySelectorAll(".stats-grid .stat-card[data-status-filter]").forEach(card => {
+        if (card.dataset.statBound === "1") return;
+        card.dataset.statBound = "1";
+
+        card.addEventListener("click", () => {
+            const targetStatus = card.dataset.statusFilter || "all";
+            const currentStatus = statusEl.value;
+
+            // Toggle off to "all" if clicking the already active status card
+            if (currentStatus.toLowerCase() === targetStatus.toLowerCase()) {
+                statusEl.value = "all";
+            } else {
+                statusEl.value = targetStatus;
+                // If filtering by Resolved, ensure "Hide Resolved" is unchecked so they are visible
+                if (targetStatus.toLowerCase() === "resolved") {
+                    const hideResolvedEl = document.getElementById("hideResolved");
+                    if (hideResolvedEl && hideResolvedEl.checked) {
+                        hideResolvedEl.checked = false;
+                    }
+                }
+            }
+
+            updateTicketStatCardActiveState();
+            statusEl.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
+        card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+
+    if (statusEl.dataset.statusBound !== "1") {
+        statusEl.dataset.statusBound = "1";
+        statusEl.addEventListener("change", () => {
+            updateTicketStatCardActiveState();
+        });
+    }
+
+    // Reset filters button
+    const resetBtn = document.getElementById("resetTicketFilters");
+    if (resetBtn && resetBtn.dataset.filterBound !== "1") {
+        resetBtn.dataset.filterBound = "1";
+        resetBtn.addEventListener("click", () => {
+            const searchEl = document.getElementById("ticketSearch");
+            const priorityEl = document.getElementById("filterPriority");
+            const sourceEl = document.getElementById("filterSource");
+            const hideResolvedEl = document.getElementById("hideResolved");
+
+            if (searchEl) searchEl.value = "";
+            if (priorityEl) priorityEl.value = "all";
+            if (sourceEl) sourceEl.value = "all";
+            if (hideResolvedEl) hideResolvedEl.checked = false;
+            statusEl.value = "all";
+
+            updateTicketStatCardActiveState();
+            statusEl.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+    }
+
+    updateTicketStatCardActiveState();
+}
+window.initTicketStatFilters = initTicketStatFilters;
+
 // js-split:file=tickets.js part=3of10
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function renderStaffTickets() {
     const tbody = document.getElementById("staffTicketsBody");
     if (!tbody) return;
+
+    initTicketStatFilters();
+    updateTicketStatCardActiveState();
 
     const filters = tableFilters();
     const tickets = getTicketStorage("staff")
@@ -52,6 +138,10 @@ function renderStaffTickets() {
 function renderCustomerInquiries() {
     const tbody = document.getElementById("customerInquiriesBody");
     if (!tbody) return;
+
+    if (typeof updateTicketStatCardActiveState === "function") {
+        updateTicketStatCardActiveState();
+    }
 
     const filters = tableFilters();
     const inquiries = getTicketStorage("customer")

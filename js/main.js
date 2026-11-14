@@ -1802,6 +1802,12 @@ window.submitInquiry = () => {
                 renderCustomerInquiries();
             });
             el.addEventListener("change", () => {
+                if (id === "filterStatus" && el.value === "Resolved") {
+                    const hideResolvedEl = document.getElementById("hideResolved");
+                    if (hideResolvedEl && hideResolvedEl.checked) {
+                        hideResolvedEl.checked = false;
+                    }
+                }
                 renderStaffTickets();
                 renderCustomerInquiries();
             });
@@ -1835,6 +1841,7 @@ window.submitInquiry = () => {
     // Render tickets & inquiries tables
     if (document.getElementById("staffTicketsBody")) renderStaffTickets();
     if (document.getElementById("customerInquiriesBody")) renderCustomerInquiries();
+    if (typeof initTicketStatFilters === "function") initTicketStatFilters();
 
     // Initialize live stats per page
     if (document.querySelector("#staffTicketsBody") || document.querySelector("#customerInquiriesBody")) countOpenTickets();
