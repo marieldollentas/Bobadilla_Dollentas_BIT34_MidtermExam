@@ -117,7 +117,6 @@
                             <h1>Coach Tracker</h1>
                             <p>Manage the coaching team, their weekly availability, client assignments and every training session in one place.</p>
                         </div>
-                        <button id="openCoachModal" class="btn-primary">+ Add Coach</button>
                     </div>
                 </section>
 
@@ -189,10 +188,13 @@
                 <section class="content-section coach-container" id="coachDirectorySection">
                     <div class="card-head">
                         <div>
-                            <h2>Coach Directory</h2>
+                            <h2>Coach Directory &amp; Roster</h2>
                             <p class="card-sub">Every registered coach with contact details, specializations and workload</p>
                         </div>
-                        <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
+                        <div class="head-actions">
+                            <span class="card-chip" id="coachDirectoryCount">0 coaches</span>
+                            <button type="button" id="openCoachModal" class="btn-primary">+ Add Coach</button>
+                        </div>
                     </div>
 
                     <div class="ticket-filter-bar" style="margin-top: 18px; margin-bottom: 8px;">
@@ -516,16 +518,16 @@
                 <input type="hidden" id="coachId">
                 <div class="details-summary">
                     <div class="form-group">
-                        <label for="coachLastName">Last Name</label>
-                        <input type="text" id="coachLastName" class="search-input" placeholder="Enter last name" maxlength="50" required>
+                        <label for="coachFirstName">First Name</label>
+                        <input type="text" id="coachFirstName" class="search-input" placeholder="Enter first name" maxlength="50" required>
                     </div>
                     <div class="form-group">
                         <label for="coachMiddleName">Middle Name</label>
                         <input type="text" id="coachMiddleName" class="search-input" placeholder="Enter middle name" maxlength="50">
                     </div>
                     <div class="form-group">
-                        <label for="coachFirstName">First Name</label>
-                        <input type="text" id="coachFirstName" class="search-input" placeholder="Enter first name" maxlength="50" required>
+                        <label for="coachLastName">Last Name</label>
+                        <input type="text" id="coachLastName" class="search-input" placeholder="Enter last name" maxlength="50" required>
                     </div>
                     <div class="form-group">
                         <label for="coachEmail">Email</label>

@@ -3380,7 +3380,7 @@ function openAddCoach() {
     document.getElementById("coachModalTitle").textContent = "Add Coach";
     document.getElementById("saveCoachBtn").textContent = "Save Coach";
     modal.style.display = "flex";
-    document.getElementById("coachLastName").focus();
+    document.getElementById("coachFirstName").focus();
 }
 
 
