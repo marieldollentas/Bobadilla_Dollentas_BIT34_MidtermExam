@@ -1140,18 +1140,32 @@ window.openBulkChangeTierModal = function() {
     const modal = document.getElementById("bulkChangeTierModal");
     if (!modal) return;
 
+    // Detect unique current tiers of selected members
+    const currentTiers = Array.from(new Set(selectedMembers.map(m => m.tier).filter(Boolean)));
+
     // Populate tier select options from PIPELINE_TIERS
+    // If all selected members belong to the same tier (e.g. 1 member selected),
+    // exclude that tier so they can only choose between the other two tiers!
     const select = document.getElementById("bulkTierSelect");
     if (select && typeof PIPELINE_TIERS !== "undefined") {
-        select.innerHTML = PIPELINE_TIERS.map(tier =>
+        let availableTiers = PIPELINE_TIERS;
+        if (currentTiers.length === 1) {
+            const sharedTier = currentTiers[0];
+            availableTiers = PIPELINE_TIERS.filter(tier => tier.value !== sharedTier);
+        }
+        select.innerHTML = availableTiers.map(tier =>
             `<option value="${escapeHtml(tier.value)}">${escapeHtml(tier.label)}</option>`
         ).join("");
     }
 
     const summaryEl = document.getElementById("bulkTierSummary");
     if (summaryEl) {
+        const tierNote = currentTiers.length === 1
+            ? `<p class="card-meta" style="margin-top: 6px;">Current Tier: <strong>${escapeHtml(currentTiers[0])}</strong>. Available to switch: other two tiers below.</p>`
+            : "";
         summaryEl.innerHTML = `<div class="bulk-summary-card">
             <p><strong>${selectedMembers.length}</strong> member(s) will have their membership tier updated.</p>
+            ${tierNote}
             <ul class="bulk-members-preview-list" style="margin-top: 8px; max-height: 120px; overflow-y: auto;">
                 ${selectedMembers.slice(0, 10).map(m => `<li>${escapeHtml(m.name || "Member")} <small>(Current: ${escapeHtml(m.tier || "None")})</small></li>`).join("")}
                 ${selectedMembers.length > 10 ? `<li><em>...and ${selectedMembers.length - 10} more</em></li>` : ""}
@@ -1166,7 +1180,6 @@ window.openBulkChangeTierModal = function() {
 // Bulk Action: Confirm Change Tier
 window.confirmBulkChangeTier = function() {
     const newTier = document.getElementById("bulkTierSelect").value;
-    const policy = document.getElementById("bulkTierExpPolicy").value;
     const errorEl = document.getElementById("bulkTierError");
 
     if (!newTier) {
@@ -1186,22 +1199,18 @@ window.confirmBulkChangeTier = function() {
         .map(id => allMembers.find(c => String(c.id) === String(id)))
         .filter(m => m && !memberIsArchived(m));
 
+    const sameTierMembers = selectedMembers.filter(m => m.tier === newTier);
+    if (sameTierMembers.length === selectedMembers.length) {
+        errorEl.textContent = `Selected member(s) are already enrolled in ${newTier}. Please choose a different tier.`;
+        return;
+    }
+
     let updatedCount = 0;
     const today = todayStart();
 
     selectedMembers.forEach(m => {
-        let nextExp = "";
-        if (policy === "recalculate-join") {
-            const base = m.joined && m.joined !== "—" ? new Date(`${m.joined}T00:00:00`) : today;
-            nextExp = computeExpirationDate(months, isNaN(base.getTime()) ? today : base);
-        } else if (policy === "extend-current") {
-            const currentExp = m.updatedExpirationDate || m.exp;
-            const base = currentExp && currentExp !== "—" ? new Date(`${currentExp}T00:00:00`) : today;
-            nextExp = computeExpirationDate(months, isNaN(base.getTime()) ? today : base);
-        } else {
-            // reset-today
-            nextExp = computeExpirationDate(months, today);
-        }
+        // Industry-standard policy: new commitment period begins today
+        const nextExp = computeExpirationDate(months, today);
 
         const success = mutateMemberRecord(m.id, rec => {
             rec.tier = newTier;

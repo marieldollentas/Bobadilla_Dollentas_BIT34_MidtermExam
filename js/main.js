@@ -264,10 +264,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return computeExpirationDate(months, base);
     }
 
-    function buildCustomerTierOptions() {
+    function buildCustomerTierOptions(currentTier) {
         const select = document.getElementById("customerTier");
         if (!select) return;
-        select.innerHTML = PIPELINE_TIERS.map(tier =>
+        const availableTiers = currentTier
+            ? PIPELINE_TIERS.filter(tier => tier.value !== currentTier)
+            : PIPELINE_TIERS;
+        select.innerHTML = availableTiers.map(tier =>
             `<option value="${escapeHtml(tier.value)}">${escapeHtml(tier.label)}</option>`
         ).join("");
     }
@@ -280,13 +283,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!tierEl || !expEl) return;
 
         const months = tierDurationMonths(tierEl.value);
-        const exp = customerExpirationFor(tierEl.value, document.getElementById("customerJoined").value);
+        const today = typeof todayStart === "function" ? todayStart() : new Date();
+        const exp = months ? computeExpirationDate(months, today) : "";
         expEl.value = exp || "—";
         if (!noteEl) return;
         if (exp) {
-            noteEl.textContent = `Auto-computed: ${months}-month term from the date joined.`;
+            noteEl.textContent = `Auto-computed: New ${months}-month term starting from today.`;
         } else if (months) {
-            noteEl.textContent = "This member has no valid date joined, so the expiration date cannot be derived.";
+            noteEl.textContent = "Could not derive expiration date.";
         } else {
             noteEl.textContent = "Select a membership tier to set the expiration date.";
         }
@@ -305,7 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        buildCustomerTierOptions();
+        const currentTier = customer.tier || "";
+        buildCustomerTierOptions(currentTier);
         document.getElementById("customerId").value = customer.id;
         const nameParts = namePartsFromRecord(customer);
         document.getElementById("customerFirstName").value = nameParts.firstName || "—";
@@ -329,10 +334,13 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("customerKeyFob").value = customer.keyFob || "—";
         document.getElementById("customerJoined").value = customer.joined || "";
 
+        const currentTierEl = document.getElementById("customerCurrentTier");
+        if (currentTierEl) currentTierEl.value = currentTier || "None";
+
         const tierEl = document.getElementById("customerTier");
-        tierEl.value = PIPELINE_TIERS.some(tier => tier.value === customer.tier)
-            ? customer.tier
-            : PIPELINE_TIERS[0].value;
+        if (tierEl && tierEl.options.length > 0) {
+            tierEl.selectedIndex = 0;
+        }
 
         document.getElementById("customerFormError").textContent = "";
         document.getElementById("customerModalTitle").textContent = `Edit ${customer.name || "Member"}'s Membership`;
@@ -376,9 +384,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!id) return fail("No member selected to update.");
         if (!tierDurationMonths(tier)) return fail("Please select a valid membership tier.");
 
-        const exp = customerExpirationFor(tier, joined);
-        if (!exp) return fail("This member has no valid date joined, so the expiration date cannot be derived.");
-
         const isRegistered = String(id).indexOf("reg-") === 0;
         let record;
         let list;
@@ -397,8 +402,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!record) return fail("Member not found. It may have already been removed.");
 
         const previousTier = record.tier || "";
+        if (previousTier && previousTier === tier) {
+            return fail("Member is already enrolled in this tier. Please choose between the other two tiers.");
+        }
+
+        const months = tierDurationMonths(tier);
+        const today = typeof todayStart === "function" ? todayStart() : new Date();
+        const exp = computeExpirationDate(months, today);
+        if (!exp) return fail("The new expiration date could not be derived.");
+
         record.tier = tier;
         record.exp = exp;
+        record.updatedExpirationDate = exp;
         localStorage.setItem(storeKey, JSON.stringify(list));
 
         const name = record.name || "";

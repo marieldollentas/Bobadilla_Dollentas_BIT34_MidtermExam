@@ -382,11 +382,16 @@
                         <input type="text" id="customerJoined" class="search-input readonly-mono" readonly>
                     </div>
                     <div class="form-group">
-                        <label for="customerTier">Membership Tier</label>
-                        <select id="customerTier" class="search-input"></select>
+                        <label for="customerCurrentTier">Current Membership Tier</label>
+                        <input type="text" id="customerCurrentTier" class="search-input readonly-mono" readonly>
                     </div>
                     <div class="form-group">
-                        <label for="customerExp">Expiration Date</label>
+                        <label for="customerTier">Change to New Tier</label>
+                        <select id="customerTier" class="search-input" required></select>
+                        <p class="card-meta" id="customerTierHelp" style="margin-top: 4px;">Choose between the other two tiers.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerExp">New Expiration Date</label>
                         <input type="text" id="customerExp" class="search-input readonly-mono" readonly>
                         <p class="card-meta" id="customerExpNote" style="margin-top: 4px;"></p>
                     </div>
@@ -494,12 +499,8 @@
 
                 <div class="form-group">
                     <label for="bulkTierExpPolicy">Expiration Date Calculation</label>
-                    <select id="bulkTierExpPolicy" class="search-input">
-                        <option value="recalculate-join">Recalculate term from Date Joined (Recommended)</option>
-                        <option value="extend-current">Extend from Current Expiration</option>
-                        <option value="reset-today">Reset term starting from Today</option>
-                    </select>
-                    <p class="card-meta" id="bulkTierExpPolicyNote" style="margin-top: 6px;">Computes new expiration dates based on each member's start date and new commitment length.</p>
+                    <input type="text" id="bulkTierExpPolicy" class="search-input" value="Reset term starting from Today" readonly>
+                    <p class="card-meta" id="bulkTierExpPolicyNote" style="margin-top: 6px;">New commitment period begins today and computes each member's expiration date from today plus the new tier length.</p>
                 </div>
 
                 <p class="error-msg" id="bulkTierError"></p>
