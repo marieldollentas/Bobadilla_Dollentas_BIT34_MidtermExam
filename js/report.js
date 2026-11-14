@@ -439,12 +439,330 @@ async function exportDashboardReportPdf(button) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    const button = document.getElementById("exportPdfBtn");
-    if (!button) return;
+function exportDashboardReportCsv() {
+    const today = typeof todayStart === "function" ? todayStart() : new Date();
+    const data = typeof reportDashboardData === "function" ? reportDashboardData() : {};
 
-    button.addEventListener("click", () => {
-        if (button.disabled) return;
-        exportDashboardReportPdf(button);
+    const kpis = {
+        total: reportReadStat("statTotal", data.total || 0),
+        active: reportReadStat("statActive", data.active || 0),
+        frozen: reportReadStat("statFrozen", data.frozen || 0),
+        expiring: reportReadStat("statExpiring", data.expiring || 0),
+        open: reportReadStat("statOpenTickets", data.openTickets || 0)
+    };
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const generatedAt = `${dateStr} at ${timeStr}`;
+
+    const escapeCsv = val => {
+        const str = String(val === null || val === undefined ? "" : val);
+        if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const formatCurrency = val => `PHP ${(Number(val) || 0).toLocaleString("en-US")}`;
+
+    const dividerDouble = "====================================================================================================";
+    const dividerSingle = "----------------------------------------------------------------------------------------------------";
+
+    // Document Header & Executive Top-Level KPIs
+    const reportHeaders = [
+        escapeCsv("ANYTIME FITNESS — EXECUTIVE BRANCH DASHBOARD REPORT"),
+        escapeCsv("Branch CRM Portal | Operations, Membership & Sales Intelligence"),
+        escapeCsv(dividerDouble),
+        [escapeCsv("Report Generated:"), escapeCsv(generatedAt), escapeCsv("Branch:"), escapeCsv("Anytime Fitness Central"), escapeCsv("Scope:"), escapeCsv("Complete Branch Overview"), escapeCsv("Format:"), escapeCsv("CSV Spreadsheet")].join(","),
+        escapeCsv(dividerSingle),
+        escapeCsv("EXECUTIVE TOP-LEVEL KPIS:"),
+        [escapeCsv("Metric"), escapeCsv("Count / Value"), escapeCsv("Status / Operational Note")].join(","),
+        [escapeCsv("Total Registered Members"), escapeCsv(kpis.total), escapeCsv("Complete customer directory on file")].join(","),
+        [escapeCsv("Active Members"), escapeCsv(kpis.active), escapeCsv("Members in good standing")].join(","),
+        [escapeCsv("Frozen Members"), escapeCsv(kpis.frozen), escapeCsv("Memberships temporarily paused")].join(","),
+        [escapeCsv("Expiring Memberships"), escapeCsv(kpis.expiring), escapeCsv("Renewals due within 30 days")].join(","),
+        [escapeCsv("Expired Memberships"), escapeCsv(data.expired || 0), escapeCsv("Lapsed memberships awaiting renewal")].join(","),
+        [escapeCsv("Open Inquiries / Support Tickets"), escapeCsv(kpis.open), escapeCsv("Walk-in tickets and inquiries in queue")].join(","),
+        [escapeCsv("Total Support Tickets Logged"), escapeCsv(data.totalTickets || 0), escapeCsv("All-time support tickets across branch")].join(","),
+        [escapeCsv("Total Sales Pipeline Leads"), escapeCsv(data.totalLeads || 0), escapeCsv("Prospecting records in sales funnel")].join(","),
+        [escapeCsv("Members Won (Converted)"), escapeCsv(data.won || 0), escapeCsv("Leads converted to full membership")].join(","),
+        [escapeCsv("Closed / Lost Leads"), escapeCsv(data.lost || 0), escapeCsv("Prospects closed without conversion")].join(","),
+        [escapeCsv("Active Open Pipeline Leads"), escapeCsv(data.openLeads || 0), escapeCsv("In-progress prospecting leads")].join(","),
+        [escapeCsv("Lead Conversion Rate"), escapeCsv(`${data.conversion || 0}%`), escapeCsv("Won / Closed conversion percentage")].join(","),
+        [escapeCsv("Open Pipeline Monthly Value"), escapeCsv(formatCurrency(data.pipelineValue || 0)), escapeCsv("Estimated recurring monthly value")].join(","),
+        escapeCsv(dividerDouble),
+        ""
+    ];
+
+    // Section 1: Membership Status & Tier Distribution
+    const memberTotalNum = Number(kpis.total) || data.total || 0;
+    const members = typeof memberChartData === "function" ? memberChartData() : { byStatus: [], byTier: [] };
+
+    const statusCounts = {
+        "Active": Number(kpis.active) || data.active || 0,
+        "Frozen": Number(kpis.frozen) || data.frozen || 0,
+        "Expiring Soon": Number(kpis.expiring) || data.expiring || 0,
+        "Expired": Number(data.expired) || 0
+    };
+
+    const membershipStatusRows = [
+        escapeCsv("--- SECTION 1: MEMBERSHIP STATUS & PLAN DISTRIBUTION ---"),
+        escapeCsv("Membership Status Breakdown:"),
+        [escapeCsv("Status Category"), escapeCsv("Member Count"), escapeCsv("Share of Total"), escapeCsv("Operational Status")].join(",")
+    ];
+
+    Object.keys(statusCounts).forEach(statusKey => {
+        const count = statusCounts[statusKey];
+        const pct = memberTotalNum ? `${Math.round((count / memberTotalNum) * 100)}%` : "0%";
+        const note = statusKey === "Active" ? "Good Standing"
+            : statusKey === "Frozen" ? "Paused Membership"
+            : statusKey === "Expiring Soon" ? "Renewal Due (Next 30 Days)"
+            : "Lapsed / Follow-up";
+        membershipStatusRows.push([
+            escapeCsv(statusKey),
+            escapeCsv(count),
+            escapeCsv(pct),
+            escapeCsv(note)
+        ].join(","));
     });
+
+    membershipStatusRows.push("");
+    membershipStatusRows.push(escapeCsv("Membership Tier Distribution:"));
+    membershipStatusRows.push([escapeCsv("Tier Plan Name"), escapeCsv("Commitment Term"), escapeCsv("Monthly Rate"), escapeCsv("Member Count"), escapeCsv("Share of Total"), escapeCsv("Est. Monthly Revenue")].join(","));
+
+    const tierRates = {
+        "6-Month Membership": { rate: 2500, term: "6 Months" },
+        "12-Month Membership": { rate: 2200, term: "12 Months" },
+        "18-Month Membership": { rate: 1950, term: "18 Months" }
+    };
+
+    if (Array.isArray(members.byTier) && members.byTier.length > 0) {
+        members.byTier.forEach(item => {
+            const meta = tierRates[item.label] || { rate: 0, term: "Standard" };
+            const pct = memberTotalNum ? `${Math.round((item.value / memberTotalNum) * 100)}%` : "0%";
+            const revenue = meta.rate ? formatCurrency(item.value * meta.rate) : "—";
+            const rateStr = meta.rate ? formatCurrency(meta.rate) : (item.note || "—");
+            membershipStatusRows.push([
+                escapeCsv(item.label),
+                escapeCsv(meta.term),
+                escapeCsv(rateStr),
+                escapeCsv(item.value),
+                escapeCsv(pct),
+                escapeCsv(revenue)
+            ].join(","));
+        });
+    } else {
+        membershipStatusRows.push([escapeCsv("No membership tiers recorded"), "—", "—", "0", "0%", "—"].join(","));
+    }
+    membershipStatusRows.push(escapeCsv(dividerSingle));
+    membershipStatusRows.push("");
+
+    // Section 2: Support & Helpdesk Tickets
+    const ticketsData = typeof ticketChartData === "function" ? ticketChartData(6) : { byPriority: [], byMonth: [] };
+    const ticketTotalNum = data.totalTickets || 0;
+
+    const ticketSectionRows = [
+        escapeCsv("--- SECTION 2: FRONT DESK & SUPPORT TICKET ANALYTICS ---"),
+        escapeCsv("Support Tickets by Priority:"),
+        [escapeCsv("Priority Level"), escapeCsv("Ticket Count"), escapeCsv("Share of Total"), escapeCsv("Urgency Standard")].join(",")
+    ];
+
+    if (Array.isArray(ticketsData.byPriority) && ticketsData.byPriority.length > 0) {
+        ticketsData.byPriority.forEach(item => {
+            const pct = ticketTotalNum ? `${Math.round((item.value / ticketTotalNum) * 100)}%` : "0%";
+            const urgency = item.label === "High" ? "High Priority (< 12 hrs)"
+                : item.label === "Medium" ? "Standard Queue (< 24 hrs)"
+                : item.label === "Low" ? "Low Priority (< 48 hrs)"
+                : "General Attention";
+            ticketSectionRows.push([
+                escapeCsv(item.label),
+                escapeCsv(item.value),
+                escapeCsv(pct),
+                escapeCsv(urgency)
+            ].join(","));
+        });
+    } else {
+        ticketSectionRows.push([escapeCsv("No tickets on file"), "0", "0%", "—"].join(","));
+    }
+
+    ticketSectionRows.push("");
+    ticketSectionRows.push(escapeCsv("Ticket Inflow Volume (Last 6 Months):"));
+    ticketSectionRows.push([escapeCsv("Period"), escapeCsv("Month"), escapeCsv("Tickets Logged")].join(","));
+
+    if (Array.isArray(ticketsData.byMonth) && ticketsData.byMonth.length > 0) {
+        ticketsData.byMonth.forEach(item => {
+            ticketSectionRows.push([
+                escapeCsv(item.key || "—"),
+                escapeCsv(item.label || item.key || "—"),
+                escapeCsv(item.value || 0)
+            ].join(","));
+        });
+    } else {
+        ticketSectionRows.push([escapeCsv("—"), escapeCsv("No recent ticket trends"), "0"].join(","));
+    }
+    ticketSectionRows.push(escapeCsv(dividerSingle));
+    ticketSectionRows.push("");
+
+    // Section 3: Sales Pipeline Performance
+    const pipelineData = typeof pipelineChartData === "function" ? pipelineChartData() : [];
+    const pipelineSectionRows = [
+        escapeCsv("--- SECTION 3: SALES PIPELINE & PROSPECTING INTELLIGENCE ---"),
+        escapeCsv("Pipeline Leads by Stage:"),
+        [escapeCsv("Stage Name"), escapeCsv("Lead Count"), escapeCsv("Est. Monthly Value"), escapeCsv("Stage Classification")].join(",")
+    ];
+
+    if (Array.isArray(pipelineData) && pipelineData.length > 0) {
+        pipelineData.forEach(item => {
+            const classification = item.label.includes("Won") ? "Outcome (Converted)"
+                : item.label.includes("Lost") ? "Outcome (Closed)"
+                : "Active Funnel Stage";
+            pipelineSectionRows.push([
+                escapeCsv(item.label),
+                escapeCsv(item.value || 0),
+                escapeCsv(item.note && item.note !== "—" ? item.note : "—"),
+                escapeCsv(classification)
+            ].join(","));
+        });
+    } else {
+        pipelineSectionRows.push([escapeCsv("No pipeline data available"), "0", "—", "—"].join(","));
+    }
+    pipelineSectionRows.push(escapeCsv(dividerSingle));
+    pipelineSectionRows.push("");
+
+    // Section 4: Branch Operations (Marketing Campaigns & Coaching)
+    const campaigns = typeof getCampaigns === "function" ? getCampaigns() : [];
+    const scheduledCount = campaigns.filter(c => c.status === "Scheduled").length;
+    const runningCount = campaigns.filter(c => c.status === "Running").length;
+    const completedCount = campaigns.filter(c => c.status === "Completed").length;
+
+    const coaches = typeof getCoaches === "function" ? getCoaches() : [];
+    const activeCoaches = coaches.filter(c => !c.archived);
+    const availableCoaches = activeCoaches.filter(c => c.status === "Available");
+
+    const sessions = typeof getCoachSessions === "function" ? getCoachSessions() : [];
+    const todayStr = (typeof dateToIso === "function" ? dateToIso(today) : new Date().toISOString().split("T")[0]);
+    const sessionsToday = sessions.filter(s => s.date === todayStr && !s.archived).length;
+
+    const operationsRows = [
+        escapeCsv("--- SECTION 4: BRANCH OPERATIONS (MARKETING CAMPAIGNS & COACHING) ---"),
+        escapeCsv("Social Media Marketing Campaigns Summary:"),
+        [escapeCsv("Scheduled Campaigns"), escapeCsv("Running Now"), escapeCsv("Completed"), escapeCsv("Total Campaigns")].join(","),
+        [escapeCsv(scheduledCount), escapeCsv(runningCount), escapeCsv(completedCount), escapeCsv(campaigns.length)].join(","),
+        ""
+    ];
+
+    if (campaigns.length > 0) {
+        operationsRows.push(escapeCsv("Marketing Campaign Details:"));
+        operationsRows.push([escapeCsv("#"), escapeCsv("Campaign Title"), escapeCsv("Platform"), escapeCsv("Status"), escapeCsv("Post Link")].join(","));
+        campaigns.forEach((c, idx) => {
+            operationsRows.push([
+                escapeCsv(idx + 1),
+                escapeCsv(c.title || "—"),
+                escapeCsv(c.platform || "—"),
+                escapeCsv(c.status || "—"),
+                escapeCsv(c.postUrl || c.url || "—")
+            ].join(","));
+        });
+        operationsRows.push("");
+    }
+
+    operationsRows.push(escapeCsv("Coaching Staff & Availability Overview:"));
+    operationsRows.push([escapeCsv("Total Coaches"), escapeCsv("Active Coaches"), escapeCsv("Available Now"), escapeCsv("Sessions Today")].join(","));
+    operationsRows.push([escapeCsv(coaches.length), escapeCsv(activeCoaches.length), escapeCsv(availableCoaches.length), escapeCsv(sessionsToday)].join(","));
+    operationsRows.push(escapeCsv(dividerDouble));
+    operationsRows.push("");
+
+    // Report Footer
+    const reportFooter = [
+        escapeCsv("--- END OF EXECUTIVE DASHBOARD REPORT ---"),
+        [escapeCsv("Report Classification:"), escapeCsv("Official Anytime Fitness Executive Dashboard Analytics")].join(","),
+        [escapeCsv("Export Timestamp (ISO):"), escapeCsv(now.toISOString())].join(","),
+        [escapeCsv("Branch:"), escapeCsv("Anytime Fitness Central | CRM Front Desk Portal")].join(","),
+        [escapeCsv("Confidentiality Notice:"), escapeCsv("This document contains proprietary branch operations, revenue estimates, and CRM records. Unauthorized duplication or distribution is prohibited.")].join(","),
+        escapeCsv(dividerDouble)
+    ];
+
+    const fullContent = [
+        ...reportHeaders,
+        ...membershipStatusRows,
+        ...ticketSectionRows,
+        ...pipelineSectionRows,
+        ...operationsRows,
+        ...reportFooter
+    ].join("\r\n");
+
+    const csvContent = "\uFEFF" + fullContent;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `Anytime-Fitness-Dashboard-Report-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function initDashboardExportDropdown() {
+    const csvBtn = document.getElementById("exportDashboardCsvBtn");
+    const pdfBtn = document.getElementById("exportDashboardPdfBtn") || document.getElementById("exportPdfBtn");
+    const dropdownBtn = document.getElementById("exportDropdownBtn");
+    const dropdownMenu = document.getElementById("headerExportMenu");
+
+    // Only run if on a page where dashboard export buttons are present
+    if (!csvBtn && !pdfBtn) return;
+
+    if (dropdownBtn && dropdownMenu && !dropdownBtn.dataset.boundDropdown) {
+        dropdownBtn.dataset.boundDropdown = "1";
+        dropdownBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            const isHidden = dropdownMenu.hidden;
+            dropdownMenu.hidden = !isHidden;
+            dropdownBtn.setAttribute("aria-expanded", String(isHidden));
+        });
+
+        document.addEventListener("click", e => {
+            if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
+                dropdownMenu.hidden = true;
+                dropdownBtn.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape" && !dropdownMenu.hidden) {
+                dropdownMenu.hidden = true;
+                dropdownBtn.setAttribute("aria-expanded", "false");
+                dropdownBtn.focus();
+            }
+        });
+    }
+
+    if (csvBtn && !csvBtn.dataset.boundExport) {
+        csvBtn.dataset.boundExport = "1";
+        csvBtn.addEventListener("click", () => {
+            if (dropdownMenu) dropdownMenu.hidden = true;
+            if (dropdownBtn) dropdownBtn.setAttribute("aria-expanded", "false");
+            if (csvBtn.disabled || (dropdownBtn && dropdownBtn.disabled)) return;
+            exportDashboardReportCsv();
+        });
+    }
+
+    if (pdfBtn && !pdfBtn.dataset.boundExport) {
+        pdfBtn.dataset.boundExport = "1";
+        pdfBtn.addEventListener("click", () => {
+            if (dropdownMenu) dropdownMenu.hidden = true;
+            if (dropdownBtn) dropdownBtn.setAttribute("aria-expanded", "false");
+            if (pdfBtn.disabled || (dropdownBtn && dropdownBtn.disabled)) return;
+            exportDashboardReportPdf(dropdownBtn || pdfBtn);
+        });
+    }
+}
+window.initDashboardExportDropdown = initDashboardExportDropdown;
+window.exportDashboardReportCsv = exportDashboardReportCsv;
+window.exportDashboardReportPdf = exportDashboardReportPdf;
+
+document.addEventListener("DOMContentLoaded", () => {
+    initDashboardExportDropdown();
 });
