@@ -1322,6 +1322,9 @@ window.restoreCoach = (encodedId) => {
     if (window.selectedCoachIds) {
         window.selectedCoachIds.delete(String(id));
     }
+    if (window.selectedArchivedCoachIds) {
+        window.selectedArchivedCoachIds.delete(String(id));
+    }
 
     refreshCoachViews();
 };
@@ -1354,6 +1357,9 @@ window.permanentlyDeleteCoach = (encodedId) => {
     if (window.selectedCoachIds) {
         window.selectedCoachIds.delete(String(id));
     }
+    if (window.selectedArchivedCoachIds) {
+        window.selectedArchivedCoachIds.delete(String(id));
+    }
 
     refreshCoachViews();
 };
@@ -1361,18 +1367,33 @@ window.permanentlyDeleteCoach = (encodedId) => {
 function renderArchivedCoaches() {
     const tbody = document.getElementById("archivedCoachesBody");
     if (!tbody) return;
+
+    if (window.selectedArchivedCoachIds) {
+        const archivedIds = new Set(getArchivedCoaches().map(c => String(c.id)));
+        for (const id of Array.from(window.selectedArchivedCoachIds)) {
+            if (!archivedIds.has(id)) window.selectedArchivedCoachIds.delete(id);
+        }
+    }
+
     const rows = getArchivedCoaches()
         .slice()
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No archived coaches yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No archived coaches yet.</td></tr>';
+        if (typeof updateArchivedCoachesBulkActionBar === "function") updateArchivedCoachesBulkActionBar();
         return;
     }
     rows.forEach(coach => {
         const id = encodeURIComponent(coach.id);
+        const isChecked = window.selectedArchivedCoachIds && window.selectedArchivedCoachIds.has(String(coach.id));
         const tr = document.createElement("tr");
+        tr.dataset.id = String(coach.id);
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="archived-coach-select-checkbox" data-id="${escapeHtml(coach.id)}" ${isChecked ? "checked" : ""} aria-label="Select coach ${escapeHtml(coach.name)}">
+            </td>
             <td><strong>${escapeHtml(coach.name)}</strong><small>${escapeHtml(coachShiftLabel(coach))}</small></td>
             <td>
                 ${escapeHtml(coach.phone || "—")}
@@ -1391,6 +1412,10 @@ function renderArchivedCoaches() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (typeof updateArchivedCoachesBulkActionBar === "function") {
+        updateArchivedCoachesBulkActionBar();
+    }
 }
 
 
@@ -3050,6 +3075,10 @@ function restoreSession(encodedId) {
     delete session.archivedAt;
     saveCoachSessions(sessions);
 
+    if (window.selectedArchivedSessionIds) {
+        window.selectedArchivedSessionIds.delete(String(id));
+    }
+
     renderSessions();
     renderArchivedSessions();
     if (typeof renderCoachSummaryStats === "function") renderCoachSummaryStats();
@@ -3065,6 +3094,10 @@ function permanentlyDeleteSession(encodedId) {
     if (!confirm("Permanently delete this archived session? This cannot be undone.")) return;
     saveCoachSessions(getCoachSessions().filter(s => String(s.id) !== String(id)));
 
+    if (window.selectedArchivedSessionIds) {
+        window.selectedArchivedSessionIds.delete(String(id));
+    }
+
     renderSessions();
     renderArchivedSessions();
     if (typeof renderCoachSummaryStats === "function") renderCoachSummaryStats();
@@ -3074,18 +3107,33 @@ function permanentlyDeleteSession(encodedId) {
 function renderArchivedSessions() {
     const tbody = document.getElementById("archivedSessionsBody");
     if (!tbody) return;
+
+    if (window.selectedArchivedSessionIds) {
+        const archivedIds = new Set(getCoachSessions().filter(s => s.archived).map(s => String(s.id)));
+        for (const id of Array.from(window.selectedArchivedSessionIds)) {
+            if (!archivedIds.has(id)) window.selectedArchivedSessionIds.delete(id);
+        }
+    }
+
     const rows = getCoachSessions()
         .filter(s => s.archived)
         .sort((a, b) => sessionSortValue(b).localeCompare(sessionSortValue(a)));
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No archived sessions yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No archived sessions yet.</td></tr>';
+        if (typeof updateArchivedSessionsBulkActionBar === "function") updateArchivedSessionsBulkActionBar();
         return;
     }
     rows.forEach(session => {
         const id = encodeURIComponent(session.id);
+        const isChecked = window.selectedArchivedSessionIds && window.selectedArchivedSessionIds.has(String(session.id));
         const tr = document.createElement("tr");
+        tr.dataset.id = String(session.id);
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="archived-session-select-checkbox" data-id="${escapeHtml(session.id)}" ${isChecked ? "checked" : ""} aria-label="Select session">
+            </td>
             <td>
                 <strong>${escapeHtml(sessionClientName(session))}</strong>
                 <small>${escapeHtml(sessionClientIdLabel(session))}</small>
@@ -3104,6 +3152,10 @@ function renderArchivedSessions() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (typeof updateArchivedSessionsBulkActionBar === "function") {
+        updateArchivedSessionsBulkActionBar();
+    }
 }
 
 function sessionClientIdLabel(session) {

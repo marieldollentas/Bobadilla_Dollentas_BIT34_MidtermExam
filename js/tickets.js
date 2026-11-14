@@ -1269,6 +1269,12 @@ function restoreTicket(id, source) {
         href: activityHref("tickets.html", item.name)
     });
 
+    if (source === "staff" && window.selectedArchivedStaffTicketIds) {
+        window.selectedArchivedStaffTicketIds.delete(String(id));
+    } else if (source === "customer" && window.selectedArchivedCustomerInquiryIds) {
+        window.selectedArchivedCustomerInquiryIds.delete(String(id));
+    }
+
     renderStaffTickets();
     renderCustomerInquiries();
     renderArchivedTickets();
@@ -1284,6 +1290,12 @@ function permanentlyDeleteTicket(id, source) {
 
     saveTicketStorage(source, getTicketStorage(source).filter(x => String(x.id) !== String(id)));
 
+    if (source === "staff" && window.selectedArchivedStaffTicketIds) {
+        window.selectedArchivedStaffTicketIds.delete(String(id));
+    } else if (source === "customer" && window.selectedArchivedCustomerInquiryIds) {
+        window.selectedArchivedCustomerInquiryIds.delete(String(id));
+    }
+
     renderStaffTickets();
     renderCustomerInquiries();
     renderArchivedTickets();
@@ -1294,15 +1306,34 @@ function renderArchivedTickets() {
     const renderInto = (tbodyId, source, getText) => {
         const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
-        const rows = getTicketStorage(source)
-            .filter(t => t.archived)
+
+        const selSet = source === "staff"
+            ? window.selectedArchivedStaffTicketIds
+            : window.selectedArchivedCustomerInquiryIds;
+        const checkboxClass = source === "staff"
+            ? "archived-staff-ticket-select-checkbox"
+            : "archived-customer-inquiry-select-checkbox";
+
+        const allArchived = getTicketStorage(source).filter(t => t.archived);
+        if (selSet) {
+            const validIds = new Set(allArchived.map(t => String(t.id)));
+            for (const id of Array.from(selSet)) {
+                if (!validIds.has(id)) selSet.delete(id);
+            }
+        }
+
+        const rows = allArchived
+            .slice()
             .sort((a, b) => String(b.id) - String(a.id));
         tbody.innerHTML = "";
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7">No archived tickets yet.</td></tr>';
+            tbody.innerHTML = source === "staff"
+                ? '<tr><td colspan="8">No archived walk-in tickets yet.</td></tr>'
+                : '<tr><td colspan="8">No archived portal inquiries yet.</td></tr>';
             return;
         }
         rows.forEach(t => {
+            const isChecked = selSet && selSet.has(String(t.id));
             const contact = source === "staff"
                 ? (t.contact || "—")
                 : ([t.email, t.phone, t.address].filter(Boolean).join(" | ") || "—");
@@ -1310,7 +1341,12 @@ function renderArchivedTickets() {
                 ? '<span class="badge renewal">Renewal</span>'
                 : "";
             const tr = document.createElement("tr");
+            tr.dataset.id = String(t.id);
+            if (isChecked) tr.classList.add("is-selected");
             tr.innerHTML = `
+                <td class="td-checkbox">
+                    <input type="checkbox" class="${checkboxClass}" data-id="${escapeHtml(t.id)}" ${isChecked ? "checked" : ""} aria-label="Select ticket">
+                </td>
                 <td>${formatDateLogged(t.date)}</td>
                 <td>${escapeHtml(t.name)}</td>
                 <td>${escapeHtml(contact)}</td>
@@ -1329,6 +1365,13 @@ function renderArchivedTickets() {
     };
     renderInto("archivedStaffTicketsBody", "staff", t => t.issue || "");
     renderInto("archivedCustomerInquiriesBody", "customer", t => t.message || "");
+
+    if (typeof updateArchivedStaffTicketsBulkActionBar === "function") {
+        updateArchivedStaffTicketsBulkActionBar();
+    }
+    if (typeof updateArchivedCustomerInquiriesBulkActionBar === "function") {
+        updateArchivedCustomerInquiriesBulkActionBar();
+    }
 }
 
 

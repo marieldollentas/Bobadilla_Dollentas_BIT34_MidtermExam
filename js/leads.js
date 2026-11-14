@@ -373,6 +373,10 @@ function restoreLead(id) {
         href: activityHref("pipeline.html", lead.name)
     });
 
+    if (window.selectedArchivedLeadIds) {
+        window.selectedArchivedLeadIds.delete(String(id));
+    }
+
     renderPipelineBoard();
     renderArchivedLeads();
     if (typeof renderStaffDirectory === "function") renderStaffDirectory();
@@ -385,6 +389,11 @@ function permanentlyDeleteLead(id) {
     }
     if (!confirm("Permanently delete this archived lead? This cannot be undone.")) return;
     savePipelineLeads(getPipelineLeads().filter(l => String(l.id) !== String(id)));
+
+    if (window.selectedArchivedLeadIds) {
+        window.selectedArchivedLeadIds.delete(String(id));
+    }
+
     renderPipelineBoard();
     renderArchivedLeads();
     if (typeof renderStaffDirectory === "function") renderStaffDirectory();
@@ -393,17 +402,32 @@ function permanentlyDeleteLead(id) {
 function renderArchivedLeads() {
     const tbody = document.getElementById("archivedLeadsBody");
     if (!tbody) return;
+
+    if (window.selectedArchivedLeadIds) {
+        const archivedIds = new Set(getPipelineLeads().filter(l => l.archived).map(l => String(l.id)));
+        for (const id of Array.from(window.selectedArchivedLeadIds)) {
+            if (!archivedIds.has(id)) window.selectedArchivedLeadIds.delete(id);
+        }
+    }
+
     const rows = getPipelineLeads()
         .filter(l => l.archived)
         .sort((a, b) => String(b.id) - String(a.id));
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No archived leads yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No archived leads yet.</td></tr>';
+        if (typeof updateArchivedLeadsBulkActionBar === "function") updateArchivedLeadsBulkActionBar();
         return;
     }
     rows.forEach(lead => {
+        const isChecked = window.selectedArchivedLeadIds && window.selectedArchivedLeadIds.has(String(lead.id));
         const tr = document.createElement("tr");
+        tr.dataset.id = String(lead.id);
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="archived-lead-select-checkbox" data-id="${escapeHtml(lead.id)}" ${isChecked ? "checked" : ""} aria-label="Select lead ${escapeHtml(lead.name)}">
+            </td>
             <td>${escapeHtml(lead.name)}</td>
             <td>${escapeHtml(lead.staff || "—")}</td>
             <td>${escapeHtml(serviceTierLabel(lead.tier) || lead.tier || "—")}</td>
@@ -419,6 +443,10 @@ function renderArchivedLeads() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (typeof updateArchivedLeadsBulkActionBar === "function") {
+        updateArchivedLeadsBulkActionBar();
+    }
 }
 
 // ============================================================================

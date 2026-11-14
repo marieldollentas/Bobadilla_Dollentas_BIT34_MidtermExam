@@ -5581,7 +5581,19 @@ textarea.input-invalid {
 .staff-ticket-select-checkbox,
 #selectAllStaffTickets,
 .customer-inquiry-select-checkbox,
-#selectAllCustomerInquiries {
+#selectAllCustomerInquiries,
+.archived-member-select-checkbox,
+#selectAllArchivedMembers,
+.archived-coach-select-checkbox,
+#selectAllArchivedCoaches,
+.archived-staff-ticket-select-checkbox,
+#selectAllArchivedStaffTickets,
+.archived-customer-inquiry-select-checkbox,
+#selectAllArchivedCustomerInquiries,
+.archived-lead-select-checkbox,
+#selectAllArchivedLeads,
+.archived-session-select-checkbox,
+#selectAllArchivedSessions {
     width: 16px;
     height: 16px;
     accent-color: var(--primary);
@@ -5606,6 +5618,15 @@ textarea.input-invalid {
 }
 .btn-bulk-reassign:hover {
     background: #fbe5d5;
+}
+
+.btn-bulk-restore {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-color: #c7d2fe;
+}
+.btn-bulk-restore:hover {
+    background: #c7d2fe;
 }
 
 .btn-bulk-delete {

@@ -129,6 +129,10 @@ document.addEventListener("DOMContentLoaded", () => {
             href: activityHref("members.html", member.name)
         });
 
+        if (window.selectedArchivedMemberIds) {
+            window.selectedArchivedMemberIds.delete(String(id));
+        }
+
         renderCustomerDirectory();
         renderArchivedMembers();
         countExpiringMembers();
@@ -160,6 +164,10 @@ document.addEventListener("DOMContentLoaded", () => {
             meta: `${member.tier || "Membership"} • Joined ${member.joined || "—"}`,
             href: activityHref("archive.html", member.name || "")
         });
+
+        if (window.selectedArchivedMemberIds) {
+            window.selectedArchivedMemberIds.delete(String(id));
+        }
 
         renderCustomerDirectory();
         renderArchivedMembers();

@@ -125,10 +125,33 @@
                         <input type="text" id="archiveMemberSearch" class="search-input archive-search-input" placeholder="Search archived members..." aria-label="Search archived members">
                     </div>
 
+                    <div id="archivedMembersBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedMembersBulkSelectedCount">0</span>
+                                <span id="archivedMembersBulkSelectedLabel">members selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedMembersBulkSelectAllMatchingBtn">Select all matching (<span id="archivedMembersBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedMembersBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedMembersRestoreBtn" title="Restore selected members">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedMembersDeleteBtn" title="Delete selected members permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedMembersBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedMembers" aria-label="Select all archived members"></th>
                                     <th>Full Name</th>
                                     <th>Contact Info</th>
                                     <th>Key Fob Number</th>
@@ -152,10 +175,33 @@
                         <input type="text" id="archiveCoachSearch" class="search-input archive-search-input" placeholder="Search archived coaches..." aria-label="Search archived coaches">
                     </div>
 
+                    <div id="archivedCoachesBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedCoachesBulkSelectedCount">0</span>
+                                <span id="archivedCoachesBulkSelectedLabel">coaches selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedCoachesBulkSelectAllMatchingBtn">Select all matching (<span id="archivedCoachesBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedCoachesBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedCoachesRestoreBtn" title="Restore selected coaches">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedCoachesDeleteBtn" title="Delete selected coaches permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedCoachesBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedCoaches" aria-label="Select all archived coaches"></th>
                                     <th>Name</th>
                                     <th>Contact</th>
                                     <th>Specializations</th>
@@ -179,10 +225,33 @@
                         <input type="text" id="archiveStaffTicketSearch" class="search-input archive-search-input" placeholder="Search archived walk-in tickets..." aria-label="Search archived walk-in tickets">
                     </div>
 
+                    <div id="archivedStaffTicketsBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedStaffTicketsBulkSelectedCount">0</span>
+                                <span id="archivedStaffTicketsBulkSelectedLabel">tickets selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedStaffTicketsBulkSelectAllMatchingBtn">Select all matching (<span id="archivedStaffTicketsBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedStaffTicketsBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedStaffTicketsRestoreBtn" title="Restore selected tickets">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedStaffTicketsDeleteBtn" title="Delete selected tickets permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedStaffTicketsBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedStaffTickets" aria-label="Select all archived walk-in tickets"></th>
                                     <th>Date Logged</th>
                                     <th>Name</th>
                                     <th>Contact</th>
@@ -206,10 +275,33 @@
                         <input type="text" id="archiveCustomerInquirySearch" class="search-input archive-search-input" placeholder="Search archived portal inquiries..." aria-label="Search archived portal inquiries">
                     </div>
 
+                    <div id="archivedCustomerInquiriesBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedCustomerInquiriesBulkSelectedCount">0</span>
+                                <span id="archivedCustomerInquiriesBulkSelectedLabel">inquiries selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedCustomerInquiriesBulkSelectAllMatchingBtn">Select all matching (<span id="archivedCustomerInquiriesBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedCustomerInquiriesBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedCustomerInquiriesRestoreBtn" title="Restore selected inquiries">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedCustomerInquiriesDeleteBtn" title="Delete selected inquiries permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedCustomerInquiriesBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedCustomerInquiries" aria-label="Select all archived customer inquiries"></th>
                                     <th>Date Logged</th>
                                     <th>Name</th>
                                     <th>Contact</th>
@@ -233,10 +325,33 @@
                         <input type="text" id="archiveLeadSearch" class="search-input archive-search-input" placeholder="Search archived leads..." aria-label="Search archived leads">
                     </div>
 
+                    <div id="archivedLeadsBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedLeadsBulkSelectedCount">0</span>
+                                <span id="archivedLeadsBulkSelectedLabel">leads selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedLeadsBulkSelectAllMatchingBtn">Select all matching (<span id="archivedLeadsBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedLeadsBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedLeadsRestoreBtn" title="Restore selected leads">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedLeadsDeleteBtn" title="Delete selected leads permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedLeadsBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedLeads" aria-label="Select all archived leads"></th>
                                     <th>Name</th>
                                     <th>Assigned Staff</th>
                                     <th>Tier</th>
@@ -260,10 +375,33 @@
                         <input type="text" id="archiveSessionSearch" class="search-input archive-search-input" placeholder="Search archived sessions..." aria-label="Search archived sessions">
                     </div>
 
+                    <div id="archivedSessionsBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="archivedSessionsBulkSelectedCount">0</span>
+                                <span id="archivedSessionsBulkSelectedLabel">sessions selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="archivedSessionsBulkSelectAllMatchingBtn">Select all matching (<span id="archivedSessionsBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="archivedSessionsBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-restore" id="bulkArchivedSessionsRestoreBtn" title="Restore selected sessions">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span>Restore Selected</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkArchivedSessionsDeleteBtn" title="Delete selected sessions permanently">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Delete Permanently</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="archivedSessionsBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap" style="margin-top: 16px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox"><input type="checkbox" id="selectAllArchivedSessions" aria-label="Select all archived sessions"></th>
                                     <th>Client</th>
                                     <th>Date</th>
                                     <th>Time</th>
@@ -291,5 +429,6 @@
     <script src="js/coaches.js" defer></script>
     <script src="js/dashboard.js" defer></script>
     <script src="js/main.js" defer></script>
+    <script src="js/archive.js" defer></script>
 </body>
 </html>

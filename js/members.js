@@ -1291,16 +1291,30 @@ function renderArchivedMembers() {
     const tbody = document.getElementById("archivedTableBody");
     if (!tbody) return;
 
+    if (window.selectedArchivedMemberIds) {
+        const archivedIds = new Set(getArchivedDirectoryCustomers().map(c => String(c.id)));
+        for (const id of Array.from(window.selectedArchivedMemberIds)) {
+            if (!archivedIds.has(id)) window.selectedArchivedMemberIds.delete(id);
+        }
+    }
+
     const rows = getArchivedDirectoryCustomers();
     tbody.innerHTML = "";
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No archived members yet. Archiving a member keeps their record here.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No archived members yet. Archiving a member keeps their record here.</td></tr>';
+        if (typeof updateArchivedMembersBulkActionBar === "function") updateArchivedMembersBulkActionBar();
         return;
     }
 
     rows.forEach(c => {
+        const isChecked = window.selectedArchivedMemberIds && window.selectedArchivedMemberIds.has(String(c.id));
         const tr = document.createElement("tr");
+        tr.dataset.id = String(c.id);
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="archived-member-select-checkbox" data-id="${escapeHtml(c.id)}" ${isChecked ? "checked" : ""} aria-label="Select member ${escapeHtml(c.name)}">
+            </td>
             <td>${escapeHtml(c.name)}</td>
             <td>${escapeHtml(c.contact || "—")}</td>
             <td>${escapeHtml(c.keyFob || "—")}</td>
@@ -1317,6 +1331,10 @@ function renderArchivedMembers() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (typeof updateArchivedMembersBulkActionBar === "function") {
+        updateArchivedMembersBulkActionBar();
+    }
 }
 
 // ---- Dashboard Charts ----
