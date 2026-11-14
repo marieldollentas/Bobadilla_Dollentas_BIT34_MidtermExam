@@ -189,17 +189,49 @@
                     </div>
                 </section>
 
-                <section class="content-section">
+                <section class="content-section" id="staffTicketsSection">
                     <div class="card-head">
                         <div>
                             <h2>Staff Logged Walk-in Tickets</h2>
                             <p class="card-sub">Requests captured at the front desk</p>
                         </div>
+                        <span class="card-chip" id="staffTicketCount">0 tickets</span>
                     </div>
+
+                    <!-- Bulk Actions Bar for Staff Logged Walk-in Tickets -->
+                    <div id="staffTicketBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="staffTicketBulkSelectedCount">0</span>
+                                <span id="staffTicketBulkSelectedLabel">tickets selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="staffTicketBulkSelectAllMatchingBtn">Select all matching (<span id="staffTicketBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="staffTicketBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-status" id="bulkStaffTicketStatusBtn" title="Change status of selected tickets">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Change Status</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-tier" id="bulkStaffTicketPriorityBtn" title="Change priority of selected tickets">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                <span>Change Priority</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-archive" id="bulkStaffTicketArchiveBtn" title="Archive selected tickets">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+                                <span>Archive Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="staffTicketBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllStaffTickets" title="Select all visible tickets" aria-label="Select all visible tickets">
+                                    </th>
                                     <th>Date Logged</th>
                                     <th>Customer Name</th>
                                     <th>Contact Info</th>
@@ -214,17 +246,49 @@
                     </div>
                 </section>
 
-                <section class="content-section">
+                <section class="content-section" id="customerInquiriesSection">
                     <div class="card-head">
                         <div>
                             <h2>Customer Portal Inquiries</h2>
                             <p class="card-sub">Inquiries submitted by customers from the member portal, including their contact details.</p>
                         </div>
+                        <span class="card-chip" id="customerInquiryCount">0 inquiries</span>
                     </div>
+
+                    <!-- Bulk Actions Bar for Customer Portal Inquiries -->
+                    <div id="customerInquiryBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 14px; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="customerInquiryBulkSelectedCount">0</span>
+                                <span id="customerInquiryBulkSelectedLabel">inquiries selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="customerInquiryBulkSelectAllMatchingBtn">Select all matching (<span id="customerInquiryBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="customerInquiryBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-status" id="bulkCustomerInquiryStatusBtn" title="Change status of selected inquiries">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Change Status</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-tier" id="bulkCustomerInquiryPriorityBtn" title="Change priority of selected inquiries">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                <span>Change Priority</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-archive" id="bulkCustomerInquiryArchiveBtn" title="Archive selected inquiries">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+                                <span>Archive Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="customerInquiryBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllCustomerInquiries" title="Select all visible inquiries" aria-label="Select all visible inquiries">
+                                    </th>
                                     <th>Date Logged</th>
                                     <th>Customer Name</th>
                                     <th>Contact Info</th>
@@ -374,6 +438,120 @@
                 <button id="cancelArchiveBtn" class="btn-secondary">Cancel</button>
                 <button id="confirmArchiveBtn" class="btn-primary">Archive</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Bulk Change Staff Ticket Status Modal -->
+    <div id="bulkStaffTicketStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkStaffTicketStatusTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkStaffTicketStatusModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkStaffTicketStatusTitle">Change Ticket Status in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update ticket resolution status for all selected staff walk-in tickets.</p>
+            <form id="bulkStaffTicketStatusForm" onsubmit="event.preventDefault(); window.confirmBulkStaffTicketStatus();">
+                <div class="bulk-summary-card" id="bulkStaffTicketStatusSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkStaffTicketStatusSelect">New Ticket Status <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkStaffTicketStatusSelect" class="search-input" required>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+
+                <p class="error-msg" id="bulkStaffTicketStatusError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkStaffTicketStatusModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkStaffTicketStatusBtn">Apply Status Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Staff Ticket Priority Modal -->
+    <div id="bulkStaffTicketPriorityModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkStaffTicketPriorityTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkStaffTicketPriorityModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkStaffTicketPriorityTitle">Change Ticket Priority in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update urgency priority for all selected staff walk-in tickets.</p>
+            <form id="bulkStaffTicketPriorityForm" onsubmit="event.preventDefault(); window.confirmBulkStaffTicketPriority();">
+                <div class="bulk-summary-card" id="bulkStaffTicketPrioritySummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkStaffTicketPrioritySelect">New Ticket Priority <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkStaffTicketPrioritySelect" class="search-input" required>
+                        <option value="Not Defined">Not Defined</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+
+                <p class="error-msg" id="bulkStaffTicketPriorityError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkStaffTicketPriorityModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkStaffTicketPriorityBtn">Apply Priority Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Customer Inquiry Status Modal -->
+    <div id="bulkCustomerInquiryStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkCustomerInquiryStatusTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkCustomerInquiryStatusModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkCustomerInquiryStatusTitle">Change Inquiry Status in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update resolution status for all selected customer portal inquiries.</p>
+            <form id="bulkCustomerInquiryStatusForm" onsubmit="event.preventDefault(); window.confirmBulkCustomerInquiryStatus();">
+                <div class="bulk-summary-card" id="bulkCustomerInquiryStatusSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkCustomerInquiryStatusSelect">New Inquiry Status <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkCustomerInquiryStatusSelect" class="search-input" required>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+
+                <p class="error-msg" id="bulkCustomerInquiryStatusError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkCustomerInquiryStatusModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkCustomerInquiryStatusBtn">Apply Status Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Customer Inquiry Priority Modal -->
+    <div id="bulkCustomerInquiryPriorityModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkCustomerInquiryPriorityTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkCustomerInquiryPriorityModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkCustomerInquiryPriorityTitle">Change Inquiry Priority in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update urgency priority for all selected customer portal inquiries.</p>
+            <form id="bulkCustomerInquiryPriorityForm" onsubmit="event.preventDefault(); window.confirmBulkCustomerInquiryPriority();">
+                <div class="bulk-summary-card" id="bulkCustomerInquiryPrioritySummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkCustomerInquiryPrioritySelect">New Inquiry Priority <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkCustomerInquiryPrioritySelect" class="search-input" required>
+                        <option value="Not Defined">Not Defined</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+
+                <p class="error-msg" id="bulkCustomerInquiryPriorityError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkCustomerInquiryPriorityModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkCustomerInquiryPriorityBtn">Apply Priority Change</button>
+                </div>
+            </form>
         </div>
     </div>
 

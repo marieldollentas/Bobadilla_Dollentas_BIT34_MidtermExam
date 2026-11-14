@@ -5577,7 +5577,11 @@ textarea.input-invalid {
 .assignment-select-checkbox,
 #selectAllAssignments,
 .session-select-checkbox,
-#selectAllSessions {
+#selectAllSessions,
+.staff-ticket-select-checkbox,
+#selectAllStaffTickets,
+.customer-inquiry-select-checkbox,
+#selectAllCustomerInquiries {
     width: 16px;
     height: 16px;
     accent-color: var(--primary);
