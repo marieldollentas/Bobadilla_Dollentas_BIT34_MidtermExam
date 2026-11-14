@@ -512,6 +512,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (openPipelineModalBtn) {
         openPipelineModalBtn.addEventListener("click", () => {
             pipelineForm.reset();
+            if (typeof renderStaffOptions === "function") {
+                renderStaffOptions(document.getElementById("leadStaff"), false);
+            }
             document.getElementById("leadId").value = "";
             document.getElementById("leadStage").value = "new-lead";
             document.getElementById("lostReasonGroup").style.display = "none";
@@ -587,6 +590,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            const chosenStaff = (document.getElementById("leadStaff") || {}).value || "";
+            const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+            const targetStaff = staffList.find(s => s.name === chosenStaff || (typeof normalizePipelineStaff === "function" && normalizePipelineStaff(s.name) === normalizePipelineStaff(chosenStaff)));
+
+            if (targetStaff && targetStaff.status !== "Active") {
+                alert(`Cannot assign lead to "${targetStaff.name}" because their status is currently "${targetStaff.status}". Staff who are inactive or on leave cannot be assigned with a lead. Please select an Active staff member.`);
+                return;
+            }
+
             const data = {
                 name,
                 firstName: nameParts.firstName,
@@ -621,6 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
             logLeadActivity(previous, data, !previous);
             pipelineModal.style.display = "none";
             renderPipelineBoard();
+            if (typeof renderStaffDirectory === "function") renderStaffDirectory();
         });
     }
 

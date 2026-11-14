@@ -82,10 +82,86 @@ const PIPELINE_STAGES = [
 // Add/Edit Prospecting Client form are populated from this list so the
 // available staff can never drift apart between the two.
 
+const PIPELINE_STAFF_KEY = "crmStaffDirectory";
+const PIPELINE_STAFF_ROLES = [
+    "Sales Consultant",
+    "Membership Advisor",
+    "Front Desk Agent",
+    "Sales Manager",
+    "Fitness Coach"
+];
+const PIPELINE_STAFF_STATUSES = ["Active", "On Leave", "Inactive"];
+
+const DEFAULT_STAFF_DIRECTORY = [
+    {
+        id: 1,
+        name: "Coach Joeff",
+        firstName: "Joeff",
+        middleName: "",
+        lastName: "Bobadilla",
+        role: "Fitness Coach",
+        email: "joeff@anytimefitness.ph",
+        phone: "09171112222",
+        status: "Active",
+        createdAt: "2026-11-14T08:00:00.000Z"
+    },
+    {
+        id: 2,
+        name: "Agent Mariel",
+        firstName: "Mariel",
+        middleName: "",
+        lastName: "Dollentas",
+        role: "Sales Consultant",
+        email: "mariel@anytimefitness.ph",
+        phone: "09173334444",
+        status: "Active",
+        createdAt: "2026-11-14T08:00:00.000Z"
+    }
+];
+
+function getPipelineStaffList() {
+    const raw = localStorage.getItem(PIPELINE_STAFF_KEY);
+    if (!raw) {
+        localStorage.setItem(PIPELINE_STAFF_KEY, JSON.stringify(DEFAULT_STAFF_DIRECTORY));
+        return DEFAULT_STAFF_DIRECTORY.map(s => ({ ...s }));
+    }
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (e) {}
+    return DEFAULT_STAFF_DIRECTORY.map(s => ({ ...s }));
+}
+
+function savePipelineStaffList(list) {
+    localStorage.setItem(PIPELINE_STAFF_KEY, JSON.stringify(list));
+    syncPipelineStaffArray();
+}
+
+function syncPipelineStaffArray() {
+    const list = getPipelineStaffList();
+    const activeNames = list
+        .filter(s => s && s.status === "Active")
+        .map(s => {
+            if (s.name) return s.name;
+            const fn = (typeof combineNameParts === "function")
+                ? combineNameParts(s.firstName, s.middleName, s.lastName)
+                : [s.firstName, s.middleName, s.lastName].filter(Boolean).join(" ");
+            return fn || "Staff Member";
+        });
+    PIPELINE_STAFF.length = 0;
+    if (activeNames.length) {
+        activeNames.forEach(n => {
+            if (n && !PIPELINE_STAFF.includes(n)) PIPELINE_STAFF.push(n);
+        });
+    } else if (!list.length) {
+        PIPELINE_STAFF.push("Coach Joeff", "Agent Mariel");
+    }
+}
 
 // js-split:file=data.js part=7of59
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 const PIPELINE_STAFF = ["Coach Joeff", "Agent Mariel"];
+syncPipelineStaffArray();
 
 // Legacy names kept so leads saved before the staff rename still resolve to a
 // valid option instead of appearing as an unassigned staff member.

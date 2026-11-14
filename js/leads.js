@@ -1,13 +1,72 @@
 // js-split:file=leads.js part=1of8
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function renderStaffOptions(select, includeAll) {
+function renderStaffOptions(select, includeAll, selectedStaff) {
     if (!select) return;
-    const options = [];
-    if (includeAll) options.push({ value: "all", label: "All Staff" });
-    PIPELINE_STAFF.forEach(name => options.push({ value: name, label: name }));
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+
+    if (includeAll) {
+        // Staff filter bar (top of pipeline page)
+        const currentVal = selectedStaff !== undefined ? selectedStaff : select.value;
+        const options = [{ value: "all", label: "All Staff" }];
+        staffList.forEach(s => {
+            const staffName = s.name || (typeof combineNameParts === "function" ? combineNameParts(s.firstName, s.middleName, s.lastName) : "Staff Member");
+            const label = s.status === "Active" ? staffName : `${staffName} (${s.status})`;
+            options.push({ value: staffName, label });
+        });
+        select.innerHTML = options.map(o =>
+            `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`
+        ).join("");
+        if (currentVal && options.some(o => o.value === currentVal)) {
+            select.value = currentVal;
+        }
+        return;
+    }
+
+    // Lead assignment dropdown (e.g. #leadStaff modal)
+    // Only Active staff are eligible for assignment!
+    // Staff who are Inactive or On Leave must NOT be selectable.
+    const activeStaff = staffList.filter(s => s && s.status === "Active");
+    const options = activeStaff.map(s => {
+        const staffName = s.name || (typeof combineNameParts === "function" ? combineNameParts(s.firstName, s.middleName, s.lastName) : "Staff Member");
+        return {
+            value: staffName,
+            label: staffName,
+            disabled: false
+        };
+    });
+
+    // If an existing lead is being edited and is assigned to a staff member who is now On Leave or Inactive:
+    // Only show that inactive/on-leave staff member if selectedStaff was explicitly provided!
+    if (selectedStaff && !activeStaff.some(s => s.name === selectedStaff)) {
+        const currentRecord = staffList.find(s => s.name === selectedStaff || (typeof normalizePipelineStaff === "function" && normalizePipelineStaff(s.name) === normalizePipelineStaff(selectedStaff)));
+        const statusText = currentRecord ? currentRecord.status : "Unavailable";
+        options.unshift({
+            value: selectedStaff,
+            label: `${selectedStaff} (${statusText} — Cannot be assigned)`,
+            disabled: true
+        });
+    }
+
+    if (options.length === 0) {
+        options.push({
+            value: "",
+            label: "No active staff available (All on leave or inactive)",
+            disabled: true
+        });
+    }
+
     select.innerHTML = options.map(o =>
-        `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`
+        `<option value="${escapeHtml(o.value)}"${o.disabled ? " disabled" : ""}>${escapeHtml(o.label)}</option>`
     ).join("");
+
+    const targetVal = selectedStaff !== undefined ? selectedStaff : select.value;
+    if (targetVal && options.some(o => o.value === targetVal && !o.disabled)) {
+        select.value = targetVal;
+    } else if (activeStaff.length > 0) {
+        select.value = activeStaff[0].name;
+    } else if (selectedStaff) {
+        select.value = selectedStaff;
+    }
 }
 
 // Anytime Fitness membership tiers (term-based) — matches "Membership Tiers Info"
@@ -29,16 +88,48 @@ function pipelineFilters() {
 // js-split:file=leads.js part=3of8
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 function staffSelectHtml(lead) {
-    const options = PIPELINE_STAFF.map(name =>
-        `<option value="${escapeHtml(name)}"${name === lead.staff ? " selected" : ""}>${escapeHtml(name)}</option>`
-    ).join("");
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const activeStaff = staffList.filter(s => s && s.status === "Active");
+
+    const currentStaffMember = staffList.find(s => s.name === lead.staff || (typeof normalizePipelineStaff === "function" && normalizePipelineStaff(s.name) === normalizePipelineStaff(lead.staff)));
+    const isCurrentActive = currentStaffMember ? currentStaffMember.status === "Active" : activeStaff.some(s => s.name === lead.staff);
+
+    const options = [];
+
+    // If current staff is On Leave or Inactive, display as current assignment, disabled with status tag
+    if (!isCurrentActive && lead.staff) {
+        const statusLabel = currentStaffMember ? currentStaffMember.status : "Unavailable";
+        options.push(`
+            <option value="${escapeHtml(lead.staff)}" selected disabled>
+                ${escapeHtml(lead.staff)} (${escapeHtml(statusLabel)} — Reassign)
+            </option>
+        `);
+    }
+
+    // Only active staff can be chosen for assignment
+    activeStaff.forEach(s => {
+        const staffName = s.name || (typeof combineNameParts === "function" ? combineNameParts(s.firstName, s.middleName, s.lastName) : "Staff Member");
+        const isSelected = isCurrentActive && (staffName === lead.staff || (typeof normalizePipelineStaff === "function" && normalizePipelineStaff(staffName) === normalizePipelineStaff(lead.staff)));
+        options.push(`
+            <option value="${escapeHtml(staffName)}"${isSelected ? " selected" : ""}>
+                ${escapeHtml(staffName)}
+            </option>
+        `);
+    });
+
+    if (options.length === 0) {
+        options.push(`<option value="" disabled selected>No active staff available</option>`);
+    }
+
+    const warningClass = (!isCurrentActive && lead.staff) ? " staff-on-leave" : "";
+
     return `
-        <label class="staff-inline">
+        <label class="staff-inline${warningClass}">
             <span class="staff-inline-label">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>
                 Assigned Staff
             </span>
-            <select class="staff-inline-select" onchange="updateLeadStaff(${lead.id}, this.value)" aria-label="Assigned staff for ${escapeHtml(lead.name)}">${options}</select>
+            <select class="staff-inline-select" onchange="updateLeadStaff(${lead.id}, this.value)" aria-label="Assigned staff for ${escapeHtml(lead.name)}">${options.join("")}</select>
         </label>
     `;
 }
@@ -56,6 +147,16 @@ function updateLeadStaff(id, staff) {
     const idx = leads.findIndex(l => String(l.id) === String(id));
     if (idx === -1) return;
 
+    // Strict validation: Inactive or On Leave staff CANNOT be assigned with a lead
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const targetStaff = staffList.find(s => s.name === staff || (typeof normalizePipelineStaff === "function" && normalizePipelineStaff(s.name) === normalizePipelineStaff(staff)));
+
+    if (targetStaff && targetStaff.status !== "Active") {
+        alert(`Cannot assign lead to "${targetStaff.name}" because their status is currently "${targetStaff.status}". Staff who are inactive or on leave cannot be assigned with a lead.`);
+        renderPipelineBoard();
+        return;
+    }
+
     const nextStaff = normalizePipelineStaff(staff);
     if (normalizePipelineStaff(leads[idx].staff) === nextStaff) return;
 
@@ -63,6 +164,7 @@ function updateLeadStaff(id, staff) {
     savePipelineLeads(leads);
     logLeadStaffAssigned(leads[idx], nextStaff);
     renderPipelineBoard();
+    if (typeof renderStaffDirectory === "function") renderStaffDirectory();
 }
 
 
@@ -207,7 +309,11 @@ function openEditPipelineLead(id) {
     document.getElementById("leadPhone").value = phPhoneNationalDigits(lead.phone || "");
     (document.getElementById("leadEmail") || {}).value = lead.email || "";
     document.getElementById("leadTier").value = lead.tier;
-    document.getElementById("leadStaff").value = lead.staff;
+    const leadStaffSelect = document.getElementById("leadStaff");
+    if (leadStaffSelect) {
+        renderStaffOptions(leadStaffSelect, false, lead.staff);
+        leadStaffSelect.value = lead.staff;
+    }
     document.getElementById("leadHeat").value = lead.heat || "Warm";
     document.getElementById("leadStage").value = lead.stage;
     applyLeadFollowUpBounds(lead.followUp);
@@ -248,6 +354,7 @@ function archiveLead(id) {
 
     renderPipelineBoard();
     renderArchivedLeads();
+    if (typeof renderStaffDirectory === "function") renderStaffDirectory();
 }
 
 function restoreLead(id) {
@@ -268,6 +375,7 @@ function restoreLead(id) {
 
     renderPipelineBoard();
     renderArchivedLeads();
+    if (typeof renderStaffDirectory === "function") renderStaffDirectory();
 }
 
 function permanentlyDeleteLead(id) {
@@ -279,6 +387,7 @@ function permanentlyDeleteLead(id) {
     savePipelineLeads(getPipelineLeads().filter(l => String(l.id) !== String(id)));
     renderPipelineBoard();
     renderArchivedLeads();
+    if (typeof renderStaffDirectory === "function") renderStaffDirectory();
 }
 
 function renderArchivedLeads() {
@@ -311,5 +420,577 @@ function renderArchivedLeads() {
         tbody.appendChild(tr);
     });
 }
+
+// ============================================================================
+// Sales Staff & Agents Directory (Option A: Stacked below the Kanban board)
+// ============================================================================
+
+function refreshAllPipelineStaffViews() {
+    if (typeof syncPipelineStaffArray === "function") {
+        syncPipelineStaffArray();
+    }
+    const filterStaff = document.getElementById("filterStaff");
+    const leadStaff = document.getElementById("leadStaff");
+    if (filterStaff) renderStaffOptions(filterStaff, true);
+    if (leadStaff) renderStaffOptions(leadStaff, false);
+    if (typeof renderPipelineBoard === "function") renderPipelineBoard();
+    renderStaffDirectory();
+}
+
+function getStaffInitials(name) {
+    if (!name) return "ST";
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatDisplayPhone(phone) {
+    if (!phone) return "—";
+    const digits = (typeof phPhoneNationalDigits === "function") ? phPhoneNationalDigits(phone) : String(phone).replace(/\D/g, "");
+    if (digits.length === 10) {
+        return `+63 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    }
+    return phone;
+}
+
+function clearStaffFormErrors() {
+    const errorEl = document.getElementById("staffFormError");
+    if (errorEl) {
+        errorEl.textContent = "";
+        delete errorEl.dataset.field;
+    }
+    ["staffFirstName", "staffMiddleName", "staffLastName", "staffRole", "staffEmail", "staffPhone", "staffStatus"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("input-invalid");
+    });
+}
+
+function setStaffFieldError(fieldId, message) {
+    const errorEl = document.getElementById("staffFormError");
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.dataset.field = fieldId;
+    }
+    const el = document.getElementById(fieldId);
+    if (el) {
+        el.classList.add("input-invalid");
+        el.focus();
+    }
+    return false;
+}
+
+function renderStaffDirectory() {
+    const tbody = document.getElementById("staffTableBody");
+    if (!tbody) return;
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const searchQuery = ((document.getElementById("searchStaff") || {}).value || "").trim().toLowerCase();
+    const roleFilter = (document.getElementById("filterStaffRole") || {}).value || "all";
+    const statusFilter = (document.getElementById("filterStaffStatus") || {}).value || "all";
+
+    const filtered = staffList.filter(staff => {
+        if (roleFilter !== "all" && staff.role !== roleFilter) return false;
+        if (statusFilter !== "all" && staff.status !== statusFilter) return false;
+        if (searchQuery) {
+            const haystack = [
+                staff.name,
+                staff.firstName,
+                staff.middleName,
+                staff.lastName,
+                staff.role,
+                staff.email,
+                staff.phone,
+                staff.status
+            ].filter(Boolean).join(" ").toLowerCase();
+            if (!haystack.includes(searchQuery)) return false;
+        }
+        return true;
+    });
+
+    const countEl = document.getElementById("staffDirectoryCount");
+    if (countEl) {
+        if (staffList.length === 0) {
+            countEl.textContent = "0 staff members";
+        } else if (filtered.length === staffList.length) {
+            countEl.textContent = `${staffList.length} staff member${staffList.length === 1 ? "" : "s"}`;
+        } else {
+            countEl.textContent = `Showing ${filtered.length} of ${staffList.length} staff member${staffList.length === 1 ? "" : "s"}`;
+        }
+    }
+
+    tbody.innerHTML = "";
+    if (staffList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No sales staff registered yet. Click <strong>+ Add Staff Member</strong> to get started.</td></tr>';
+        return;
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No staff members match your filter criteria. <button type="button" onclick="resetStaffFilters()" style="color: var(--primary); text-decoration: underline; background: none; border: none; font-weight: 600; cursor: pointer;">Reset filters</button></td></tr>';
+        return;
+    }
+
+    const allLeads = (typeof getPipelineLeads === "function") ? getPipelineLeads().filter(l => !l.archived) : [];
+
+    filtered.forEach(staff => {
+        const staffName = staff.name || (typeof combineNameParts === "function" ? combineNameParts(staff.firstName, staff.middleName, staff.lastName) : `${staff.firstName || ""} ${staff.lastName || ""}`.trim());
+        const staffRole = staff.role || "Sales Consultant";
+        const staffStatus = staff.status || "Active";
+        const staffPhone = staff.phone || "";
+        const staffEmail = staff.email || "";
+
+        // Deals calculation
+        const assignedLeads = allLeads.filter(l => {
+            const leadStaffNorm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(l.staff) : l.staff;
+            const staffNorm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(staffName) : staffName;
+            return leadStaffNorm === staffNorm || l.staff === staffName;
+        });
+
+        const activeDeals = assignedLeads.filter(l => l.stage !== "lost");
+        const wonDeals = assignedLeads.filter(l => l.stage === "won");
+        const pipelineValue = activeDeals.reduce((sum, l) => sum + (Number(l.monthlyValue) || 0), 0);
+
+        // Status badge tone
+        const statusCls = staffStatus === "Active" ? "active" : (staffStatus === "On Leave" ? "warning" : "danger");
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <div class="staff-profile-chip">
+                    <span class="avatar">${escapeHtml(getStaffInitials(staffName))}</span>
+                    <div class="staff-profile-info">
+                        <strong>${escapeHtml(staffName)}</strong>
+                        <small>${escapeHtml(staffRole)}</small>
+                    </div>
+                </div>
+            </td>
+            <td><strong>${escapeHtml(staffRole)}</strong></td>
+            <td>
+                ${escapeHtml(formatDisplayPhone(staffPhone))}
+                <br>
+                <small style="color: var(--text-muted);">${staffEmail ? `<a href="mailto:${escapeHtml(staffEmail)}" style="color: inherit; text-decoration: underline;">${escapeHtml(staffEmail)}</a>` : "—"}</small>
+            </td>
+            <td style="text-align: center;">
+                <span class="badge ${activeDeals.length > 0 ? 'active' : 'open'}">${activeDeals.length} ${activeDeals.length === 1 ? 'deal' : 'deals'}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="badge ${wonDeals.length > 0 ? 'active' : 'open'}">${wonDeals.length} won</span>
+            </td>
+            <td style="text-align: right;">
+                <strong>₱${pipelineValue.toLocaleString()}</strong><small style="color: var(--text-muted); font-size: 11px;">/mo</small>
+            </td>
+            <td style="text-align: center;">
+                <span class="badge ${statusCls}">${escapeHtml(staffStatus)}</span>
+            </td>
+            <td style="text-align: right;">
+                <div class="row-actions" style="justify-content: flex-end; gap: 6px;">
+                    <button type="button" class="btn-view" onclick="openEditStaff('${encodeURIComponent(staff.id)}')">Edit</button>
+                    <button type="button" class="btn-delete" onclick="deleteStaffMember('${encodeURIComponent(staff.id)}')">Delete</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function resetStaffFilters() {
+    const searchInput = document.getElementById("searchStaff");
+    const roleFilter = document.getElementById("filterStaffRole");
+    const statusFilter = document.getElementById("filterStaffStatus");
+    if (searchInput) searchInput.value = "";
+    if (roleFilter) roleFilter.value = "all";
+    if (statusFilter) statusFilter.value = "all";
+    renderStaffDirectory();
+}
+
+function openAddStaff() {
+    clearStaffFormErrors();
+    const form = document.getElementById("staffForm");
+    if (form) form.reset();
+    document.getElementById("staffId").value = "";
+    document.getElementById("staffStatus").value = "Active";
+    document.getElementById("staffModalTitle").textContent = "Add Sales Staff Member";
+    const saveBtn = document.getElementById("saveStaffBtn");
+    if (saveBtn) saveBtn.textContent = "Save Staff Member";
+    const modal = document.getElementById("staffModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function openEditStaff(encodedId) {
+    clearStaffFormErrors();
+    const id = decodeURIComponent(encodedId || "");
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const staff = staffList.find(s => String(s.id) === String(id));
+    if (!staff) {
+        alert("Staff member not found. They may have been removed.");
+        return;
+    }
+
+    document.getElementById("staffId").value = staff.id;
+    if (typeof fillNameInputs === "function") {
+        fillNameInputs("staff", staff);
+    } else {
+        document.getElementById("staffFirstName").value = staff.firstName || "";
+        document.getElementById("staffMiddleName").value = staff.middleName || "";
+        document.getElementById("staffLastName").value = staff.lastName || "";
+    }
+
+    // Fallback if record only had single name
+    if (!document.getElementById("staffFirstName").value && staff.name) {
+        const parts = staff.name.split(" ");
+        document.getElementById("staffFirstName").value = parts[0] || "";
+        document.getElementById("staffLastName").value = parts.slice(1).join(" ") || parts[0];
+    }
+
+    document.getElementById("staffRole").value = staff.role || "Sales Consultant";
+    document.getElementById("staffEmail").value = staff.email || "";
+    document.getElementById("staffPhone").value = (typeof phPhoneNationalDigits === "function") ? phPhoneNationalDigits(staff.phone || "") : (staff.phone || "");
+    document.getElementById("staffStatus").value = staff.status || "Active";
+
+    document.getElementById("staffModalTitle").textContent = `Edit Staff: ${staff.name || "Member"}`;
+    const saveBtn = document.getElementById("saveStaffBtn");
+    if (saveBtn) saveBtn.textContent = "Update Staff Member";
+    const modal = document.getElementById("staffModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function validateAndSaveStaff(e) {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    clearStaffFormErrors();
+
+    const id = (document.getElementById("staffId").value || "").trim();
+    const names = (typeof readNameInputs === "function")
+        ? readNameInputs("staff")
+        : {
+            firstName: (document.getElementById("staffFirstName").value || "").trim(),
+            middleName: (document.getElementById("staffMiddleName").value || "").trim(),
+            lastName: (document.getElementById("staffLastName").value || "").trim(),
+            name: `${(document.getElementById("staffFirstName").value || "").trim()} ${(document.getElementById("staffLastName").value || "").trim()}`.trim()
+        };
+
+    const role = (document.getElementById("staffRole").value || "").trim();
+    const email = (document.getElementById("staffEmail").value || "").trim().toLowerCase();
+    const phoneInput = (document.getElementById("staffPhone").value || "").trim();
+    const phoneDigits = (typeof phPhoneNationalDigits === "function") ? phPhoneNationalDigits(phoneInput) : phoneInput.replace(/\D/g, "");
+    const phoneLocal = (typeof phLocalNumber === "function") ? phLocalNumber(phoneInput) : (phoneDigits ? "0" + phoneDigits : "");
+    const status = (document.getElementById("staffStatus").value || "").trim();
+
+    // Field 1: First Name Validation
+    if (!names.firstName) {
+        return setStaffFieldError("staffFirstName", "Please enter the staff member's first name.");
+    }
+    if (names.firstName.length < 2) {
+        return setStaffFieldError("staffFirstName", "First name must be at least 2 characters.");
+    }
+    if (typeof isValidPersonName === "function" && !isValidPersonName(names.firstName)) {
+        return setStaffFieldError("staffFirstName", "First name may only contain letters and spaces (ñ/Ñ allowed).");
+    }
+
+    // Field 2: Middle Name Validation (Optional)
+    if (names.middleName && typeof isValidPersonName === "function" && !isValidPersonName(names.middleName)) {
+        return setStaffFieldError("staffMiddleName", "Middle name may only contain letters and spaces (ñ/Ñ allowed).");
+    }
+
+    // Field 3: Last Name Validation
+    if (!names.lastName) {
+        return setStaffFieldError("staffLastName", "Please enter the staff member's last name.");
+    }
+    if (names.lastName.length < 2) {
+        return setStaffFieldError("staffLastName", "Last name must be at least 2 characters.");
+    }
+    if (typeof isValidPersonName === "function" && !isValidPersonName(names.lastName)) {
+        return setStaffFieldError("staffLastName", "Last name may only contain letters and spaces (ñ/Ñ allowed).");
+    }
+
+    // Field 4: Role Validation
+    const allowedRoles = (typeof PIPELINE_STAFF_ROLES !== "undefined") ? PIPELINE_STAFF_ROLES : [
+        "Sales Consultant",
+        "Membership Advisor",
+        "Front Desk Agent",
+        "Sales Manager",
+        "Fitness Coach"
+    ];
+    if (!role || !allowedRoles.includes(role)) {
+        return setStaffFieldError("staffRole", "Please select a valid role / position.");
+    }
+
+    // Field 5: Email Validation
+    if (!email) {
+        return setStaffFieldError("staffEmail", "Please enter an email address.");
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        return setStaffFieldError("staffEmail", "Please enter a valid email address (e.g. staff@anytimefitness.ph).");
+    }
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const duplicateEmail = staffList.find(s => String(s.id) !== String(id) && String(s.email || "").trim().toLowerCase() === email);
+    if (duplicateEmail) {
+        return setStaffFieldError("staffEmail", `A staff member with this email already exists: ${duplicateEmail.name || "Staff"}.`);
+    }
+
+    // Field 6: Phone Validation
+    if (!phoneDigits) {
+        return setStaffFieldError("staffPhone", "Please enter a contact mobile number.");
+    }
+    if (phoneDigits.length !== 10) {
+        return setStaffFieldError("staffPhone", "Enter the 10-digit mobile number after +63 (e.g. 912 345 6789).");
+    }
+    const duplicatePhone = staffList.find(s => {
+        if (String(s.id) === String(id)) return false;
+        const sPhone = (typeof phLocalNumber === "function") ? phLocalNumber(s.phone) : s.phone;
+        return sPhone === phoneLocal;
+    });
+    if (duplicatePhone) {
+        return setStaffFieldError("staffPhone", `A staff member with this phone number already exists: ${duplicatePhone.name || "Staff"}.`);
+    }
+
+    // Field 7: Status Validation
+    const allowedStatuses = (typeof PIPELINE_STAFF_STATUSES !== "undefined") ? PIPELINE_STAFF_STATUSES : ["Active", "On Leave", "Inactive"];
+    if (!status || !allowedStatuses.includes(status)) {
+        return setStaffFieldError("staffStatus", "Please select a valid employment status.");
+    }
+
+    // Field 8: Full Name Uniqueness Check
+    const duplicateName = staffList.find(s => {
+        if (String(s.id) === String(id)) return false;
+        const firstMatches = String(s.firstName || "").trim().toLowerCase() === names.firstName.toLowerCase();
+        const lastMatches = String(s.lastName || "").trim().toLowerCase() === names.lastName.toLowerCase();
+        const fullMatches = String(s.name || "").trim().toLowerCase() === names.name.toLowerCase();
+        return (firstMatches && lastMatches) || fullMatches;
+    });
+    if (duplicateName) {
+        return setStaffFieldError("staffFirstName", `A staff member named "${names.name}" already exists in the directory.`);
+    }
+
+    // All validations passed! Save data
+    const isEditing = Boolean(id);
+    let oldStaffName = null;
+
+    if (isEditing) {
+        const existingIdx = staffList.findIndex(s => String(s.id) === String(id));
+        if (existingIdx === -1) {
+            return setStaffFieldError("staffFirstName", "Staff record not found.");
+        }
+        oldStaffName = staffList[existingIdx].name;
+        staffList[existingIdx] = {
+            ...staffList[existingIdx],
+            name: names.name,
+            firstName: names.firstName,
+            middleName: names.middleName,
+            lastName: names.lastName,
+            role,
+            email,
+            phone: phoneLocal,
+            status,
+            updatedAt: new Date().toISOString()
+        };
+
+        // If staff was renamed, update leads currently assigned to oldStaffName
+        if (oldStaffName && oldStaffName !== names.name && typeof getPipelineLeads === "function" && typeof savePipelineLeads === "function") {
+            const leads = getPipelineLeads();
+            let leadsUpdated = false;
+            leads.forEach(lead => {
+                if (lead.staff === oldStaffName) {
+                    lead.staff = names.name;
+                    leadsUpdated = true;
+                }
+            });
+            if (leadsUpdated) {
+                savePipelineLeads(leads);
+            }
+        }
+
+        if (typeof logActivity === "function") {
+            logActivity({
+                type: "lead",
+                title: `${names.name}'s staff details were updated`,
+                meta: `${role} • ${status}`,
+                href: (typeof activityHref === "function") ? activityHref("pipeline.html", names.name) : "pipeline.html"
+            });
+        }
+    } else {
+        const newStaff = {
+            id: Date.now(),
+            name: names.name,
+            firstName: names.firstName,
+            middleName: names.middleName,
+            lastName: names.lastName,
+            role,
+            email,
+            phone: phoneLocal,
+            status,
+            createdAt: new Date().toISOString()
+        };
+        staffList.push(newStaff);
+
+        if (typeof logActivity === "function") {
+            logActivity({
+                type: "lead",
+                title: `${names.name} was added to the Sales Staff Directory`,
+                meta: `${role} • ${status}`,
+                href: (typeof activityHref === "function") ? activityHref("pipeline.html", names.name) : "pipeline.html"
+            });
+        }
+    }
+
+    if (typeof savePipelineStaffList === "function") {
+        savePipelineStaffList(staffList);
+    }
+
+    const modal = document.getElementById("staffModal");
+    if (modal) modal.style.display = "none";
+
+    refreshAllPipelineStaffViews();
+}
+
+function deleteStaffMember(encodedId) {
+    const id = decodeURIComponent(encodedId || "");
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const staff = staffList.find(s => String(s.id) === String(id));
+    if (!staff) {
+        alert("Staff member not found. They may have already been removed.");
+        return;
+    }
+
+    const allLeads = (typeof getPipelineLeads === "function") ? getPipelineLeads().filter(l => !l.archived) : [];
+    const assignedLeads = allLeads.filter(l => {
+        const leadStaffNorm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(l.staff) : l.staff;
+        const staffNorm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(staff.name) : staff.name;
+        return leadStaffNorm === staffNorm || l.staff === staff.name;
+    });
+
+    if (assignedLeads.length > 0) {
+        const confirmMsg = `"${staff.name}" is currently assigned to ${assignedLeads.length} active lead${assignedLeads.length === 1 ? "" : "s"} in the pipeline.\n\nDeleting this staff member will unassign their leads. Do you wish to continue?`;
+        if (!confirm(confirmMsg)) return;
+
+        // Reassign leads to Unassigned
+        if (typeof savePipelineLeads === "function") {
+            const rawLeads = getPipelineLeads();
+            rawLeads.forEach(l => {
+                if (l.staff === staff.name) {
+                    l.staff = "Unassigned";
+                }
+            });
+            savePipelineLeads(rawLeads);
+        }
+    } else {
+        if (!confirm(`Are you sure you want to remove ${staff.name} from the Sales Staff Directory?`)) {
+            return;
+        }
+    }
+
+    const updatedList = staffList.filter(s => String(s.id) !== String(id));
+    if (typeof savePipelineStaffList === "function") {
+        savePipelineStaffList(updatedList);
+    }
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "lead",
+            title: `${staff.name} was removed from the Sales Staff Directory`,
+            meta: `${staff.role || "Staff Member"}`,
+            href: "pipeline.html"
+        });
+    }
+
+    refreshAllPipelineStaffViews();
+}
+
+function initStaffDirectory() {
+    const openBtn = document.getElementById("openStaffModal");
+    const closeBtn = document.getElementById("closeStaffModal");
+    const cancelBtn = document.getElementById("cancelStaffModal");
+    const modal = document.getElementById("staffModal");
+    const form = document.getElementById("staffForm");
+
+    if (openBtn) openBtn.addEventListener("click", openAddStaff);
+    if (closeBtn) closeBtn.addEventListener("click", () => { if (modal) modal.style.display = "none"; });
+    if (cancelBtn) cancelBtn.addEventListener("click", () => { if (modal) modal.style.display = "none"; });
+
+    if (modal) {
+        modal.addEventListener("click", e => {
+            if (e.target === modal) modal.style.display = "none";
+        });
+    }
+
+    if (form) {
+        form.addEventListener("submit", validateAndSaveStaff);
+    }
+
+    // Input sanitization and live error reset
+    ["staffFirstName", "staffMiddleName", "staffLastName"].forEach(fieldId => {
+        const input = document.getElementById(fieldId);
+        if (!input) return;
+        input.addEventListener("input", () => {
+            if (typeof sanitizePersonNameInput === "function") sanitizePersonNameInput(input);
+            input.classList.remove("input-invalid");
+            const err = document.getElementById("staffFormError");
+            if (err && err.dataset.field === fieldId) {
+                err.textContent = "";
+                delete err.dataset.field;
+            }
+        });
+        input.addEventListener("blur", () => {
+            if (typeof sanitizePersonNameInput === "function") sanitizePersonNameInput(input);
+        });
+    });
+
+    const phoneInput = document.getElementById("staffPhone");
+    if (phoneInput) {
+        if (typeof bindPhPhoneInput === "function") bindPhPhoneInput(phoneInput);
+        phoneInput.addEventListener("input", () => {
+            phoneInput.classList.remove("input-invalid");
+            const err = document.getElementById("staffFormError");
+            if (err && err.dataset.field === "staffPhone") {
+                err.textContent = "";
+                delete err.dataset.field;
+            }
+        });
+    }
+
+    ["staffRole", "staffEmail", "staffStatus"].forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+        const resetThis = () => {
+            el.classList.remove("input-invalid");
+            const err = document.getElementById("staffFormError");
+            if (err && err.dataset.field === fieldId) {
+                err.textContent = "";
+                delete err.dataset.field;
+            }
+        };
+        el.addEventListener("input", resetThis);
+        el.addEventListener("change", resetThis);
+    });
+
+    // Filters
+    const searchInput = document.getElementById("searchStaff");
+    const roleSelect = document.getElementById("filterStaffRole");
+    const statusSelect = document.getElementById("filterStaffStatus");
+    const resetBtn = document.getElementById("resetStaffFilters");
+
+    if (searchInput) searchInput.addEventListener("input", renderStaffDirectory);
+    if (roleSelect) roleSelect.addEventListener("change", renderStaffDirectory);
+    if (statusSelect) statusSelect.addEventListener("change", renderStaffDirectory);
+    if (resetBtn) resetBtn.addEventListener("click", resetStaffFilters);
+
+    renderStaffDirectory();
+}
+
+// Global exposure
+window.renderStaffDirectory = renderStaffDirectory;
+window.openAddStaff = openAddStaff;
+window.openEditStaff = openEditStaff;
+window.deleteStaffMember = deleteStaffMember;
+window.resetStaffFilters = resetStaffFilters;
+window.initStaffDirectory = initStaffDirectory;
+window.refreshAllPipelineStaffViews = refreshAllPipelineStaffViews;
+
+// Automatic initialization on pipeline page load
+document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("staffTableBody")) {
+        initStaffDirectory();
+    }
+});
 
 // ---- Marketing Campaigns (Social Media) ----

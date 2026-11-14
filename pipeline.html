@@ -173,6 +173,59 @@
                         <div class="kanban-cards"></div>
                     </div>
                 </section>
+
+                <!-- Sales Staff & Agents Directory (Option A: Stacked below the Kanban board) -->
+                <section class="content-section" id="salesStaffSection" style="margin-top: 36px;">
+                    <div class="card-head">
+                        <div>
+                            <h2>Sales Staff &amp; Agents Directory</h2>
+                            <p class="card-sub">Manage sales consultants, membership advisors, and agents driving prospecting, lead follow-ups, and gym membership closures.</p>
+                        </div>
+                        <div class="head-actions">
+                            <span class="card-chip" id="staffDirectoryCount">0 staff members</span>
+                            <button type="button" id="openStaffModal" class="btn-primary">+ Add Staff Member</button>
+                        </div>
+                    </div>
+
+                    <!-- Staff Directory Search & Filter Bar -->
+                    <div class="ticket-filter-bar" style="margin-top: 16px; margin-bottom: 16px;">
+                        <input type="text" id="searchStaff" class="search-input" placeholder="Search by name, role, email, or phone...">
+                        <select id="filterStaffRole" class="search-input">
+                            <option value="all">All Roles</option>
+                            <option value="Sales Consultant">Sales Consultant</option>
+                            <option value="Membership Advisor">Membership Advisor</option>
+                            <option value="Front Desk Agent">Front Desk Agent</option>
+                            <option value="Sales Manager">Sales Manager</option>
+                            <option value="Fitness Coach">Fitness Coach</option>
+                        </select>
+                        <select id="filterStaffStatus" class="search-input">
+                            <option value="all">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                        <button type="button" id="resetStaffFilters" class="btn-secondary" style="white-space: nowrap;">Reset</button>
+                    </div>
+
+                    <!-- Staff Directory Data Table -->
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Role / Title</th>
+                                    <th>Contact Information</th>
+                                    <th style="text-align: center;">Assigned Leads</th>
+                                    <th style="text-align: center;">Won Deals</th>
+                                    <th style="text-align: right;">Pipeline Value</th>
+                                    <th style="text-align: center;">Status</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -186,16 +239,16 @@
                 <input type="hidden" id="leadId">
                 <div class="details-summary">
                     <div class="form-group">
-                        <label for="leadLastName">Last Name</label>
-                        <input type="text" id="leadLastName" class="search-input" placeholder="Enter last name" maxlength="50" required>
+                        <label for="leadFirstName">First Name</label>
+                        <input type="text" id="leadFirstName" class="search-input" placeholder="Enter first name" maxlength="50" required>
                     </div>
                     <div class="form-group">
                         <label for="leadMiddleName">Middle Name</label>
                         <input type="text" id="leadMiddleName" class="search-input" placeholder="Enter middle name" maxlength="50">
                     </div>
                     <div class="form-group">
-                        <label for="leadFirstName">First Name</label>
-                        <input type="text" id="leadFirstName" class="search-input" placeholder="Enter first name" maxlength="50" required>
+                        <label for="leadLastName">Last Name</label>
+                        <input type="text" id="leadLastName" class="search-input" placeholder="Enter last name" maxlength="50" required>
                     </div>
                     <div class="form-group">
                         <label for="leadPhone">Phone</label>
@@ -272,6 +325,81 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelPipelineModal">Cancel</button>
                     <button type="submit" class="btn-primary">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add / Edit Sales Staff Member Modal -->
+    <div id="staffModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeStaffModal" aria-label="Close dialog">&times;</span>
+            <h2 id="staffModalTitle">Add Sales Staff Member</h2>
+            <form id="staffForm" novalidate>
+                <input type="hidden" id="staffId">
+                <div class="details-summary">
+                    <div class="form-group">
+                        <label for="staffFirstName">First Name <span style="color: var(--primary);">*</span></label>
+                        <input type="text" id="staffFirstName" class="search-input" placeholder="Enter first name" maxlength="50" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffMiddleName">Middle Name <span style="color: var(--text-muted); font-size: 11px;">(Optional)</span></label>
+                        <input type="text" id="staffMiddleName" class="search-input" placeholder="Enter middle name" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffLastName">Last Name <span style="color: var(--primary);">*</span></label>
+                        <input type="text" id="staffLastName" class="search-input" placeholder="Enter last name" maxlength="50" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffRole">Role / Position <span style="color: var(--primary);">*</span></label>
+                        <select id="staffRole" class="search-input" required>
+                            <option value="" disabled selected>Select a role...</option>
+                            <option value="Sales Consultant">Sales Consultant</option>
+                            <option value="Membership Advisor">Membership Advisor</option>
+                            <option value="Front Desk Agent">Front Desk Agent</option>
+                            <option value="Sales Manager">Sales Manager</option>
+                            <option value="Fitness Coach">Fitness Coach</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffEmail">Email Address <span style="color: var(--primary);">*</span></label>
+                        <input type="email" id="staffEmail" class="search-input" placeholder="e.g. staff@anytimefitness.ph" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="staffPhone">Contact Phone <span style="color: var(--primary);">*</span></label>
+                        <div class="phone-field">
+                            <span class="phone-prefix" aria-hidden="true">
+                                <svg class="phone-flag" viewBox="0 0 30 20" focusable="false">
+                                    <rect width="30" height="10" fill="#0038A8"/>
+                                    <rect y="10" width="30" height="10" fill="#CE1126"/>
+                                    <path d="M0 0 L12.5 10 L0 20 Z" fill="#fff"/>
+                                    <circle cx="3.4" cy="10" r="1.5" fill="#FCD116"/>
+                                    <g fill="#FCD116">
+                                        <path d="M0 -1.15 L0.33 -0.35 L1.09 -0.35 L0.48 0.14 L0.71 0.94 L0 0.45 L-0.71 0.94 L-0.48 0.14 L-1.09 -0.35 L-0.33 -0.35 Z" transform="translate(2.1 3.1)"/>
+                                        <path d="M0 -1.15 L0.33 -0.35 L1.09 -0.35 L0.48 0.14 L0.71 0.94 L0 0.45 L-0.71 0.94 L-0.48 0.14 L-1.09 -0.35 L-0.33 -0.35 Z" transform="translate(2.1 16.9)"/>
+                                        <path d="M0 -1.15 L0.33 -0.35 L1.09 -0.35 L0.48 0.14 L0.71 0.94 L0 0.45 L-0.71 0.94 L-0.48 0.14 L-1.09 -0.35 L-0.33 -0.35 Z" transform="translate(9 10)"/>
+                                    </g>
+                                </svg>
+                                <span>+63</span>
+                            </span>
+                            <input type="tel" id="staffPhone" class="search-input" placeholder="912 345 6789" inputmode="numeric" pattern="\d{10}" title="Enter the 10-digit mobile number after +63" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffStatus">Employment Status <span style="color: var(--primary);">*</span></label>
+                        <select id="staffStatus" class="search-input" required>
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="error-msg" id="staffFormError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelStaffModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveStaffBtn">Save Staff Member</button>
                 </div>
             </form>
         </div>
