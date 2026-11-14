@@ -392,6 +392,42 @@ function renderCustomerDirectory() {
                 const dateB = b.joined && b.joined !== "—" ? new Date(b.joined + "T00:00:00").getTime() : 0;
                 return dateB - dateA;
             }
+            case "last-name-asc": {
+                const lastA = (a.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).lastName : "") || "").trim();
+                const lastB = (b.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).lastName : "") || "").trim();
+                const cmp = lastA.localeCompare(lastB, undefined, { sensitivity: "base" });
+                if (cmp !== 0) return cmp;
+                const firstA = (a.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).firstName : "") || "").trim();
+                const firstB = (b.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).firstName : "") || "").trim();
+                return firstA.localeCompare(firstB, undefined, { sensitivity: "base" });
+            }
+            case "last-name-desc": {
+                const lastA = (a.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).lastName : "") || "").trim();
+                const lastB = (b.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).lastName : "") || "").trim();
+                const cmp = lastB.localeCompare(lastA, undefined, { sensitivity: "base" });
+                if (cmp !== 0) return cmp;
+                const firstA = (a.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).firstName : "") || "").trim();
+                const firstB = (b.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).firstName : "") || "").trim();
+                return firstB.localeCompare(firstA, undefined, { sensitivity: "base" });
+            }
+            case "first-name-asc": {
+                const firstA = (a.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).firstName : "") || "").trim();
+                const firstB = (b.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).firstName : "") || "").trim();
+                const cmp = firstA.localeCompare(firstB, undefined, { sensitivity: "base" });
+                if (cmp !== 0) return cmp;
+                const lastA = (a.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).lastName : "") || "").trim();
+                const lastB = (b.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).lastName : "") || "").trim();
+                return lastA.localeCompare(lastB, undefined, { sensitivity: "base" });
+            }
+            case "first-name-desc": {
+                const firstA = (a.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).firstName : "") || "").trim();
+                const firstB = (b.firstName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).firstName : "") || "").trim();
+                const cmp = firstB.localeCompare(firstA, undefined, { sensitivity: "base" });
+                if (cmp !== 0) return cmp;
+                const lastA = (a.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(a).lastName : "") || "").trim();
+                const lastB = (b.lastName || (typeof namePartsFromRecord === "function" ? namePartsFromRecord(b).lastName : "") || "").trim();
+                return lastB.localeCompare(lastA, undefined, { sensitivity: "base" });
+            }
             case "name-asc": {
                 const nameA = (a.name || `${a.firstName || ""} ${a.lastName || ""}`).trim();
                 const nameB = (b.name || `${b.firstName || ""} ${b.lastName || ""}`).trim();
