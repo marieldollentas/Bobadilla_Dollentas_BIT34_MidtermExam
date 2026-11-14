@@ -207,11 +207,45 @@
                         <button type="button" id="resetStaffFilters" class="btn-secondary" style="white-space: nowrap;">Reset</button>
                     </div>
 
+                    <!-- Bulk Actions Bar for Sales Staff Directory -->
+                    <div id="staffBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 0; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="staffBulkSelectedCount">0</span>
+                                <span id="staffBulkSelectedLabel">staff selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="staffBulkSelectAllMatchingBtn">Select all matching (<span id="staffBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="staffBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-status" id="bulkStaffStatusBtn" title="Change employment status of selected staff">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Change Status</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-tier" id="bulkStaffRoleBtn" title="Change role of selected staff">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/></svg>
+                                <span>Change Role</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-reassign" id="bulkStaffReassignBtn" title="Reassign pipeline leads from selected staff">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                                <span>Reassign Leads</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-delete" id="bulkStaffDeleteBtn" title="Delete selected staff members">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                <span>Delete Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="staffBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <!-- Staff Directory Data Table -->
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllStaff" title="Select all visible staff" aria-label="Select all visible staff">
+                                    </th>
                                     <th>Staff Member</th>
                                     <th>Role / Title</th>
                                     <th>Contact Information</th>
@@ -400,6 +434,90 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelStaffModal">Cancel</button>
                     <button type="submit" class="btn-primary" id="saveStaffBtn">Save Staff Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Staff Status Modal -->
+    <div id="bulkStaffStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkStaffStatusTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkStaffStatusModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkStaffStatusTitle">Change Staff Status in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update the employment status for all selected staff members.</p>
+            <form id="bulkStaffStatusForm" onsubmit="event.preventDefault(); window.confirmBulkStaffStatus();">
+                <div class="bulk-summary-card" id="bulkStaffStatusSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkStaffStatusSelect">New Employment Status <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkStaffStatusSelect" class="search-input" required>
+                        <option value="Active">Active</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                    <p class="card-meta" style="margin-top: 6px;">Staff set to On Leave or Inactive cannot be assigned new leads. Active leads will show a status warning badge on the pipeline board.</p>
+                </div>
+
+                <p class="error-msg" id="bulkStaffStatusError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkStaffStatusModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkStaffStatusBtn">Apply Status Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Staff Role Modal -->
+    <div id="bulkStaffRoleModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkStaffRoleTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkStaffRoleModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkStaffRoleTitle">Change Staff Role in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update the position / title for all selected staff members.</p>
+            <form id="bulkStaffRoleForm" onsubmit="event.preventDefault(); window.confirmBulkStaffRole();">
+                <div class="bulk-summary-card" id="bulkStaffRoleSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkStaffRoleSelect">New Role / Position <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkStaffRoleSelect" class="search-input" required>
+                        <option value="Sales Consultant">Sales Consultant</option>
+                        <option value="Membership Advisor">Membership Advisor</option>
+                        <option value="Front Desk Agent">Front Desk Agent</option>
+                        <option value="Sales Manager">Sales Manager</option>
+                        <option value="Fitness Coach">Fitness Coach</option>
+                    </select>
+                </div>
+
+                <p class="error-msg" id="bulkStaffRoleError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkStaffRoleModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkStaffRoleBtn">Apply Role Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Reassign Leads Modal -->
+    <div id="bulkStaffReassignModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkStaffReassignTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkStaffReassignModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkStaffReassignTitle">Reassign Leads in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Transfer active pipeline leads from selected staff to another team member or mark as Unassigned.</p>
+            <form id="bulkStaffReassignForm" onsubmit="event.preventDefault(); window.confirmBulkStaffReassign();">
+                <div class="bulk-summary-card" id="bulkStaffReassignSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkStaffReassignTarget">Reassign All Leads To <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkStaffReassignTarget" class="search-input" required></select>
+                    <p class="card-meta" style="margin-top: 6px;">Active staff or "Unassigned" are recommended for lead reassignments.</p>
+                </div>
+
+                <p class="error-msg" id="bulkStaffReassignError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkStaffReassignModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkStaffReassignBtn">Reassign Leads</button>
                 </div>
             </form>
         </div>

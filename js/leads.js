@@ -479,16 +479,22 @@ function setStaffFieldError(fieldId, message) {
     return false;
 }
 
-function renderStaffDirectory() {
-    const tbody = document.getElementById("staffTableBody");
-    if (!tbody) return;
+// ============================================================================
+// Sales Staff Bulk Actions & Directory Management
+// ============================================================================
 
+window.selectedStaffIds = window.selectedStaffIds || new Set();
+
+function getFilteredStaffList() {
     const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
-    const searchQuery = ((document.getElementById("searchStaff") || {}).value || "").trim().toLowerCase();
-    const roleFilter = (document.getElementById("filterStaffRole") || {}).value || "all";
-    const statusFilter = (document.getElementById("filterStaffStatus") || {}).value || "all";
+    const searchEl = document.getElementById("searchStaff");
+    const roleEl = document.getElementById("filterStaffRole");
+    const statusEl = document.getElementById("filterStaffStatus");
+    const searchQuery = (searchEl ? searchEl.value : "").trim().toLowerCase();
+    const roleFilter = (roleEl && roleEl.value) ? roleEl.value : "all";
+    const statusFilter = (statusEl && statusEl.value) ? statusEl.value : "all";
 
-    const filtered = staffList.filter(staff => {
+    return staffList.filter(staff => {
         if (roleFilter !== "all" && staff.role !== roleFilter) return false;
         if (statusFilter !== "all" && staff.status !== statusFilter) return false;
         if (searchQuery) {
@@ -506,6 +512,549 @@ function renderStaffDirectory() {
         }
         return true;
     });
+}
+window.getFilteredStaffList = getFilteredStaffList;
+
+function getSelectedStaffList() {
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const selectedIds = window.selectedStaffIds || new Set();
+    return staffList.filter(s => selectedIds.has(String(s.id)));
+}
+window.getSelectedStaffList = getSelectedStaffList;
+
+function updateStaffBulkActionBar(filteredStaff) {
+    const bar = document.getElementById("staffBulkActionBar");
+    const countEl = document.getElementById("staffBulkSelectedCount");
+    const labelEl = document.getElementById("staffBulkSelectedLabel");
+    const totalMatchingEl = document.getElementById("staffBulkTotalMatchingCount");
+    const selectAllCheckbox = document.getElementById("selectAllStaff");
+
+    if (!bar) return;
+
+    const filtered = Array.isArray(filteredStaff) ? filteredStaff : getFilteredStaffList();
+    const selectedCount = window.selectedStaffIds ? window.selectedStaffIds.size : 0;
+    const visibleCount = filtered.length;
+
+    if (countEl) countEl.textContent = String(selectedCount);
+    if (labelEl) labelEl.textContent = selectedCount === 1 ? "staff member selected" : "staff members selected";
+    if (totalMatchingEl) totalMatchingEl.textContent = String(visibleCount);
+
+    if (selectedCount > 0) {
+        bar.hidden = false;
+        bar.style.display = "flex";
+        bar.classList.add("visible");
+        if (countEl) countEl.textContent = String(selectedCount);
+        if (labelEl) labelEl.textContent = selectedCount === 1 ? "staff member selected" : "staff members selected";
+    } else {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    if (selectAllCheckbox) {
+        let matchingSelectedCount = 0;
+        filtered.forEach(s => {
+            if (window.selectedStaffIds && window.selectedStaffIds.has(String(s.id))) {
+                matchingSelectedCount++;
+            }
+        });
+
+        if (visibleCount > 0 && matchingSelectedCount === visibleCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (matchingSelectedCount > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+window.updateStaffBulkActionBar = updateStaffBulkActionBar;
+
+function initStaffBulkActions() {
+    const bar = document.getElementById("staffBulkActionBar");
+    const tbody = document.getElementById("staffTableBody");
+    const selectAllCheckbox = document.getElementById("selectAllStaff");
+
+    if (!bar || bar.dataset.bulkBound === "1") return;
+    bar.dataset.bulkBound = "1";
+
+    if (!window.selectedStaffIds || window.selectedStaffIds.size === 0) {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    // Master checkbox toggles all visible rows
+    if (selectAllCheckbox && selectAllCheckbox.dataset.bound !== "1") {
+        selectAllCheckbox.dataset.bound = "1";
+        selectAllCheckbox.addEventListener("change", () => {
+            const filtered = getFilteredStaffList();
+            if (selectAllCheckbox.checked) {
+                filtered.forEach(s => window.selectedStaffIds.add(String(s.id)));
+            } else {
+                filtered.forEach(s => window.selectedStaffIds.delete(String(s.id)));
+            }
+            if (tbody) {
+                const checkboxes = tbody.querySelectorAll(".staff-select-checkbox");
+                checkboxes.forEach(cb => {
+                    const id = decodeURIComponent(cb.dataset.staffId || "");
+                    const checked = window.selectedStaffIds.has(id);
+                    cb.checked = checked;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.toggle("is-selected", checked);
+                });
+            }
+            updateStaffBulkActionBar(filtered);
+        });
+    }
+
+    // Row selection delegation on staffTableBody
+    if (tbody && tbody.dataset.bulkDelegated !== "1") {
+        tbody.dataset.bulkDelegated = "1";
+
+        tbody.addEventListener("change", e => {
+            if (e.target.classList.contains("staff-select-checkbox")) {
+                const id = decodeURIComponent(e.target.dataset.staffId || "");
+                if (e.target.checked) {
+                    window.selectedStaffIds.add(id);
+                } else {
+                    window.selectedStaffIds.delete(id);
+                }
+                const row = e.target.closest("tr");
+                if (row) row.classList.toggle("is-selected", e.target.checked);
+                updateStaffBulkActionBar();
+            }
+        });
+
+        // Click anywhere on a row toggles row selection (except on action buttons, links, or inputs)
+        tbody.addEventListener("click", e => {
+            if (e.target.closest("button, a, select, textarea, label")) return;
+            if (e.target.tagName === "INPUT") return;
+
+            const row = e.target.closest("tr");
+            if (!row) return;
+
+            const cb = row.querySelector(".staff-select-checkbox");
+            if (cb) {
+                cb.checked = !cb.checked;
+                const id = decodeURIComponent(cb.dataset.staffId || "");
+                if (cb.checked) {
+                    window.selectedStaffIds.add(id);
+                } else {
+                    window.selectedStaffIds.delete(id);
+                }
+                row.classList.toggle("is-selected", cb.checked);
+                updateStaffBulkActionBar();
+            }
+        });
+    }
+
+    // Quick selection buttons
+    const selectAllMatchingBtn = document.getElementById("staffBulkSelectAllMatchingBtn");
+    if (selectAllMatchingBtn) {
+        selectAllMatchingBtn.addEventListener("click", () => {
+            const filtered = getFilteredStaffList();
+            filtered.forEach(s => window.selectedStaffIds.add(String(s.id)));
+            if (tbody) {
+                tbody.querySelectorAll(".staff-select-checkbox").forEach(cb => {
+                    cb.checked = true;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.add("is-selected");
+                });
+            }
+            updateStaffBulkActionBar(filtered);
+        });
+    }
+
+    const deselectBtn = document.getElementById("staffBulkDeselectBtn");
+    if (deselectBtn) {
+        deselectBtn.addEventListener("click", () => {
+            window.selectedStaffIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".staff-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateStaffBulkActionBar();
+        });
+    }
+
+    const closeBarBtn = document.getElementById("staffBulkBarCloseBtn");
+    if (closeBarBtn) {
+        closeBarBtn.addEventListener("click", () => {
+            window.selectedStaffIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".staff-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateStaffBulkActionBar();
+        });
+    }
+
+    // Bulk action toolbar buttons
+    const statusBtn = document.getElementById("bulkStaffStatusBtn");
+    if (statusBtn) statusBtn.addEventListener("click", () => window.openBulkStaffStatusModal());
+
+    const roleBtn = document.getElementById("bulkStaffRoleBtn");
+    if (roleBtn) roleBtn.addEventListener("click", () => window.openBulkStaffRoleModal());
+
+    const reassignBtn = document.getElementById("bulkStaffReassignBtn");
+    if (reassignBtn) reassignBtn.addEventListener("click", () => window.openBulkStaffReassignModal());
+
+    const deleteBtn = document.getElementById("bulkStaffDeleteBtn");
+    if (deleteBtn) deleteBtn.addEventListener("click", () => window.bulkDeleteStaffMembers());
+
+    // Modal close & backdrop handlers
+    const setupModalDismiss = (modalId, closeBtnId, cancelBtnId) => {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(closeBtnId);
+        const cancelBtn = document.getElementById(cancelBtnId);
+        const hide = () => { if (modal) modal.style.display = "none"; };
+        if (closeBtn) closeBtn.addEventListener("click", hide);
+        if (cancelBtn) cancelBtn.addEventListener("click", hide);
+        if (modal) {
+            modal.addEventListener("click", e => {
+                if (e.target === modal) hide();
+            });
+        }
+    };
+
+    setupModalDismiss("bulkStaffStatusModal", "closeBulkStaffStatusModal", "cancelBulkStaffStatusModal");
+    setupModalDismiss("bulkStaffRoleModal", "closeBulkStaffRoleModal", "cancelBulkStaffRoleModal");
+    setupModalDismiss("bulkStaffReassignModal", "closeBulkStaffReassignModal", "cancelBulkStaffReassignModal");
+}
+window.initStaffBulkActions = initStaffBulkActions;
+
+// Bulk Status Modal
+window.openBulkStaffStatusModal = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("Please select at least one staff member to change status.");
+        return;
+    }
+    const summaryEl = document.getElementById("bulkStaffStatusSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(s => escapeHtml(s.name || `${s.firstName || ""} ${s.lastName || ""}`.trim())).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` and ${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `Updating employment status for <strong>${selected.length}</strong> staff member${selected.length === 1 ? "" : "s"}: <em>${namesPreview}${moreCount}</em>.`;
+    }
+    const errEl = document.getElementById("bulkStaffStatusError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkStaffStatusModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkStaffStatus = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("No staff members selected.");
+        return;
+    }
+    const selectEl = document.getElementById("bulkStaffStatusSelect");
+    const newStatus = selectEl ? selectEl.value : "Active";
+    const errEl = document.getElementById("bulkStaffStatusError");
+
+    const validStatuses = ["Active", "On Leave", "Inactive"];
+    if (!validStatuses.includes(newStatus)) {
+        if (errEl) errEl.textContent = "Please select a valid employment status.";
+        return;
+    }
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const selectedIds = new Set(selected.map(s => String(s.id)));
+    staffList.forEach(s => {
+        if (selectedIds.has(String(s.id))) {
+            s.status = newStatus;
+            s.updatedAt = new Date().toISOString();
+        }
+    });
+
+    if (typeof savePipelineStaffList === "function") {
+        savePipelineStaffList(staffList);
+    }
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "lead",
+            title: `Updated status to "${newStatus}" for ${selected.length} staff member${selected.length === 1 ? "" : "s"}`,
+            meta: selected.map(s => s.name).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "pipeline.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkStaffStatusModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedStaffIds.clear();
+    refreshAllPipelineStaffViews();
+};
+
+// Bulk Role Modal
+window.openBulkStaffRoleModal = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("Please select at least one staff member to change role.");
+        return;
+    }
+    const summaryEl = document.getElementById("bulkStaffRoleSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(s => escapeHtml(s.name || `${s.firstName || ""} ${s.lastName || ""}`.trim())).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` and ${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `Updating role / position for <strong>${selected.length}</strong> staff member${selected.length === 1 ? "" : "s"}: <em>${namesPreview}${moreCount}</em>.`;
+    }
+    const errEl = document.getElementById("bulkStaffRoleError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkStaffRoleModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkStaffRole = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("No staff members selected.");
+        return;
+    }
+    const selectEl = document.getElementById("bulkStaffRoleSelect");
+    const newRole = selectEl ? selectEl.value : "";
+    const errEl = document.getElementById("bulkStaffRoleError");
+
+    if (!newRole) {
+        if (errEl) errEl.textContent = "Please select a valid role.";
+        return;
+    }
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const selectedIds = new Set(selected.map(s => String(s.id)));
+    staffList.forEach(s => {
+        if (selectedIds.has(String(s.id))) {
+            s.role = newRole;
+            s.updatedAt = new Date().toISOString();
+        }
+    });
+
+    if (typeof savePipelineStaffList === "function") {
+        savePipelineStaffList(staffList);
+    }
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "lead",
+            title: `Updated role to "${newRole}" for ${selected.length} staff member${selected.length === 1 ? "" : "s"}`,
+            meta: selected.map(s => s.name).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "pipeline.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkStaffRoleModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedStaffIds.clear();
+    refreshAllPipelineStaffViews();
+};
+
+// Bulk Reassign Leads Modal
+window.openBulkStaffReassignModal = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("Please select at least one staff member to reassign leads.");
+        return;
+    }
+
+    const allLeads = (typeof getPipelineLeads === "function") ? getPipelineLeads().filter(l => !l.archived) : [];
+    const selectedNormNames = new Set(selected.map(s => (typeof normalizePipelineStaff === "function" ? normalizePipelineStaff(s.name) : s.name)));
+
+    const assignedLeads = allLeads.filter(l => {
+        const norm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(l.staff) : l.staff;
+        return selectedNormNames.has(norm);
+    });
+
+    const activeDeals = assignedLeads.filter(l => l.stage !== "lost");
+    const totalPipelineValue = activeDeals.reduce((sum, l) => sum + (Number(l.monthlyValue) || 0), 0);
+
+    const summaryEl = document.getElementById("bulkStaffReassignSummary");
+    if (summaryEl) {
+        const namesPreview = selected.map(s => escapeHtml(s.name || `${s.firstName || ""} ${s.lastName || ""}`.trim())).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` +${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `
+            <div style="font-size: 13px; line-height: 1.5;">
+                <div>Selected staff: <strong>${selected.length}</strong> (${namesPreview}${moreCount})</div>
+                <div style="margin-top: 4px;">Active leads affected: <strong>${assignedLeads.length}</strong> (Pipeline value: <strong>₱${totalPipelineValue.toLocaleString()}</strong>/mo)</div>
+            </div>
+        `;
+    }
+
+    // Populate target staff dropdown
+    const targetSelect = document.getElementById("bulkStaffReassignTarget");
+    if (targetSelect) {
+        targetSelect.innerHTML = "";
+        // Option 1: Unassigned
+        const unassignedOpt = document.createElement("option");
+        unassignedOpt.value = "Unassigned";
+        unassignedOpt.textContent = "Unassigned (General Pool)";
+        targetSelect.appendChild(unassignedOpt);
+
+        // Option 2..N: Other staff members
+        const allStaff = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+        const selectedIdSet = new Set(selected.map(s => String(s.id)));
+        const candidateStaff = allStaff.filter(s => !selectedIdSet.has(String(s.id)));
+
+        if (candidateStaff.length > 0) {
+            const optgroup = document.createElement("optgroup");
+            optgroup.label = "Available Sales Staff";
+            candidateStaff.forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = s.name;
+                opt.textContent = `${s.name} (${s.role || "Staff"} • ${s.status || "Active"})`;
+                optgroup.appendChild(opt);
+            });
+            targetSelect.appendChild(optgroup);
+        }
+    }
+
+    const errEl = document.getElementById("bulkStaffReassignError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkStaffReassignModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkStaffReassign = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("No staff members selected.");
+        return;
+    }
+
+    const targetSelect = document.getElementById("bulkStaffReassignTarget");
+    const targetStaff = targetSelect ? targetSelect.value : "";
+    const errEl = document.getElementById("bulkStaffReassignError");
+
+    if (!targetStaff) {
+        if (errEl) errEl.textContent = "Please select a destination for the reassigned leads.";
+        return;
+    }
+
+    const allLeads = (typeof getPipelineLeads === "function") ? getPipelineLeads() : [];
+    const selectedNormNames = new Set(selected.map(s => (typeof normalizePipelineStaff === "function" ? normalizePipelineStaff(s.name) : s.name)));
+
+    let reassignedCount = 0;
+    allLeads.forEach(lead => {
+        const norm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(lead.staff) : lead.staff;
+        if (selectedNormNames.has(norm)) {
+            lead.staff = targetStaff;
+            reassignedCount++;
+        }
+    });
+
+    if (typeof savePipelineLeads === "function") {
+        savePipelineLeads(allLeads);
+    }
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "lead",
+            title: `Reassigned ${reassignedCount} lead${reassignedCount === 1 ? "" : "s"} to ${targetStaff}`,
+            meta: `Transferred from ${selected.length} staff member${selected.length === 1 ? "" : "s"}`,
+            href: (typeof activityHref === "function") ? activityHref("pipeline.html", targetStaff) : "pipeline.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkStaffReassignModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedStaffIds.clear();
+    refreshAllPipelineStaffViews();
+};
+
+// Bulk Delete Staff
+window.bulkDeleteStaffMembers = function() {
+    const selected = getSelectedStaffList();
+    if (selected.length === 0) {
+        alert("Please select at least one staff member to delete.");
+        return;
+    }
+
+    const allLeads = (typeof getPipelineLeads === "function") ? getPipelineLeads().filter(l => !l.archived) : [];
+    const selectedNormNames = new Set(selected.map(s => (typeof normalizePipelineStaff === "function" ? normalizePipelineStaff(s.name) : s.name)));
+
+    const assignedLeads = allLeads.filter(l => {
+        const norm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(l.staff) : l.staff;
+        return selectedNormNames.has(norm);
+    });
+
+    if (assignedLeads.length > 0) {
+        const confirmMsg = `You are about to delete ${selected.length} staff member${selected.length === 1 ? "" : "s"}.\n\nA total of ${assignedLeads.length} active lead${assignedLeads.length === 1 ? "" : "s"} currently assigned to them will be unassigned (moved to Unassigned).\n\nDo you wish to proceed?`;
+        if (!confirm(confirmMsg)) return;
+
+        // Reassign leads to Unassigned
+        if (typeof savePipelineLeads === "function") {
+            const rawLeads = getPipelineLeads();
+            rawLeads.forEach(l => {
+                const norm = (typeof normalizePipelineStaff === "function") ? normalizePipelineStaff(l.staff) : l.staff;
+                if (selectedNormNames.has(norm)) {
+                    l.staff = "Unassigned";
+                }
+            });
+            savePipelineLeads(rawLeads);
+        }
+    } else {
+        if (!confirm(`Are you sure you want to remove ${selected.length} selected staff member${selected.length === 1 ? "" : "s"} from the directory? This cannot be undone.`)) {
+            return;
+        }
+    }
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+    const selectedIdSet = new Set(selected.map(s => String(s.id)));
+    const updatedStaffList = staffList.filter(s => !selectedIdSet.has(String(s.id)));
+
+    if (typeof savePipelineStaffList === "function") {
+        savePipelineStaffList(updatedStaffList);
+    }
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "lead",
+            title: `${selected.length} staff member${selected.length === 1 ? "" : "s"} removed from the Sales Staff Directory`,
+            meta: selected.map(s => s.name).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "pipeline.html"
+        });
+    }
+
+    window.selectedStaffIds.clear();
+    refreshAllPipelineStaffViews();
+};
+
+function renderStaffDirectory() {
+    const tbody = document.getElementById("staffTableBody");
+    if (!tbody) return;
+
+    if (typeof initStaffBulkActions === "function") {
+        initStaffBulkActions();
+    }
+
+    const staffList = (typeof getPipelineStaffList === "function") ? getPipelineStaffList() : [];
+
+    // Prune stale IDs from selection
+    if (window.selectedStaffIds) {
+        const existingIds = new Set(staffList.map(s => String(s.id)));
+        for (const id of Array.from(window.selectedStaffIds)) {
+            if (!existingIds.has(id)) {
+                window.selectedStaffIds.delete(id);
+            }
+        }
+    }
+
+    const filtered = getFilteredStaffList();
 
     const countEl = document.getElementById("staffDirectoryCount");
     if (countEl) {
@@ -520,12 +1069,14 @@ function renderStaffDirectory() {
 
     tbody.innerHTML = "";
     if (staffList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No sales staff registered yet. Click <strong>+ Add Staff Member</strong> to get started.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No sales staff registered yet. Click <strong>+ Add Staff Member</strong> to get started.</td></tr>';
+        updateStaffBulkActionBar(filtered);
         return;
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No staff members match your filter criteria. <button type="button" onclick="resetStaffFilters()" style="color: var(--primary); text-decoration: underline; background: none; border: none; font-weight: 600; cursor: pointer;">Reset filters</button></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">No staff members match your filter criteria. <button type="button" onclick="resetStaffFilters()" style="color: var(--primary); text-decoration: underline; background: none; border: none; font-weight: 600; cursor: pointer;">Reset filters</button></td></tr>';
+        updateStaffBulkActionBar(filtered);
         return;
     }
 
@@ -552,8 +1103,14 @@ function renderStaffDirectory() {
         // Status badge tone
         const statusCls = staffStatus === "Active" ? "active" : (staffStatus === "On Leave" ? "warning" : "danger");
 
+        const isChecked = window.selectedStaffIds && window.selectedStaffIds.has(String(staff.id));
+
         const tr = document.createElement("tr");
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="staff-select-checkbox" data-staff-id="${encodeURIComponent(staff.id)}" ${isChecked ? "checked" : ""} title="Select ${escapeHtml(staffName)}" aria-label="Select ${escapeHtml(staffName)}">
+            </td>
             <td>
                 <strong>${escapeHtml(staffName)}</strong>
             </td>
@@ -584,6 +1141,8 @@ function renderStaffDirectory() {
         `;
         tbody.appendChild(tr);
     });
+
+    updateStaffBulkActionBar(filtered);
 }
 
 function resetStaffFilters() {
@@ -879,6 +1438,10 @@ function deleteStaffMember(encodedId) {
         savePipelineStaffList(updatedList);
     }
 
+    if (window.selectedStaffIds) {
+        window.selectedStaffIds.delete(String(id));
+    }
+
     if (typeof logActivity === "function") {
         logActivity({
             type: "lead",
@@ -980,6 +1543,17 @@ window.deleteStaffMember = deleteStaffMember;
 window.resetStaffFilters = resetStaffFilters;
 window.initStaffDirectory = initStaffDirectory;
 window.refreshAllPipelineStaffViews = refreshAllPipelineStaffViews;
+window.updateStaffBulkActionBar = updateStaffBulkActionBar;
+window.initStaffBulkActions = initStaffBulkActions;
+window.openBulkStaffStatusModal = openBulkStaffStatusModal;
+window.confirmBulkStaffStatus = confirmBulkStaffStatus;
+window.openBulkStaffRoleModal = openBulkStaffRoleModal;
+window.confirmBulkStaffRole = confirmBulkStaffRole;
+window.openBulkStaffReassignModal = openBulkStaffReassignModal;
+window.confirmBulkStaffReassign = confirmBulkStaffReassign;
+window.bulkDeleteStaffMembers = bulkDeleteStaffMembers;
+window.getFilteredStaffList = getFilteredStaffList;
+window.getSelectedStaffList = getSelectedStaffList;
 
 // Automatic initialization on pipeline page load
 document.addEventListener("DOMContentLoaded", () => {

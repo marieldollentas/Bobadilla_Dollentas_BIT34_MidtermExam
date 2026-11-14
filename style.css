@@ -5320,7 +5320,7 @@ textarea.input-invalid {
 
 /* ---------- 31. Bulk Actions in Customer Directory ---------- */
 .bulk-action-bar {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     gap: 14px;
@@ -5333,6 +5333,14 @@ textarea.input-invalid {
     margin-top: 14px;
     box-shadow: 0 4px 18px -4px rgba(91, 75, 196, 0.18);
     animation: bulkBarSlideDown 0.22s ease-out;
+}
+
+.bulk-action-bar[hidden] {
+    display: none !important;
+}
+
+.bulk-action-bar.visible {
+    display: flex;
 }
 
 @keyframes bulkBarSlideDown {
@@ -5561,7 +5569,9 @@ textarea.input-invalid {
 }
 
 .member-select-checkbox,
-#selectAllMembers {
+#selectAllMembers,
+.staff-select-checkbox,
+#selectAllStaff {
     width: 16px;
     height: 16px;
     accent-color: var(--primary);
@@ -5570,12 +5580,47 @@ textarea.input-invalid {
     margin: 0 auto;
 }
 
+.btn-bulk-status {
+    background: #eef3ff;
+    color: var(--info-ink);
+    border-color: #d2e1fd;
+}
+.btn-bulk-status:hover {
+    background: #dde9fe;
+}
+
+.btn-bulk-reassign {
+    background: #fdf0e8;
+    color: var(--accent-ink);
+    border-color: #fadccb;
+}
+.btn-bulk-reassign:hover {
+    background: #fbe5d5;
+}
+
+.btn-bulk-delete {
+    background: var(--danger-bg);
+    color: var(--danger-ink);
+    border-color: #f7c5ce;
+}
+.btn-bulk-delete:hover {
+    background: #fbd9e0;
+}
+
 .data-table tbody tr.is-selected {
     background-color: #f7f6fe !important;
 }
 
 .data-table tbody tr.is-selected:hover {
     background-color: #f0eefa !important;
+}
+
+#staffTableBody tr {
+    cursor: pointer;
+}
+#staffTableBody tr button,
+#staffTableBody tr a {
+    cursor: pointer;
 }
 
 .bulk-summary-card {
