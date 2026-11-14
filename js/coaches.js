@@ -2453,14 +2453,12 @@ function sessionFilters() {
 
 
 
-// js-split:file=coaches.js part=49of70
-// Split from script.js - whole top-level blocks moved verbatim, no behavior change.
-function renderSessions() {
-    const tbody = document.getElementById("sessionTableBody");
-    if (!tbody) return;
+// Bulk Actions for Session Tracking
+window.selectedSessionIds = window.selectedSessionIds || new Set();
 
-    const filters = sessionFilters();
-    const sessions = getCoachSessions()
+function getFilteredSessionList() {
+    const filters = typeof sessionFilters === "function" ? sessionFilters() : { coach: "all", status: "all", search: "" };
+    return getCoachSessions()
         .filter(session => !session.archived)
         .filter(session => filters.coach === "all" || String(session.coachId) === String(filters.coach))
         .filter(session => filters.status === "all" || session.status === filters.status)
@@ -2476,19 +2474,486 @@ function renderSessions() {
             return haystack.includes(filters.search);
         })
         .sort((a, b) => sessionSortValue(b).localeCompare(sessionSortValue(a)));
+}
+window.getFilteredSessionList = getFilteredSessionList;
+
+function getSelectedSessionList() {
+    const all = getCoachSessions();
+    const selectedIds = window.selectedSessionIds || new Set();
+    return all.filter(s => selectedIds.has(String(s.id)));
+}
+window.getSelectedSessionList = getSelectedSessionList;
+
+function updateSessionBulkActionBar(visibleSessions) {
+    const bar = document.getElementById("sessionBulkActionBar");
+    const countEl = document.getElementById("sessionBulkSelectedCount");
+    const labelEl = document.getElementById("sessionBulkSelectedLabel");
+    const totalMatchingEl = document.getElementById("sessionBulkTotalMatchingCount");
+    const selectAllCheckbox = document.getElementById("selectAllSessions");
+
+    if (!bar) return;
+
+    const visible = Array.isArray(visibleSessions) ? visibleSessions : getFilteredSessionList();
+    const selectedCount = window.selectedSessionIds ? window.selectedSessionIds.size : 0;
+    const visibleCount = visible.length;
+
+    if (totalMatchingEl) totalMatchingEl.textContent = String(visibleCount);
+
+    if (selectedCount > 0) {
+        bar.hidden = false;
+        bar.style.display = "flex";
+        bar.classList.add("visible");
+        if (countEl) countEl.textContent = String(selectedCount);
+        if (labelEl) labelEl.textContent = selectedCount === 1 ? "session selected" : "sessions selected";
+    } else {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    if (selectAllCheckbox) {
+        let matchingSelectedCount = 0;
+        visible.forEach(s => {
+            if (window.selectedSessionIds && window.selectedSessionIds.has(String(s.id))) {
+                matchingSelectedCount++;
+            }
+        });
+
+        if (visibleCount > 0 && matchingSelectedCount === visibleCount) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (matchingSelectedCount > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+}
+window.updateSessionBulkActionBar = updateSessionBulkActionBar;
+
+function initSessionBulkActions() {
+    const bar = document.getElementById("sessionBulkActionBar");
+    const tbody = document.getElementById("sessionTableBody");
+    const selectAllCheckbox = document.getElementById("selectAllSessions");
+
+    if (!bar || bar.dataset.bulkBound === "1") return;
+    bar.dataset.bulkBound = "1";
+
+    if (!window.selectedSessionIds || window.selectedSessionIds.size === 0) {
+        bar.hidden = true;
+        bar.style.display = "none";
+        bar.classList.remove("visible");
+    }
+
+    // Master checkbox toggles all visible rows
+    if (selectAllCheckbox && selectAllCheckbox.dataset.bound !== "1") {
+        selectAllCheckbox.dataset.bound = "1";
+        selectAllCheckbox.addEventListener("change", () => {
+            const visible = getFilteredSessionList();
+            if (selectAllCheckbox.checked) {
+                visible.forEach(s => window.selectedSessionIds.add(String(s.id)));
+            } else {
+                visible.forEach(s => window.selectedSessionIds.delete(String(s.id)));
+            }
+            if (tbody) {
+                const checkboxes = tbody.querySelectorAll(".session-select-checkbox");
+                checkboxes.forEach(cb => {
+                    const id = decodeURIComponent(cb.dataset.sessionId || "");
+                    const checked = window.selectedSessionIds.has(id);
+                    cb.checked = checked;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.toggle("is-selected", checked);
+                });
+            }
+            updateSessionBulkActionBar(visible);
+        });
+    }
+
+    // Row selection delegation on sessionTableBody
+    if (tbody && tbody.dataset.bulkDelegated !== "1") {
+        tbody.dataset.bulkDelegated = "1";
+
+        tbody.addEventListener("change", e => {
+            if (e.target.classList.contains("session-select-checkbox")) {
+                const id = decodeURIComponent(e.target.dataset.sessionId || "");
+                if (e.target.checked) {
+                    window.selectedSessionIds.add(id);
+                } else {
+                    window.selectedSessionIds.delete(id);
+                }
+                const row = e.target.closest("tr");
+                if (row) row.classList.toggle("is-selected", e.target.checked);
+                updateSessionBulkActionBar();
+            }
+        });
+
+        // Click anywhere on a row toggles row selection (except on action buttons, links, or inputs)
+        tbody.addEventListener("click", e => {
+            if (e.target.closest("button, a, select, textarea, label")) return;
+            if (e.target.tagName === "INPUT") return;
+
+            const row = e.target.closest("tr");
+            if (!row) return;
+
+            const cb = row.querySelector(".session-select-checkbox");
+            if (cb) {
+                cb.checked = !cb.checked;
+                const id = decodeURIComponent(cb.dataset.sessionId || "");
+                if (cb.checked) {
+                    window.selectedSessionIds.add(id);
+                } else {
+                    window.selectedSessionIds.delete(id);
+                }
+                row.classList.toggle("is-selected", cb.checked);
+                updateSessionBulkActionBar();
+            }
+        });
+    }
+
+    // Quick selection buttons
+    const selectAllMatchingBtn = document.getElementById("sessionBulkSelectAllMatchingBtn");
+    if (selectAllMatchingBtn) {
+        selectAllMatchingBtn.addEventListener("click", () => {
+            const visible = getFilteredSessionList();
+            visible.forEach(s => window.selectedSessionIds.add(String(s.id)));
+            if (tbody) {
+                tbody.querySelectorAll(".session-select-checkbox").forEach(cb => {
+                    cb.checked = true;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.add("is-selected");
+                });
+            }
+            updateSessionBulkActionBar(visible);
+        });
+    }
+
+    const deselectBtn = document.getElementById("sessionBulkDeselectBtn");
+    if (deselectBtn) {
+        deselectBtn.addEventListener("click", () => {
+            window.selectedSessionIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".session-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateSessionBulkActionBar();
+        });
+    }
+
+    const closeBarBtn = document.getElementById("sessionBulkBarCloseBtn");
+    if (closeBarBtn) {
+        closeBarBtn.addEventListener("click", () => {
+            window.selectedSessionIds.clear();
+            if (tbody) {
+                tbody.querySelectorAll(".session-select-checkbox").forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest("tr");
+                    if (row) row.classList.remove("is-selected");
+                });
+            }
+            updateSessionBulkActionBar();
+        });
+    }
+
+    // Bulk action toolbar buttons
+    const statusBtn = document.getElementById("bulkSessionStatusBtn");
+    if (statusBtn) statusBtn.addEventListener("click", () => window.openBulkSessionStatusModal());
+
+    const reassignBtn = document.getElementById("bulkSessionReassignBtn");
+    if (reassignBtn) reassignBtn.addEventListener("click", () => window.openBulkSessionReassignModal());
+
+    const archiveBtn = document.getElementById("bulkSessionArchiveBtn");
+    if (archiveBtn) archiveBtn.addEventListener("click", () => window.bulkArchiveSessions());
+
+    // Modal close & backdrop handlers for status modal
+    const statusModal = document.getElementById("bulkSessionStatusModal");
+    const closeStatusBtn = document.getElementById("closeBulkSessionStatusModal");
+    const cancelStatusBtn = document.getElementById("cancelBulkSessionStatusModal");
+    const hideStatus = () => { if (statusModal) statusModal.style.display = "none"; };
+    if (closeStatusBtn) closeStatusBtn.addEventListener("click", hideStatus);
+    if (cancelStatusBtn) cancelStatusBtn.addEventListener("click", hideStatus);
+    if (statusModal) {
+        statusModal.addEventListener("click", e => {
+            if (e.target === statusModal) hideStatus();
+        });
+    }
+
+    // Modal close & backdrop handlers for reassign modal
+    const reassignModal = document.getElementById("bulkSessionReassignModal");
+    const closeReassignBtn = document.getElementById("closeBulkSessionReassignModal");
+    const cancelReassignBtn = document.getElementById("cancelBulkSessionReassignModal");
+    const hideReassign = () => { if (reassignModal) reassignModal.style.display = "none"; };
+    if (closeReassignBtn) closeReassignBtn.addEventListener("click", hideReassign);
+    if (cancelReassignBtn) cancelReassignBtn.addEventListener("click", hideReassign);
+    if (reassignModal) {
+        reassignModal.addEventListener("click", e => {
+            if (e.target === reassignModal) hideReassign();
+        });
+    }
+}
+window.initSessionBulkActions = initSessionBulkActions;
+
+// Bulk Action: Change Session Status
+window.openBulkSessionStatusModal = function() {
+    const selected = getSelectedSessionList();
+    if (selected.length === 0) {
+        alert("Please select at least one training session to change status.");
+        return;
+    }
+
+    const summaryEl = document.getElementById("bulkSessionStatusSummary");
+    if (summaryEl) {
+        const preview = selected.map(s => `${sessionClientName(s)} (${sessionDayLabel(s.date)})`).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` +${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `
+            <div style="font-size: 13px; line-height: 1.5;">
+                <div>Selected sessions: <strong>${selected.length}</strong></div>
+                <div style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">${escapeHtml(preview)}${moreCount}</div>
+            </div>
+        `;
+    }
+
+    const errEl = document.getElementById("bulkSessionStatusError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkSessionStatusModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkSessionStatus = function() {
+    const selected = getSelectedSessionList();
+    if (selected.length === 0) {
+        alert("No training sessions selected.");
+        return;
+    }
+
+    const statusSelect = document.getElementById("bulkSessionStatusSelect");
+    const newStatus = statusSelect ? statusSelect.value : "";
+    const errEl = document.getElementById("bulkSessionStatusError");
+
+    if (!newStatus) {
+        if (errEl) errEl.textContent = "Please select a session status.";
+        return;
+    }
+
+    const allSessions = getCoachSessions();
+    const selectedIds = new Set(selected.map(s => String(s.id)));
+    let updatedCount = 0;
+
+    allSessions.forEach(s => {
+        if (selectedIds.has(String(s.id))) {
+            s.status = newStatus;
+            s.updatedAt = new Date().toISOString();
+            updatedCount++;
+        }
+    });
+
+    saveCoachSessions(allSessions);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Updated ${updatedCount} session(s) to "${newStatus}"`,
+            meta: selected.map(s => sessionClientName(s)).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkSessionStatusModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedSessionIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Reassign Sessions to another Coach
+window.openBulkSessionReassignModal = function() {
+    const selected = getSelectedSessionList();
+    if (selected.length === 0) {
+        alert("Please select at least one training session to reassign.");
+        return;
+    }
+
+    const summaryEl = document.getElementById("bulkSessionReassignSummary");
+    if (summaryEl) {
+        const preview = selected.map(s => `${sessionClientName(s)} (${sessionDayLabel(s.date)})`).slice(0, 4).join(", ");
+        const moreCount = selected.length > 4 ? ` +${selected.length - 4} more` : "";
+        summaryEl.innerHTML = `
+            <div style="font-size: 13px; line-height: 1.5;">
+                <div>Selected sessions: <strong>${selected.length}</strong></div>
+                <div style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">${escapeHtml(preview)}${moreCount}</div>
+            </div>
+        `;
+    }
+
+    const targetSelect = document.getElementById("bulkSessionReassignTarget");
+    if (targetSelect) {
+        targetSelect.innerHTML = "";
+        const activeCoaches = getActiveCoaches().filter(c => c.status === "Active");
+        if (activeCoaches.length === 0) {
+            targetSelect.innerHTML = '<option value="" disabled selected>No active coaches available</option>';
+        } else {
+            activeCoaches.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${coachClientCount(c.id)} client${coachClientCount(c.id) === 1 ? "" : "s"})`;
+                targetSelect.appendChild(opt);
+            });
+        }
+    }
+
+    const errEl = document.getElementById("bulkSessionReassignError");
+    if (errEl) errEl.textContent = "";
+
+    const modal = document.getElementById("bulkSessionReassignModal");
+    if (modal) modal.style.display = "flex";
+};
+
+window.confirmBulkSessionReassign = function() {
+    const selected = getSelectedSessionList();
+    if (selected.length === 0) {
+        alert("No training sessions selected.");
+        return;
+    }
+
+    const targetSelect = document.getElementById("bulkSessionReassignTarget");
+    const targetCoachId = targetSelect ? targetSelect.value : "";
+    const errEl = document.getElementById("bulkSessionReassignError");
+
+    if (!targetCoachId) {
+        if (errEl) errEl.textContent = "Please select an active coach.";
+        return;
+    }
+
+    const targetCoach = coachById(targetCoachId);
+    const targetCoachName = targetCoach ? targetCoach.name : "Coach";
+
+    const allSessions = getCoachSessions();
+    const selectedIds = new Set(selected.map(s => String(s.id)));
+    let reassignedCount = 0;
+
+    allSessions.forEach(s => {
+        if (selectedIds.has(String(s.id))) {
+            s.coachId = isNaN(Number(targetCoachId)) ? targetCoachId : (typeof s.coachId === "number" ? Number(targetCoachId) : targetCoachId);
+            s.updatedAt = new Date().toISOString();
+            reassignedCount++;
+        }
+    });
+
+    saveCoachSessions(allSessions);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "coach",
+            title: `Reassigned ${reassignedCount} session(s) to ${targetCoachName}`,
+            meta: selected.map(s => sessionClientName(s)).slice(0, 3).join(", ") + (selected.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    const modal = document.getElementById("bulkSessionReassignModal");
+    if (modal) modal.style.display = "none";
+
+    window.selectedSessionIds.clear();
+    refreshCoachViews();
+};
+
+// Bulk Action: Archive Finished Sessions
+window.bulkArchiveSessions = function() {
+    const selected = getSelectedSessionList();
+    if (selected.length === 0) {
+        alert("Please select at least one session to archive.");
+        return;
+    }
+
+    const scheduledCount = selected.filter(s => s.status === "Scheduled").length;
+    const eligible = selected.filter(s => ["Completed", "Cancelled", "Missed"].includes(String(s.status)));
+
+    if (eligible.length === 0) {
+        alert("Only completed, cancelled, or missed sessions can be archived. Active scheduled sessions cannot be archived.");
+        return;
+    }
+
+    let confirmMsg = "";
+    if (scheduledCount > 0) {
+        confirmMsg = `${scheduledCount} selected session(s) are Scheduled and cannot be archived.\n\nArchive the remaining ${eligible.length} finished session(s)? They will be moved to the archive and can be restored later.`;
+    } else {
+        confirmMsg = `Archive ${eligible.length} finished session(s)? They will be moved to the archive and can be restored later.`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    const all = getCoachSessions();
+    const eligibleIds = new Set(eligible.map(s => String(s.id)));
+    let count = 0;
+    all.forEach(s => {
+        if (eligibleIds.has(String(s.id))) {
+            s.archived = true;
+            s.archivedAt = new Date().toISOString();
+            count++;
+        }
+    });
+    saveCoachSessions(all);
+
+    if (typeof logActivity === "function") {
+        logActivity({
+            type: "session",
+            title: `Archived ${count} training session(s)`,
+            meta: eligible.map(s => sessionClientName(s)).slice(0, 3).join(", ") + (eligible.length > 3 ? "..." : ""),
+            href: "coach.html"
+        });
+    }
+
+    window.selectedSessionIds.clear();
+    refreshCoachViews();
+};
+
+// js-split:file=coaches.js part=49of70
+// Split from script.js - whole top-level blocks moved verbatim, no behavior change.
+function renderSessions() {
+    const tbody = document.getElementById("sessionTableBody");
+    if (!tbody) return;
+
+    if (typeof initSessionBulkActions === "function") {
+        initSessionBulkActions();
+    }
+
+    // Prune stale IDs
+    if (window.selectedSessionIds) {
+        const activeIds = new Set(getCoachSessions().filter(s => !s.archived).map(s => String(s.id)));
+        for (const id of Array.from(window.selectedSessionIds)) {
+            if (!activeIds.has(id)) {
+                window.selectedSessionIds.delete(id);
+            }
+        }
+    }
+
+    const sessions = getFilteredSessionList();
 
     tbody.innerHTML = "";
     if (sessions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7">No training sessions match your filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">No training sessions match your filters.</td></tr>';
+        if (typeof updateSessionBulkActionBar === "function") {
+            updateSessionBulkActionBar(sessions);
+        }
         return;
     }
 
     sessions.forEach(session => {
         const id = encodeURIComponent(session.id);
+        const isChecked = window.selectedSessionIds && window.selectedSessionIds.has(String(session.id));
         const archivable = ["Completed", "Cancelled", "Missed"].includes(String(session.status));
         const canCancel = session.status === "Scheduled";
         const tr = document.createElement("tr");
+        if (isChecked) tr.classList.add("is-selected");
         tr.innerHTML = `
+            <td class="td-checkbox">
+                <input type="checkbox" class="session-select-checkbox" data-session-id="${id}" ${isChecked ? "checked" : ""} title="Select session for ${escapeHtml(sessionClientName(session))}" aria-label="Select session for ${escapeHtml(sessionClientName(session))}">
+            </td>
             <td>
                 <strong>${escapeHtml(sessionClientName(session))}</strong>
                 <small>${escapeHtml(sessionClientIdLabel(session))}</small>
@@ -2507,6 +2972,10 @@ function renderSessions() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (typeof updateSessionBulkActionBar === "function") {
+        updateSessionBulkActionBar(sessions);
+    }
 }
 
 
@@ -2554,6 +3023,9 @@ function archiveSession(encodedId) {
     session.archived = true;
     session.archivedAt = new Date().toISOString();
     saveCoachSessions(sessions);
+    if (window.selectedSessionIds) {
+        window.selectedSessionIds.delete(String(id));
+    }
 
     logActivity({
         type: "session",
@@ -3759,3 +4231,15 @@ window.confirmBulkAssignTransfer = confirmBulkAssignTransfer;
 window.bulkUnassignAssignments = bulkUnassignAssignments;
 window.getFilteredAssignmentList = getFilteredAssignmentList;
 window.getSelectedAssignmentList = getSelectedAssignmentList;
+
+// Global exposure for Session Tracking Bulk Actions
+window.selectedSessionIds = window.selectedSessionIds;
+window.updateSessionBulkActionBar = updateSessionBulkActionBar;
+window.initSessionBulkActions = initSessionBulkActions;
+window.openBulkSessionStatusModal = openBulkSessionStatusModal;
+window.confirmBulkSessionStatus = confirmBulkSessionStatus;
+window.openBulkSessionReassignModal = openBulkSessionReassignModal;
+window.confirmBulkSessionReassign = confirmBulkSessionReassign;
+window.bulkArchiveSessions = bulkArchiveSessions;
+window.getFilteredSessionList = getFilteredSessionList;
+window.getSelectedSessionList = getSelectedSessionList;

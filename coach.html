@@ -437,10 +437,40 @@
                         </select>
                     </div>
 
+                    <!-- Bulk Actions Bar for Session Tracking -->
+                    <div id="sessionBulkActionBar" class="bulk-action-bar" hidden style="display: none; margin-top: 0; margin-bottom: 16px;">
+                        <div class="bulk-bar-left">
+                            <span class="bulk-selection-count">
+                                <span class="bulk-count-badge" id="sessionBulkSelectedCount">0</span>
+                                <span id="sessionBulkSelectedLabel">sessions selected</span>
+                            </span>
+                            <button type="button" class="bulk-btn-link" id="sessionBulkSelectAllMatchingBtn">Select all matching (<span id="sessionBulkTotalMatchingCount">0</span>)</button>
+                            <button type="button" class="bulk-btn-link" id="sessionBulkDeselectBtn">Clear selection</button>
+                        </div>
+                        <div class="bulk-bar-actions">
+                            <button type="button" class="btn-bulk btn-bulk-status" id="bulkSessionStatusBtn" title="Change status of selected sessions">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                                <span>Change Status</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-reassign" id="bulkSessionReassignBtn" title="Reassign selected sessions to another coach">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                                <span>Reassign Coach</span>
+                            </button>
+                            <button type="button" class="btn-bulk btn-bulk-archive" id="bulkSessionArchiveBtn" title="Archive finished sessions">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+                                <span>Archive Selected</span>
+                            </button>
+                            <button type="button" class="bulk-close-btn" id="sessionBulkBarCloseBtn" title="Clear selection" aria-label="Clear selection">&times;</button>
+                        </div>
+                    </div>
+
                     <div class="table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th class="th-checkbox">
+                                        <input type="checkbox" id="selectAllSessions" title="Select all visible sessions" aria-label="Select all visible sessions">
+                                    </th>
                                     <th>Client</th>
                                     <th>Date</th>
                                     <th>Time</th>
@@ -901,6 +931,61 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelBulkAssignTransferModal">Cancel</button>
                     <button type="submit" class="btn-primary" id="confirmBulkAssignTransferBtn">Apply Coach Reassignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Change Session Status Modal -->
+    <div id="bulkSessionStatusModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkSessionStatusTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkSessionStatusModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkSessionStatusTitle">Change Session Status in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Update attendance and completion status for all selected sessions.</p>
+            <form id="bulkSessionStatusForm" onsubmit="event.preventDefault(); window.confirmBulkSessionStatus();">
+                <div class="bulk-summary-card" id="bulkSessionStatusSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkSessionStatusSelect">New Session Status <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkSessionStatusSelect" class="search-input" required>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Missed">Missed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                    <p class="card-meta" style="margin-top: 6px;">Sessions marked Completed or Missed will count towards client and coach attendance analytics.</p>
+                </div>
+
+                <p class="error-msg" id="bulkSessionStatusError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkSessionStatusModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkSessionStatusBtn">Apply Status Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Reassign Session Coach Modal -->
+    <div id="bulkSessionReassignModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkSessionReassignTitle">
+        <div class="modal-content modal-medium">
+            <span class="close-btn" id="closeBulkSessionReassignModal" aria-label="Close dialog">&times;</span>
+            <h2 id="bulkSessionReassignTitle">Reassign Sessions in Bulk</h2>
+            <p class="card-sub" style="margin-top: 4px;">Transfer all selected training sessions to another active coach.</p>
+            <form id="bulkSessionReassignForm" onsubmit="event.preventDefault(); window.confirmBulkSessionReassign();">
+                <div class="bulk-summary-card" id="bulkSessionReassignSummary" style="margin-top: 16px;"></div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label for="bulkSessionReassignTarget">New Assigned Coach <span style="color: var(--primary);">*</span></label>
+                    <select id="bulkSessionReassignTarget" class="search-input" required></select>
+                    <p class="card-meta" style="margin-top: 6px;">Only coaches with Active employment status are eligible to take on training sessions.</p>
+                </div>
+
+                <p class="error-msg" id="bulkSessionReassignError" style="margin-top: 14px; min-height: 20px;"></p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBulkSessionReassignModal">Cancel</button>
+                    <button type="submit" class="btn-primary" id="confirmBulkSessionReassignBtn">Apply Coach Reassignment</button>
                 </div>
             </form>
         </div>

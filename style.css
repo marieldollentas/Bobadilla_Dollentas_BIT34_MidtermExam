@@ -5575,7 +5575,9 @@ textarea.input-invalid {
 .coach-select-checkbox,
 #selectAllCoaches,
 .assignment-select-checkbox,
-#selectAllAssignments {
+#selectAllAssignments,
+.session-select-checkbox,
+#selectAllSessions {
     width: 16px;
     height: 16px;
     accent-color: var(--primary);
