@@ -7,8 +7,18 @@ function normalizeCoach(coach) {
         ? coach.specializations
         : (coach.specialization ? [coach.specialization] : []);
 
+    let shiftStart = Number(coach.shiftStart);
+    if (!Number.isFinite(shiftStart) || shiftStart < COACH_SLOT_START) shiftStart = COACH_SLOT_START;
+    if (shiftStart > COACH_SLOT_END - 1) shiftStart = COACH_SLOT_END - 1;
+
+    let shiftEnd = Number(coach.shiftEnd);
+    if (!Number.isFinite(shiftEnd) || shiftEnd > COACH_SLOT_END) shiftEnd = COACH_SLOT_END;
+    if (shiftEnd <= shiftStart) shiftEnd = Math.min(COACH_SLOT_END, shiftStart + 1);
+
     return {
         ...coach,
+        shiftStart,
+        shiftEnd,
         specializations: list.map(value => String(value).trim()).filter(Boolean),
         status: coach.status === "Inactive" ? "On Leave" : coach.status,
         phone: coach.phone ? phLocalNumber(coach.phone) : coach.phone
@@ -46,7 +56,7 @@ function seedCoaches() {
             status: "Active",
             days: [1, 2, 3, 4, 5, 6],
             shiftStart: 14,
-            shiftEnd: 21
+            shiftEnd: 20
         }
     ];
 
@@ -2242,15 +2252,15 @@ function buildCoachFormFields() {
     }
 
     const hours = [];
-    for (let hour = COACH_SLOT_START - 1; hour <= COACH_SLOT_END + 2; hour++) hours.push(hour);
+    for (let hour = COACH_SLOT_START; hour <= COACH_SLOT_END; hour++) hours.push(hour);
 
     ["coachShiftStart", "coachShiftEnd"].forEach(id => {
         const select = document.getElementById(id);
-        if (!select || select.dataset.filled) return;
+        if (!select || select.dataset.filled === `${COACH_SLOT_START}-${COACH_SLOT_END}`) return;
         select.innerHTML = hours.map(hour =>
             `<option value="${hour}">${formatHourLabel(hour)}</option>`
         ).join("");
-        select.dataset.filled = "1";
+        select.dataset.filled = `${COACH_SLOT_START}-${COACH_SLOT_END}`;
     });
 
     const specializationGrid = document.getElementById("coachSpecializationGrid");
@@ -2462,6 +2472,9 @@ function saveCoach() {
     if (!specializations.length) return fail("Please select at least one specialization.");
     if (!days.length) return fail("Please select at least one working day.");
     if (!(shiftStart < shiftEnd)) return fail("Working hours must end after they start.");
+    if (shiftStart < COACH_SLOT_START || shiftEnd > COACH_SLOT_END) {
+        return fail(`Working hours must be within the timetable range (${formatHourLabel(COACH_SLOT_START)} – ${formatHourLabel(COACH_SLOT_END)}).`);
+    }
 
     const coaches = getCoaches();
     const duplicate = coaches.find(coach =>
