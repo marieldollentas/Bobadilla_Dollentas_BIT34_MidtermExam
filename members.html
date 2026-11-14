@@ -117,10 +117,25 @@
                             <h1>Customer Directory &amp; Membership Status</h1>
                             <p>Every registered account and front desk record, with tier, key fob and renewal dates in one place.</p>
                         </div>
-                        <button type="button" id="exportMembersPdfBtn" class="btn-primary export-pdf-btn" title="Download the membership report as a PDF">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4.5 16.5v1.5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-1.5"/></svg>
-                            Export PDF
-                        </button>
+                        <div class="head-actions">
+                            <div class="header-dropdown-wrap" id="headerExportDropdownWrap">
+                                <button type="button" id="exportDropdownBtn" class="btn-primary export-dropdown-btn" aria-haspopup="true" aria-expanded="false" title="Export customer directory records">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4.5 16.5v1.5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-1.5"/></svg>
+                                    <span>Export</span>
+                                    <svg class="dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                                <div class="header-dropdown-menu" id="headerExportMenu" hidden>
+                                    <button type="button" class="header-dropdown-item" id="exportMembersCsvBtn" title="Download the customer directory as a CSV spreadsheet">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+                                        <span>Export CSV Spreadsheet</span>
+                                    </button>
+                                    <button type="button" class="header-dropdown-item" id="exportMembersPdfBtn" title="Download the membership report as a PDF">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+                                        <span>Export PDF Report</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

@@ -442,11 +442,31 @@ async function exportMembershipReportPdf(button, customRows, customTitle) {
 window.exportMembershipReportPdf = exportMembershipReportPdf;
 
 document.addEventListener("DOMContentLoaded", () => {
-    const button = document.getElementById("exportMembersPdfBtn");
-    if (!button) return;
+    if (typeof window.initHeaderExportDropdown === "function") {
+        window.initHeaderExportDropdown();
+    } else {
+        const dropdownBtn = document.getElementById("exportDropdownBtn");
+        const dropdownMenu = document.getElementById("headerExportMenu");
+        const pdfButton = document.getElementById("exportMembersPdfBtn");
+        if (pdfButton && !pdfButton.dataset.boundExport) {
+            pdfButton.dataset.boundExport = "1";
+            pdfButton.addEventListener("click", () => {
+                if (dropdownMenu) dropdownMenu.hidden = true;
+                if (dropdownBtn) dropdownBtn.setAttribute("aria-expanded", "false");
+                exportMembershipReportPdf(dropdownBtn || pdfButton);
+            });
+        }
 
-    button.addEventListener("click", () => {
-        if (button.disabled) return;
-        exportMembershipReportPdf(button);
-    });
+        const csvButton = document.getElementById("exportMembersCsvBtn");
+        if (csvButton && !csvButton.dataset.boundExport) {
+            csvButton.dataset.boundExport = "1";
+            csvButton.addEventListener("click", () => {
+                if (dropdownMenu) dropdownMenu.hidden = true;
+                if (dropdownBtn) dropdownBtn.setAttribute("aria-expanded", "false");
+                if (typeof window.exportMembersCsv === "function") {
+                    window.exportMembersCsv();
+                }
+            });
+        }
+    }
 });

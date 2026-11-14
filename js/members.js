@@ -586,31 +586,65 @@ function initCustomerDirectoryBulkActions() {
 }
 window.initCustomerDirectoryBulkActions = initCustomerDirectoryBulkActions;
 
-function renderCustomerDirectory() {
-    const tbody = document.getElementById("customerTableBody");
-    if (!tbody) return;
+function initHeaderExportDropdown() {
+    const dropdownBtn = document.getElementById("exportDropdownBtn");
+    const dropdownMenu = document.getElementById("headerExportMenu");
+    if (!dropdownBtn || !dropdownMenu) return;
 
-    initCustomerDirectoryFilters();
-    initCustomerDirectoryBulkActions();
+    if (!dropdownBtn.dataset.boundDropdown) {
+        dropdownBtn.dataset.boundDropdown = "1";
+        dropdownBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            const isHidden = dropdownMenu.hidden;
+            dropdownMenu.hidden = !isHidden;
+            dropdownBtn.setAttribute("aria-expanded", String(isHidden));
+        });
 
-    const today = todayStart();
-    const allRows = getActiveDirectoryCustomers();
-    const filters = getCustomerDirectoryFilters();
+        document.addEventListener("click", e => {
+            if (!dropdownMenu.contains(e.target) && !dropdownBtn.contains(e.target)) {
+                dropdownMenu.hidden = true;
+                dropdownBtn.setAttribute("aria-expanded", "false");
+            }
+        });
 
-    // Prune selections that no longer exist
-    if (window.selectedMemberIds && window.selectedMemberIds.size > 0) {
-        const activeIds = new Set(allRows.map(r => String(r.id)));
-        Array.from(window.selectedMemberIds).forEach(id => {
-            if (!activeIds.has(String(id))) window.selectedMemberIds.delete(id);
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape" && !dropdownMenu.hidden) {
+                dropdownMenu.hidden = true;
+                dropdownBtn.setAttribute("aria-expanded", "false");
+                dropdownBtn.focus();
+            }
         });
     }
 
-    // Filter rows by search, status, and tier
-    const filteredRows = getFilteredDirectoryCustomers(allRows, filters, today);
+    const headerCsvBtn = document.getElementById("exportMembersCsvBtn");
+    if (headerCsvBtn && !headerCsvBtn.dataset.boundExport) {
+        headerCsvBtn.dataset.boundExport = "1";
+        headerCsvBtn.addEventListener("click", () => {
+            dropdownMenu.hidden = true;
+            dropdownBtn.setAttribute("aria-expanded", "false");
+            if (headerCsvBtn.disabled || dropdownBtn.disabled) return;
+            window.exportMembersCsv();
+        });
+    }
 
-    // Sort filtered rows
-    filteredRows.sort((a, b) => {
-        switch (filters.sortBy) {
+    const headerPdfBtn = document.getElementById("exportMembersPdfBtn");
+    if (headerPdfBtn && !headerPdfBtn.dataset.boundExport) {
+        headerPdfBtn.dataset.boundExport = "1";
+        headerPdfBtn.addEventListener("click", () => {
+            dropdownMenu.hidden = true;
+            dropdownBtn.setAttribute("aria-expanded", "false");
+            if (headerPdfBtn.disabled || dropdownBtn.disabled) return;
+            if (typeof window.exportMembershipReportPdf === "function") {
+                window.exportMembershipReportPdf(dropdownBtn);
+            }
+        });
+    }
+}
+window.initHeaderExportDropdown = initHeaderExportDropdown;
+
+function sortDirectoryCustomers(rows, sortBy) {
+    return rows.sort((a, b) => {
+        switch (sortBy) {
             case "joined-asc": {
                 const dateA = a.joined && a.joined !== "—" ? new Date(a.joined + "T00:00:00").getTime() : 0;
                 const dateB = b.joined && b.joined !== "—" ? new Date(b.joined + "T00:00:00").getTime() : 0;
@@ -685,6 +719,34 @@ function renderCustomerDirectory() {
                 return 0;
         }
     });
+}
+window.sortDirectoryCustomers = sortDirectoryCustomers;
+
+function renderCustomerDirectory() {
+    const tbody = document.getElementById("customerTableBody");
+    if (!tbody) return;
+
+    initCustomerDirectoryFilters();
+    initCustomerDirectoryBulkActions();
+    initHeaderExportDropdown();
+
+    const today = todayStart();
+    const allRows = getActiveDirectoryCustomers();
+    const filters = getCustomerDirectoryFilters();
+
+    // Prune selections that no longer exist
+    if (window.selectedMemberIds && window.selectedMemberIds.size > 0) {
+        const activeIds = new Set(allRows.map(r => String(r.id)));
+        Array.from(window.selectedMemberIds).forEach(id => {
+            if (!activeIds.has(String(id))) window.selectedMemberIds.delete(id);
+        });
+    }
+
+    // Filter rows by search, status, and tier
+    const filteredRows = getFilteredDirectoryCustomers(allRows, filters, today);
+
+    // Sort filtered rows
+    sortDirectoryCustomers(filteredRows, filters.sortBy);
 
     // Update Result Counter
     const countEl = document.getElementById("customerResultCount");
@@ -1180,21 +1242,30 @@ window.bulkArchiveMembers = function() {
     alert(`Successfully archived ${archivedCount} member(s).`);
 };
 
-// Bulk Action: Export to CSV
-window.bulkExportMembersCsv = function() {
-    const selectedIds = Array.from(window.selectedMemberIds || []);
-    if (selectedIds.length === 0) {
-        alert("Please select at least one member to export.");
-        return;
+// Export Customer Directory to CSV
+function exportMembersCsv(customMembers, customFilename) {
+    const today = typeof todayStart === "function" ? todayStart() : new Date();
+    let members = Array.isArray(customMembers) ? customMembers : null;
+    if (!members) {
+        const allRows = typeof getActiveDirectoryCustomers === "function"
+            ? getActiveDirectoryCustomers()
+            : (typeof getDirectoryCustomers === "function" ? getDirectoryCustomers() : []);
+
+        if (typeof getCustomerDirectoryFilters === "function" && typeof getFilteredDirectoryCustomers === "function") {
+            const filters = getCustomerDirectoryFilters();
+            const hasFilter = Boolean(
+                (filters.search && filters.search.trim()) ||
+                (filters.status && filters.status !== "all") ||
+                (filters.tier && filters.tier !== "all")
+            );
+            const filtered = hasFilter ? getFilteredDirectoryCustomers(allRows, filters, today) : allRows;
+            members = typeof sortDirectoryCustomers === "function" ? sortDirectoryCustomers([...filtered], filters.sortBy) : [...filtered];
+        } else {
+            members = [...allRows];
+        }
     }
 
-    const today = todayStart();
-    const allMembers = getDirectoryCustomers();
-    const selectedMembers = selectedIds
-        .map(id => allMembers.find(c => String(c.id) === String(id)))
-        .filter(Boolean);
-
-    if (selectedMembers.length === 0) {
+    if (!members || members.length === 0) {
         alert("No member data found for export.");
         return;
     }
@@ -1224,21 +1295,23 @@ window.bulkExportMembersCsv = function() {
         return str;
     };
 
-    const rows = selectedMembers.map(m => {
-        const status = getMemberStatus(m, today);
+    const rows = members.map(m => {
+        const parts = typeof namePartsFromRecord === "function" ? namePartsFromRecord(m) : { firstName: m.firstName, middleName: m.middleName, lastName: m.lastName };
+        const status = typeof getMemberStatus === "function" ? getMemberStatus(m, today) : (m.status || "—");
         const exp = m.updatedExpirationDate || m.exp || "—";
         const gender = m.gender === "Other" && m.genderIdentity
             ? `Other (${m.genderIdentity})`
             : (m.gender || "—");
+        const phone = m.phone || m.contact || "—";
         return [
-            escapeCsv(m.firstName || "—"),
-            escapeCsv(m.middleName || "—"),
-            escapeCsv(m.lastName || "—"),
+            escapeCsv(m.firstName || parts.firstName || "—"),
+            escapeCsv(m.middleName || parts.middleName || "—"),
+            escapeCsv(m.lastName || parts.lastName || "—"),
             escapeCsv(m.suffix || "—"),
             escapeCsv(gender),
             escapeCsv(m.birthday || "—"),
             escapeCsv(m.email || "—"),
-            escapeCsv(m.phone || "—"),
+            escapeCsv(phone),
             escapeCsv(m.address || "—"),
             escapeCsv(m.keyFob || "—"),
             escapeCsv(m.tier || "—"),
@@ -1254,11 +1327,34 @@ window.bulkExportMembersCsv = function() {
     const a = document.createElement("a");
     const todayStr = new Date().toISOString().split("T")[0];
     a.href = url;
-    a.download = `anytime-fitness-members-selected-${todayStr}.csv`;
+    a.download = customFilename || `anytime-fitness-members-${todayStr}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+window.exportMembersCsv = exportMembersCsv;
+
+// Bulk Action: Export to CSV
+window.bulkExportMembersCsv = function() {
+    const selectedIds = Array.from(window.selectedMemberIds || []);
+    if (selectedIds.length === 0) {
+        alert("Please select at least one member to export.");
+        return;
+    }
+
+    const allMembers = getDirectoryCustomers();
+    const selectedMembers = selectedIds
+        .map(id => allMembers.find(c => String(c.id) === String(id)))
+        .filter(m => m && !memberIsArchived(m));
+
+    if (selectedMembers.length === 0) {
+        alert("No member data found for export.");
+        return;
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    exportMembersCsv(selectedMembers, `anytime-fitness-members-selected-${todayStr}.csv`);
 };
 
 // Bulk Action: Export to PDF
