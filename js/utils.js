@@ -189,6 +189,9 @@ function parseSocialPostUrl(raw) {
     }
 
     const host = parsed.hostname;
+    if (!host.includes(".")) {
+        return { ok: false, reason: "Please enter a valid web address with a domain (e.g. instagram.com/p/XXXXXX)." };
+    }
 
     if (hostMatches(host, INSTAGRAM_HOSTS)) {
         const url = parseInstagramPermalink(parsed.pathname);
@@ -224,7 +227,11 @@ function parseSocialPostUrl(raw) {
         return { ok: true, platform: "TikTok", url: parsed.href, embeddable: false, note: "TikTok posts link out only." };
     }
 
-    return { ok: false, reason: "Only Instagram and Facebook post links can be embedded here." };
+    if (hostMatches(host, ["linkedin.com", "www.linkedin.com"])) {
+        return { ok: true, platform: "LinkedIn", url: parsed.href, embeddable: false, note: "LinkedIn posts link out only." };
+    }
+
+    return { ok: true, platform: "Other", url: parsed.href, embeddable: false, note: "Post link recognised. It will link out directly." };
 }
 
 // Reads the saved post link of a campaign and returns the same shape as

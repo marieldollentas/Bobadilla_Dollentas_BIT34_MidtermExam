@@ -1665,6 +1665,47 @@ select.search-input {
 }
 
 /* ---------- 18. Campaign cards ---------- */
+.campaign-search-bar {
+    margin-top: 14px;
+    margin-bottom: 2px;
+}
+
+.campaign-search-field {
+    position: relative;
+    width: 100%;
+}
+
+.campaign-search-field .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+
+.campaign-search-field .search-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fbfbfe;
+    transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.campaign-search-field .search-input:focus {
+    background: #fff;
+    border-color: var(--primary-300, #c3baf1);
+    box-shadow: 0 0 0 3px rgba(91, 75, 196, .14);
+}
+
 .campaign-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

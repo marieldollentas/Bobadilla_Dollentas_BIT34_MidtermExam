@@ -657,6 +657,8 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("campaignId").value = "";
             document.getElementById("campaignStatus").value = "Scheduled";
             document.getElementById("otherPlatformGroup").style.display = "none";
+            const otherInput = document.getElementById("campaignPlatformOther");
+            if (otherInput) otherInput.required = false;
             document.getElementById("campaignModalTitle").textContent = "Add Marketing Campaign";
             campaignForm.querySelector('button[type="submit"]').textContent = "Save Campaign";
 
@@ -682,7 +684,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (campaignPlatformSelect) {
         const toggleCustomPlatform = () => {
             const group = document.getElementById("otherPlatformGroup");
-            if (group) group.style.display = campaignPlatformSelect.value === "Other" ? "block" : "none";
+            const otherInput = document.getElementById("campaignPlatformOther");
+            const isOther = campaignPlatformSelect.value === "Other";
+            if (group) group.style.display = isOther ? "block" : "none";
+            if (otherInput) otherInput.required = isOther;
         };
         campaignPlatformSelect.addEventListener("change", toggleCustomPlatform);
         toggleCustomPlatform();
@@ -697,15 +702,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (campaignPostUrlInput) {
         campaignPostUrlInput.addEventListener("input", () => {
-            const info = parseSocialPostUrl(campaignPostUrlInput.value);
+            const rawVal = campaignPostUrlInput.value.trim();
+            if (!rawVal) {
+                if (campaignPostUrlError) {
+                    campaignPostUrlError.textContent = "";
+                    campaignPostUrlError.hidden = true;
+                }
+                if (campaignPostUrlHint) {
+                    campaignPostUrlHint.textContent = "";
+                    campaignPostUrlHint.hidden = true;
+                }
+                return;
+            }
+
+            const info = parseSocialPostUrl(rawVal);
 
             if (campaignPostUrlError) {
-                campaignPostUrlError.textContent = info.reason;
-                campaignPostUrlError.hidden = !info.reason;
+                campaignPostUrlError.textContent = info.ok ? "" : info.reason;
+                campaignPostUrlError.hidden = info.ok;
             }
             if (campaignPostUrlHint) {
-                campaignPostUrlHint.textContent = info.ok ? info.note : "";
-                campaignPostUrlHint.hidden = !info.ok;
+                campaignPostUrlHint.textContent = info.ok ? (info.note || "") : "";
+                campaignPostUrlHint.hidden = !info.ok || !info.note;
             }
 
             if (info.ok && CAMPAIGN_PLATFORMS.includes(info.platform) && campaignPlatformSelect) {
@@ -727,20 +745,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (campaignForm) {
         campaignForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const title = document.getElementById("campaignTitle").value.trim();
+            const titleInput = document.getElementById("campaignTitle");
+            const title = (titleInput ? titleInput.value : "").trim();
             if (!title) {
                 alert("Please enter the campaign title.");
+                if (titleInput) titleInput.focus();
                 return;
             }
 
-            // A post link that cannot be parsed is refused here rather than saved,
-            // because the card's preview and embed both depend on a real permalink.
-            // The field stays optional: campaigns without a link still save.
-            const postUrl = document.getElementById("campaignPostUrl").value.trim();
-            const postInfo = parseSocialPostUrl(postUrl);
-            if (postUrl && !postInfo.ok) {
+            const postUrl = (campaignPostUrlInput ? campaignPostUrlInput.value : "").trim();
+            if (!postUrl) {
                 if (campaignPostUrlError) {
-                    campaignPostUrlError.textContent = postInfo.reason;
+                    campaignPostUrlError.textContent = "Please enter the post link.";
                     campaignPostUrlError.hidden = false;
                 }
                 if (campaignPostUrlHint) campaignPostUrlHint.hidden = true;
@@ -748,18 +764,54 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const platform = document.getElementById("campaignPlatform").value;
-            const customPlatform = document.getElementById("campaignPlatformOther").value.trim();
+            const postInfo = parseSocialPostUrl(postUrl);
+            if (!postInfo.ok) {
+                if (campaignPostUrlError) {
+                    campaignPostUrlError.textContent = postInfo.reason || "Please enter a valid post link.";
+                    campaignPostUrlError.hidden = false;
+                }
+                if (campaignPostUrlHint) campaignPostUrlHint.hidden = true;
+                if (campaignPostUrlInput) campaignPostUrlInput.focus();
+                return;
+            }
+
+            const platform = campaignPlatformSelect ? campaignPlatformSelect.value : "";
+            if (!platform) {
+                alert("Please select a platform.");
+                if (campaignPlatformSelect) campaignPlatformSelect.focus();
+                return;
+            }
+
+            const customPlatformInput = document.getElementById("campaignPlatformOther");
+            const customPlatform = (customPlatformInput ? customPlatformInput.value : "").trim();
+            if (platform === "Other" && !customPlatform) {
+                alert("Please enter the custom platform name.");
+                if (customPlatformInput) customPlatformInput.focus();
+                return;
+            }
+
+            const statusInput = document.getElementById("campaignStatus");
+            const status = statusInput ? statusInput.value : "";
+            if (!status) {
+                alert("Please select a status.");
+                if (statusInput) statusInput.focus();
+                return;
+            }
+
+            const imageInput = document.getElementById("campaignImageUrl");
+            const rawImageUrl = (imageInput ? imageInput.value : "").trim();
+            // Thumbnail is optional: fallback to default image if left blank
+            const imageUrl = rawImageUrl || CAMPAIGN_PLACEHOLDER_IMAGE;
 
             const campaigns = getCampaigns();
             const data = {
                 title,
                 platform: platform === "Other" && customPlatform ? customPlatform : platform,
-                status: document.getElementById("campaignStatus").value,
+                status,
                 // The canonical permalink is stored so the official embed script
                 // is handed exactly the URL shape it documents.
-                postUrl: postInfo.ok ? postInfo.url : "",
-                imageUrl: document.getElementById("campaignImageUrl").value.trim()
+                postUrl: postInfo.url || postUrl,
+                imageUrl
             };
 
             const id = document.getElementById("campaignId").value;

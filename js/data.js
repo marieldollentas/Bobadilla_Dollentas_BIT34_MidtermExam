@@ -238,6 +238,9 @@ const CAMPAIGN_STATUSES = [
 // js-split:file=data.js part=15of59
 // Split from script.js - whole top-level blocks moved verbatim, no behavior change.
 const CAMPAIGN_PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80";
+if (typeof window !== "undefined") {
+    window.CAMPAIGN_PLACEHOLDER_IMAGE = CAMPAIGN_PLACEHOLDER_IMAGE;
+}
 
 
 

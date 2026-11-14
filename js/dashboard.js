@@ -42,7 +42,7 @@ function buildCampaignCard(campaign) {
 
     div.innerHTML = `
         <div class="campaign-media">
-            <img src="${escapeHtml(imageUrl || CAMPAIGN_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(campaign.title)}" class="campaign-img">
+            <img src="${escapeHtml(imageUrl || CAMPAIGN_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(campaign.title)}" class="campaign-img" onerror="this.onerror=null;this.src=window.CAMPAIGN_PLACEHOLDER_IMAGE||'${escapeHtml(CAMPAIGN_PLACEHOLDER_IMAGE)}';">
             ${campaignPlatformChip(info.ok ? info.platform : campaign.platform)}
         </div>
         <h4>${escapeHtml(campaign.title)}</h4>
@@ -77,6 +77,10 @@ function renderCampaigns() {
         return;
     }
     campaigns.forEach(c => container.appendChild(buildCampaignCard(c)));
+    const searchInput = document.getElementById("campaignSearch");
+    if (searchInput && searchInput.value) {
+        filterCampaignCards(searchInput.value);
+    }
 }
 
 // Official embed scripts are loaded at most once per page, but only after a user
@@ -310,10 +314,20 @@ function openEditCampaign(id) {
     document.getElementById("campaignPlatformOther").value = platform === "Other" ? (campaign.platform || "") : "";
     document.getElementById("campaignStatus").value = campaign.status || "Scheduled";
     document.getElementById("campaignPostUrl").value = campaign.postUrl || "";
-    document.getElementById("campaignImageUrl").value = campaign.imageUrl || "";
+
+    // Thumbnail is optional: leave blank if it uses the default placeholder image
+    const isPlaceholder = !campaign.imageUrl || campaign.imageUrl === CAMPAIGN_PLACEHOLDER_IMAGE;
+    document.getElementById("campaignImageUrl").value = isPlaceholder ? "" : campaign.imageUrl;
 
     const group = document.getElementById("otherPlatformGroup");
+    const otherInput = document.getElementById("campaignPlatformOther");
     if (group) group.style.display = platform === "Other" ? "block" : "none";
+    if (otherInput) otherInput.required = platform === "Other";
+
+    const hint = document.getElementById("campaignPostUrlHint");
+    const error = document.getElementById("campaignPostUrlError");
+    if (hint) { hint.textContent = ""; hint.hidden = true; }
+    if (error) { error.textContent = ""; error.hidden = true; }
 
     document.getElementById("campaignModalTitle").textContent = "Edit Marketing Campaign";
     document.getElementById("campaignForm").querySelector('button[type="submit"]').textContent = "Update Campaign";
@@ -681,12 +695,19 @@ document.addEventListener("DOMContentLoaded", () => {
         bar.addEventListener("input", () => filterCampaignCards(bar.value));
     }
 
+    function wireCampaignSearch() {
+        const input = document.getElementById("campaignSearch");
+        if (!input) return;
+        input.addEventListener("input", () => filterCampaignCards(input.value));
+    }
+
     renderTopbarChrome();
     renderKpiNotes();
     renderCampaignTotals();
     renderDirectoryStats();
     renderTicketStats();
     wireTopbarSearch();
+    wireCampaignSearch();
 
     // Keep the campaign totals in step with add / edit / delete in this tab
     const campaignCards = document.getElementById("campaignCards");
@@ -1154,7 +1175,7 @@ function applyActivityDeepLink() {
     const term = (new URLSearchParams(window.location.search).get("q") || "").trim();
     if (!term) return;
 
-    const field = ["searchCustomer", "ticketSearch", "pipelineSearch", "coachSearch"]
+    const field = ["campaignSearch", "searchCustomer", "ticketSearch", "pipelineSearch", "coachSearch"]
         .map(id => document.getElementById(id))
         .find(el => el);
     if (!field) return;

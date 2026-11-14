@@ -67,11 +67,6 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                 </label>
 
-                <div class="topbar-search">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-                    <input type="text" id="topbarSearch" placeholder="Search campaigns and platforms..." aria-label="Search campaigns">
-                </div>
-
                 <span class="topbar-meta" id="topbarDate"></span>
 
                 <div class="topbar-right">
@@ -294,6 +289,12 @@
                                     </div>
                                     <button id="openCampaignModal" class="btn-primary">+ Add Campaign</button>
                                 </div>
+                                <div class="campaign-search-bar">
+                                    <div class="campaign-search-field">
+                                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+                                        <input type="text" id="campaignSearch" class="search-input" placeholder="Search campaigns and platforms..." aria-label="Search campaigns">
+                                    </div>
+                                </div>
                                 <div id="campaignCards" class="campaign-cards"></div>
                                 <div class="campaign-summary">
                                     <div class="is-scheduled">
@@ -347,18 +348,18 @@
                         <input type="text" id="campaignTitle" class="search-input" placeholder="e.g. Summer Shred Challenge" required>
                     </div>
                     <div class="form-group form-span-all">
-                        <label for="campaignPostUrl">Instagram / Facebook Post URL</label>
+                        <label for="campaignPostUrl">Post Link / URL</label>
                         <!-- type=text rather than type=url: the script parses and normalises this link
                          itself, so a scheme-less paste such as instagram.com/p/XXXXXX is accepted
                          and explained in its own words instead of a native browser bubble. -->
-                        <input type="text" inputmode="url" id="campaignPostUrl" class="search-input" placeholder="Paste a post link, e.g. instagram.com/p/XXXXXX">
+                        <input type="text" inputmode="url" id="campaignPostUrl" class="search-input" placeholder="Paste a post link, e.g. instagram.com/p/XXXXXX" required>
                         <p class="success-msg" id="campaignPostUrlHint" hidden></p>
                         <p class="error-msg" id="campaignPostUrlError" hidden></p>
-                        <p class="field-hint">Leave blank for a campaign without a post. Instagram and Facebook links open as a live preview inside the card; the platform is filled in for you.</p>
+                        <p class="field-hint">Paste a link to the post (e.g. Instagram, Facebook, Twitter, TikTok, or web link). The platform will be detected automatically and a live preview will be available for supported platforms.</p>
                     </div>
                     <div class="form-group">
                         <label for="campaignPlatform">Platform</label>
-                        <select id="campaignPlatform" class="search-input">
+                        <select id="campaignPlatform" class="search-input" required>
                             <option value="Instagram">Instagram</option>
                             <option value="Facebook">Facebook</option>
                             <option value="Twitter">Twitter</option>
@@ -372,16 +373,16 @@
                     </div>
                     <div class="form-group">
                         <label for="campaignStatus">Status</label>
-                        <select id="campaignStatus" class="search-input">
+                        <select id="campaignStatus" class="search-input" required>
                             <option value="Scheduled">Scheduled</option>
                             <option value="Running">Running</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
                     <div class="form-group form-span-all">
-                        <label for="campaignImageUrl">Thumbnail Image URL</label>
-                        <input type="url" id="campaignImageUrl" class="search-input" placeholder="https://images.unsplash.com/...">
-                        <p class="field-hint">Used as the card thumbnail. Instagram and Facebook do not let a browser read post images directly, so paste the media image address here.</p>
+                        <label for="campaignImageUrl">Thumbnail Image URL <span style="color: var(--text-muted); font-size: 11px; font-weight: normal;">(Optional)</span></label>
+                        <input type="url" id="campaignImageUrl" class="search-input" placeholder="https://images.unsplash.com/... (leave blank for default image)">
+                        <p class="field-hint">Optional. If left blank, a default Anytime Fitness workout thumbnail will be used automatically.</p>
                     </div>
                 </div>
                 <div class="modal-actions">
