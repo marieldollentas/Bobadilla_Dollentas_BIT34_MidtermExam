@@ -447,6 +447,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         const dropdownBtn = document.getElementById("exportDropdownBtn");
         const dropdownMenu = document.getElementById("headerExportMenu");
+
         const pdfButton = document.getElementById("exportMembersPdfBtn");
         if (pdfButton && !pdfButton.dataset.boundExport) {
             pdfButton.dataset.boundExport = "1";

@@ -1246,6 +1246,9 @@ window.bulkArchiveMembers = function() {
 function exportMembersCsv(customMembers, customFilename) {
     const today = typeof todayStart === "function" ? todayStart() : new Date();
     let members = Array.isArray(customMembers) ? customMembers : null;
+    let scopeDescription = "All Active Directory Members";
+    let filterDescription = "None (Complete Directory)";
+
     if (!members) {
         const allRows = typeof getActiveDirectoryCustomers === "function"
             ? getActiveDirectoryCustomers()
@@ -1253,16 +1256,25 @@ function exportMembersCsv(customMembers, customFilename) {
 
         if (typeof getCustomerDirectoryFilters === "function" && typeof getFilteredDirectoryCustomers === "function") {
             const filters = getCustomerDirectoryFilters();
-            const hasFilter = Boolean(
-                (filters.search && filters.search.trim()) ||
-                (filters.status && filters.status !== "all") ||
-                (filters.tier && filters.tier !== "all")
-            );
+            const activeFilters = [];
+            if (filters.search && filters.search.trim()) activeFilters.push(`Search: "${filters.search.trim()}"`);
+            if (filters.status && filters.status !== "all") activeFilters.push(`Status: ${filters.status}`);
+            if (filters.tier && filters.tier !== "all") activeFilters.push(`Tier: ${filters.tier}`);
+
+            const hasFilter = activeFilters.length > 0;
+            if (hasFilter) {
+                scopeDescription = "Filtered Customer Directory";
+                filterDescription = activeFilters.join(" | ");
+            }
+
             const filtered = hasFilter ? getFilteredDirectoryCustomers(allRows, filters, today) : allRows;
             members = typeof sortDirectoryCustomers === "function" ? sortDirectoryCustomers([...filtered], filters.sortBy) : [...filtered];
         } else {
             members = [...allRows];
         }
+    } else {
+        scopeDescription = `Selected Directory Members (${members.length} records)`;
+        filterDescription = "Manual Checkbox Selection";
     }
 
     if (!members || members.length === 0) {
@@ -1270,7 +1282,72 @@ function exportMembersCsv(customMembers, customFilename) {
         return;
     }
 
-    const headers = [
+    const totalCount = members.length;
+    const statusCounts = {
+        "Active": 0,
+        "Expiring Soon": 0,
+        "Frozen": 0,
+        "Expired": 0
+    };
+
+    members.forEach(m => {
+        const st = typeof getMemberStatus === "function" ? getMemberStatus(m, today) : (m.status || "Active");
+        if (statusCounts[st] !== undefined) {
+            statusCounts[st]++;
+        } else {
+            statusCounts[st] = 1;
+        }
+    });
+
+    const activePct = totalCount ? `${Math.round(((statusCounts["Active"] || 0) / totalCount) * 100)}%` : "0%";
+    const expiringPct = totalCount ? `${Math.round(((statusCounts["Expiring Soon"] || 0) / totalCount) * 100)}%` : "0%";
+    const frozenPct = totalCount ? `${Math.round(((statusCounts["Frozen"] || 0) / totalCount) * 100)}%` : "0%";
+    const expiredPct = totalCount ? `${Math.round(((statusCounts["Expired"] || 0) / totalCount) * 100)}%` : "0%";
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const generatedAt = `${dateStr} at ${timeStr}`;
+
+    const escapeCsv = val => {
+        const str = String(val === null || val === undefined ? "" : val);
+        if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const formatPhone = val => {
+        const raw = String(val || "").trim();
+        if (!raw || raw === "—") return "—";
+        const digits = raw.replace(/\D/g, "");
+        if (digits.length === 11 && digits.startsWith("09")) {
+            return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+        }
+        return raw;
+    };
+
+    const dividerDouble = "====================================================================================================";
+    const dividerSingle = "----------------------------------------------------------------------------------------------------";
+
+    const reportHeaders = [
+        escapeCsv("ANYTIME FITNESS — CUSTOMER DIRECTORY & MEMBERSHIP REPORT"),
+        escapeCsv("Branch CRM Portal | Membership Management & Front Desk Records"),
+        escapeCsv(dividerDouble),
+        [escapeCsv("Report Generated:"), escapeCsv(generatedAt), escapeCsv("Branch:"), escapeCsv("Anytime Fitness Central"), escapeCsv("Scope:"), escapeCsv(scopeDescription)].join(","),
+        [escapeCsv("Filter Applied:"), escapeCsv(filterDescription), escapeCsv("Total Records:"), escapeCsv(totalCount), escapeCsv("Format:"), escapeCsv("CSV Spreadsheet")].join(","),
+        escapeCsv(dividerSingle),
+        escapeCsv("EXECUTIVE MEMBERSHIP SUMMARY:"),
+        [escapeCsv("Status Metric"), escapeCsv("Total Members"), escapeCsv("Active"), escapeCsv("Expiring Soon"), escapeCsv("Frozen"), escapeCsv("Expired")].join(","),
+        [escapeCsv("Record Count"), escapeCsv(totalCount), escapeCsv(statusCounts["Active"] || 0), escapeCsv(statusCounts["Expiring Soon"] || 0), escapeCsv(statusCounts["Frozen"] || 0), escapeCsv(statusCounts["Expired"] || 0)].join(","),
+        [escapeCsv("Share of Total"), escapeCsv("100%"), escapeCsv(activePct), escapeCsv(expiringPct), escapeCsv(frozenPct), escapeCsv(expiredPct)].join(","),
+        escapeCsv(dividerDouble),
+        "",
+        escapeCsv("--- CUSTOMER DIRECTORY ROSTER ---")
+    ];
+
+    const columnHeaders = [
+        "#",
         "First Name",
         "Middle Name",
         "Last Name",
@@ -1287,23 +1364,16 @@ function exportMembersCsv(customMembers, customFilename) {
         "Status"
     ];
 
-    const escapeCsv = val => {
-        const str = String(val === null || val === undefined ? "" : val);
-        if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
-            return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-    };
-
-    const rows = members.map(m => {
+    const dataRows = members.map((m, idx) => {
         const parts = typeof namePartsFromRecord === "function" ? namePartsFromRecord(m) : { firstName: m.firstName, middleName: m.middleName, lastName: m.lastName };
         const status = typeof getMemberStatus === "function" ? getMemberStatus(m, today) : (m.status || "—");
         const exp = m.updatedExpirationDate || m.exp || "—";
         const gender = m.gender === "Other" && m.genderIdentity
             ? `Other (${m.genderIdentity})`
             : (m.gender || "—");
-        const phone = m.phone || m.contact || "—";
+        const phone = formatPhone(m.phone || m.contact || "—");
         return [
+            escapeCsv(idx + 1),
             escapeCsv(m.firstName || parts.firstName || "—"),
             escapeCsv(m.middleName || parts.middleName || "—"),
             escapeCsv(m.lastName || parts.lastName || "—"),
@@ -1321,7 +1391,24 @@ function exportMembersCsv(customMembers, customFilename) {
         ].join(",");
     });
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+    const reportFooter = [
+        "",
+        escapeCsv(dividerDouble),
+        escapeCsv("--- END OF REPORT ---"),
+        [escapeCsv("Total Customer Records Rendered:"), escapeCsv(totalCount)].join(","),
+        [escapeCsv("Export Timestamp (ISO):"), escapeCsv(now.toISOString())].join(","),
+        [escapeCsv("Confidentiality Notice:"), escapeCsv("This document contains proprietary Anytime Fitness branch records. Unauthorized duplication or distribution is prohibited.")].join(","),
+        escapeCsv(dividerDouble)
+    ];
+
+    const fullContent = [
+        ...reportHeaders,
+        columnHeaders.map(escapeCsv).join(","),
+        ...dataRows,
+        ...reportFooter
+    ].join("\r\n");
+
+    const csvContent = "\uFEFF" + fullContent;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
