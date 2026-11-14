@@ -190,7 +190,7 @@ function buildLeadCard(lead) {
     if (lead.phone) rows.push(leadDetailRow("Phone", lead.phone));
     if (lead.email) rows.push(leadDetailRow("Email", lead.email));
     rows.push(leadDetailRow("Target", lead.tier || "—"));
-    if (value > 0) rows.push(leadDetailRow("Value", `$${value}/mo`));
+    if (value > 0) rows.push(leadDetailRow("Value", `₱${value.toLocaleString()}/mo`));
     // Only one closing line per card: a won lead has no follow-up left, and a
     // lost one is explained by the reason the staff recorded.
     if (lead.stage === "won") {
@@ -245,7 +245,7 @@ function renderPipelineBoard() {
 
         const titleEl = col.querySelector("h3");
         if (titleEl && meta) {
-            titleEl.innerHTML = `${meta.title} <span class="stage-count">(${stageLeads.length} ${stageLeads.length === 1 ? "lead" : "leads"}${totalValue ? " - $" + totalValue + "/mo" : ""})</span>`;
+            titleEl.innerHTML = `${meta.title} <span class="stage-count">(${stageLeads.length} ${stageLeads.length === 1 ? "lead" : "leads"}${totalValue ? " - ₱" + totalValue.toLocaleString() + "/mo" : ""})</span>`;
         }
 
         const visible = stageLeads.filter(lead => {
