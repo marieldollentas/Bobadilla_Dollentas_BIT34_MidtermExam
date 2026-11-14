@@ -270,10 +270,8 @@ window.resetCustomerDirectoryFilters = function() {
     const statusEl = document.getElementById("filterMemberStatus");
     const tierEl = document.getElementById("filterMemberTier");
     const sortEl = document.getElementById("sortMemberBy");
-    const topbar = document.getElementById("topbarSearch");
 
     if (searchEl) searchEl.value = "";
-    if (topbar) topbar.value = "";
     if (statusEl) statusEl.value = "all";
     if (tierEl) tierEl.value = "all";
     if (sortEl) sortEl.value = "joined-desc";
