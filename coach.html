@@ -345,7 +345,7 @@
                     <div class="section-title-wrap">
                         <span class="eyebrow">Session Logs</span>
                         <h2>Session Tracking &amp; History</h2>
-                        <p class="section-sub">Create, update, and annotate training sessions with attendance statuses, trainer progress notes, and monthly scheduling guardrails.</p>
+                        <p class="section-sub">Create, update, and annotate training sessions (each session lasts for 60 minutes / 1 hour) with attendance statuses, trainer progress notes, and monthly scheduling guardrails.</p>
                     </div>
                 </header>
 
@@ -353,12 +353,12 @@
                     <div class="card-head">
                         <div>
                             <h2>Session Tracking</h2>
-                            <p class="card-sub">Training sessions handled by each coach, with status and progress notes</p>
+                            <p class="card-sub">Training sessions handled by each coach (each session lasts for 60 minutes / 1 hour), with status and progress notes</p>
                         </div>
                         <button id="openSessionModal" class="btn-primary">+ Create Session</button>
                     </div>
 
-                    <p class="info-note" style="margin-top: 14px;">Sessions should only be scheduled within the current month. Past days and dates outside this month are unavailable.</p>
+                    <p class="info-note" style="margin-top: 14px;">All training sessions last for 60 minutes (1 hour) and should only be scheduled within the current month. Past days and dates outside this month are unavailable.</p>
 
                     <div class="ticket-filter-bar" style="margin-top: 16px; margin-bottom: 16px;">
                         <input type="text" id="sessionSearch" class="search-input" placeholder="Search by client, coach or training type...">
@@ -674,6 +674,7 @@
                     <div class="form-group">
                         <label for="sessionTime">Session Time</label>
                         <input type="time" id="sessionTime" class="search-input" step="900" required>
+                        <span class="card-sub" style="display:block; font-size: 11px; margin-top: 4px;">Each training session lasts for 60 minutes (1 hour)</span>
                     </div>
                 </div>
                 <div class="form-group">
